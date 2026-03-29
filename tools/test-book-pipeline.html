@@ -17,6 +17,7 @@
             shell: '#fffdf8',
             gold: '#a56b2c',
             moss: '#516b57',
+            sky: '#5d778c',
             plum: '#6e5068'
           },
           boxShadow: {
@@ -30,21 +31,20 @@
     :root {
       color-scheme: light;
       --bg: #f7f2e9;
-      --bg-accent: #efe2ca;
-      --panel: rgba(255, 252, 245, 0.9);
+      --panel: rgba(255, 252, 245, 0.92);
       --line: rgba(122, 92, 52, 0.14);
       --text: #302518;
       --muted: #76624b;
       --gold: #9a6634;
       --gold-strong: #7f4f22;
       --danger: #a24f43;
-      --success: #526b57;
     }
 
     html {
       background:
-        radial-gradient(circle at top left, rgba(239, 226, 202, 0.9), transparent 32%),
-        radial-gradient(circle at bottom right, rgba(151, 171, 155, 0.16), transparent 28%),
+        radial-gradient(circle at top left, rgba(239, 226, 202, 0.92), transparent 28%),
+        radial-gradient(circle at top right, rgba(125, 150, 169, 0.12), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(151, 171, 155, 0.14), transparent 22%),
         var(--bg);
     }
 
@@ -59,7 +59,7 @@
     .panel {
       background: var(--panel);
       border: 1px solid var(--line);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
     }
 
     .field {
@@ -87,7 +87,7 @@
       justify-content: center;
       gap: 0.5rem;
       border-radius: 999px;
-      padding: 0.68rem 1.1rem;
+      padding: 0.72rem 1.12rem;
       font-size: 0.9rem;
       line-height: 1;
       transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease;
@@ -129,41 +129,142 @@
       border: 1px solid rgba(162, 79, 67, 0.14);
     }
 
-    .chip {
+    .tag {
+      display: inline-flex;
+      align-items: center;
       border-radius: 999px;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.75rem;
+      padding: 0.32rem 0.7rem;
+      font-size: 0.73rem;
       line-height: 1;
       border: 1px solid transparent;
     }
 
-    .chip-emotion {
+    .tag-moods {
       background: rgba(110, 80, 104, 0.09);
       color: #6b4d65;
       border-color: rgba(110, 80, 104, 0.12);
     }
 
-    .chip-weather {
-      background: rgba(100, 126, 145, 0.09);
-      color: #53697a;
-      border-color: rgba(100, 126, 145, 0.12);
+    .tag-weather {
+      background: rgba(93, 119, 140, 0.09);
+      color: #51687a;
+      border-color: rgba(93, 119, 140, 0.12);
     }
 
-    .chip-place {
-      background: rgba(81, 107, 87, 0.10);
-      color: #4f6855;
-      border-color: rgba(81, 107, 87, 0.14);
+    .quote-card {
+      background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(250, 244, 235, 0.92));
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
     }
 
-    .fade-up-enter-active,
-    .fade-up-leave-active {
-      transition: opacity 220ms ease, transform 220ms ease;
+    .metric-card {
+      background: linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(246, 239, 226, 0.88));
     }
 
-    .fade-up-enter-from,
-    .fade-up-leave-to {
+    .result-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .result-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.9rem;
+    }
+
+    .result-summary {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.84rem;
+      color: rgba(87, 73, 57, 0.82);
+    }
+
+    .result-summary strong {
+      font-weight: 600;
+      color: #4f4438;
+    }
+
+    .quote-text {
+      margin: 0;
+      font-size: 0.94rem;
+      line-height: 1.85;
+      color: #40352b;
+    }
+
+    .quote-footnote {
+      margin-left: 0.2rem;
+      font-size: 0.64rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: rgba(117, 101, 83, 0.7);
+      vertical-align: super;
+    }
+
+    .quote-tagline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      min-height: 1.6rem;
+    }
+
+    .quote-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      font-size: 0.72rem;
+      color: rgba(120, 105, 88, 0.82);
+    }
+
+    .quote-date {
+      display: none;
+    }
+
+    .book-card-body {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 0.7rem;
+      padding-right: 3rem;
+    }
+
+    .book-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem 1rem;
+      font-size: 0.77rem;
+      color: rgba(102, 89, 72, 0.84);
+    }
+
+    .book-stat-strong {
+      font-weight: 600;
+      color: #4f4438;
+    }
+
+    @media (max-width: 767px) {
+      .result-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .book-card-body {
+        padding-right: 2.5rem;
+      }
+    }
+
+    .book-card .delete-book-btn {
       opacity: 0;
-      transform: translateY(10px);
+      pointer-events: none;
+    }
+
+    .book-card:hover .delete-book-btn,
+    .book-card:focus-within .delete-book-btn,
+    .book-card.is-active .delete-book-btn {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -176,320 +277,267 @@
   </style>
 </head>
 <body>
-  <div id="app" class="mx-auto min-h-screen max-w-6xl px-3 py-3 sm:px-4 sm:py-4 lg:px-5 lg:py-5">
-    <div class="space-y-4">
-      <div class="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <section class="space-y-6">
-          <header class="panel shadow-soft overflow-hidden rounded-[24px] p-4 sm:p-5">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div class="max-w-2xl">
-                <h1 class="text-2xl font-semibold tracking-tight text-stone-800 sm:text-[2rem]">谕句提取验证</h1>
-              </div>
-
-              <div class="grid grid-cols-2 gap-2 text-left text-sm sm:min-w-[280px]">
-                <article class="rounded-[18px] border border-stone-200/70 bg-stone-50/80 p-3">
-                  <p class="text-xs uppercase tracking-[0.18em] text-stone-400">切片</p>
-                  <p class="mt-2 text-[1.9rem] font-semibold leading-none text-stone-800">{{ totalChunks || estimatedChunks }}</p>
-                </article>
-                <article class="rounded-[18px] border border-stone-200/70 bg-stone-50/80 p-3">
-                  <p class="text-xs uppercase tracking-[0.18em] text-stone-400">结果</p>
-                  <p class="mt-2 text-[1.9rem] font-semibold leading-none text-stone-800">{{ quotes.length }}</p>
-                </article>
-              </div>
+  <div id="app" class="min-h-screen w-full px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6">
+    <div class="space-y-5 lg:space-y-6">
+      <section class="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)] xl:items-start">
+        <div class="space-y-4">
+          <section class="panel shadow-soft rounded-[26px] p-4 sm:p-5">
+            <div class="grid gap-3 lg:grid-cols-3">
+              <label class="block">
+                <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">API URL</span>
+                <input v-model.trim="config.apiUrl" class="field px-3 py-2.5 text-sm" spellcheck="false">
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">API Key</span>
+                <input
+                  v-model.trim="config.apiKey"
+                  type="password"
+                  class="field px-3 py-2.5 text-sm"
+                  autocomplete="off"
+                  placeholder="从 .env 复制"
+                >
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">模型</span>
+                <input v-model.trim="config.model" class="field px-3 py-2.5 text-sm" spellcheck="false">
+              </label>
             </div>
-          </header>
 
-          <section class="panel shadow-soft rounded-[24px] p-4 sm:p-5">
-            <button
-              type="button"
-              @click="showConfig = !showConfig"
-              class="flex w-full items-center justify-between rounded-[18px] px-0 py-0 text-left"
-              :aria-expanded="showConfig ? 'true' : 'false'"
-            >
-              <div>
-                <p class="text-sm font-medium text-stone-800">API 配置</p>
-              </div>
-              <span class="btn btn-secondary px-4 py-3 text-xs">{{ showConfig ? '收起参数' : '展开参数' }}</span>
-            </button>
-
-            <transition name="fade-up">
-              <div v-if="showConfig" class="mt-4 grid gap-3 border-t border-stone-200/70 pt-4">
-                <div class="grid gap-3 lg:grid-cols-3">
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">API URL</span>
-                    <input v-model.trim="config.apiUrl" class="field px-3 py-2.5 text-sm" spellcheck="false">
-                  </label>
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">API Key</span>
-                    <input
-                      v-model.trim="config.apiKey"
-                      type="password"
-                      class="field px-3 py-2.5 text-sm"
-                      autocomplete="off"
-                      placeholder="从 .env 复制"
-                    >
-                  </label>
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">模型</span>
-                    <input v-model.trim="config.model" class="field px-3 py-2.5 text-sm" spellcheck="false">
-                  </label>
+            <div class="mt-4 grid gap-4 lg:grid-cols-3">
+              <label class="block">
+                <div class="mb-1.5 flex items-center justify-between text-[11px] tracking-[0.12em] text-stone-500 uppercase">
+                  <span>切片大小</span>
+                  <span>{{ config.chunkSize }} 字</span>
                 </div>
-
-                <div class="grid gap-3 sm:grid-cols-2">
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">书名</span>
-                    <input v-model.trim="bookTitle" placeholder="可选" class="field px-3 py-2.5 text-sm" :disabled="processing || !activeBookId">
-                  </label>
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">作者</span>
-                    <input v-model.trim="bookAuthor" placeholder="可选" class="field px-3 py-2.5 text-sm" :disabled="processing || !activeBookId">
-                  </label>
+                <input type="range" v-model.number="config.chunkSize" min="1000" max="10000" step="500" class="w-full accent-amber-700">
+              </label>
+              <label class="block">
+                <div class="mb-1.5 flex items-center justify-between text-[11px] tracking-[0.12em] text-stone-500 uppercase">
+                  <span>并发</span>
+                  <span>{{ config.concurrency }}</span>
                 </div>
-
-                <div class="grid gap-4 lg:grid-cols-3">
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[11px] tracking-[0.12em] text-stone-500 uppercase">
-                      <span>切片大小</span>
-                      <span>{{ config.chunkSize }} 字</span>
-                    </div>
-                    <input type="range" v-model.number="config.chunkSize" min="1000" max="10000" step="500" class="w-full accent-amber-700">
-                  </label>
-
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[11px] tracking-[0.12em] text-stone-500 uppercase">
-                      <span>并发</span>
-                      <span>{{ config.concurrency }}</span>
-                    </div>
-                    <input type="range" v-model.number="config.concurrency" min="1" max="5" step="1" class="w-full accent-amber-700">
-                  </label>
-
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[11px] tracking-[0.12em] text-stone-500 uppercase">
-                      <span>Temperature</span>
-                      <span>{{ config.temperature.toFixed(1) }}</span>
-                    </div>
-                    <input type="range" v-model.number="config.temperature" min="0" max="1" step="0.1" class="w-full accent-amber-700">
-                  </label>
+                <input type="range" v-model.number="config.concurrency" min="1" max="5" step="1" class="w-full accent-amber-700">
+              </label>
+              <label class="block">
+                <div class="mb-1.5 flex items-center justify-between text-[11px] tracking-[0.12em] text-stone-500 uppercase">
+                  <span>Temperature</span>
+                  <span>{{ config.temperature.toFixed(1) }}</span>
                 </div>
-
-                <label class="block">
-                  <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">提示词</span>
-                  <textarea
-                    v-model.trim="config.prompt"
-                    rows="10"
-                    class="field min-h-[180px] px-3 py-3 text-sm leading-6"
-                    spellcheck="false"
-                  ></textarea>
-                </label>
-              </div>
-            </transition>
+                <input type="range" v-model.number="config.temperature" min="0" max="1" step="0.1" class="w-full accent-amber-700">
+              </label>
+            </div>
           </section>
 
-          <section class="panel shadow-soft rounded-[24px] p-4 sm:p-5">
+          <section class="panel shadow-soft rounded-[26px] p-4 sm:p-5">
+            <label class="block">
+              <textarea
+                v-model.trim="config.prompt"
+                rows="14"
+                class="field min-h-[420px] px-3 py-3 text-sm leading-6 lg:min-h-[560px]"
+                spellcheck="false"
+              ></textarea>
+            </label>
+          </section>
+        </div>
+
+        <div class="space-y-4 xl:sticky xl:top-4">
+          <section class="panel shadow-soft rounded-[26px] p-4 sm:p-5">
             <div class="flex flex-col gap-3 border-b border-stone-200/70 pb-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 class="text-lg font-semibold text-stone-800">上传书本</h2>
-              </div>
               <div class="flex flex-wrap gap-2">
                 <input id="book-upload-input" ref="fileInput" type="file" accept=".txt,text/plain" @change="handleFile" class="hidden">
-                <button type="button" class="btn btn-secondary" @click="pickFile" :disabled="processing">上传 txt</button>
-                <button type="button" class="btn btn-secondary" @click="clearFile" :disabled="processing || !activeBookId">清空当前书</button>
+                <button type="button" class="btn btn-secondary" @click="pickFile">上传 txt</button>
               </div>
             </div>
 
-            <div class="mt-4 rounded-[18px] border border-stone-200/70 bg-stone-50/70 px-4 py-4">
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">书名</span>
+                <input v-model.trim="bookTitle" placeholder="可选" class="field px-3 py-2.5 text-sm" :disabled="isBookBusy(selectedBook) || !selectedBookId">
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-[11px] tracking-[0.12em] text-stone-500 uppercase">作者</span>
+                <input v-model.trim="bookAuthor" placeholder="可选" class="field px-3 py-2.5 text-sm" :disabled="isBookBusy(selectedBook) || !selectedBookId">
+              </label>
+            </div>
+
+            <div class="mt-4 rounded-[20px] border border-stone-200/70 bg-stone-50/70 px-4 py-4">
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0">
-                  <p class="text-[11px] uppercase tracking-[0.12em] text-stone-500">文件</p>
+                  <p class="text-[11px] uppercase tracking-[0.12em] text-stone-500">当前文件</p>
                   <p class="mt-1 truncate text-sm text-stone-800">{{ bookTitle || '未选择' }}</p>
                 </div>
                 <div class="text-[11px] text-stone-500">{{ rawText ? rawText.length.toLocaleString() + ' 字' : '0 字' }}</div>
               </div>
             </div>
 
-            <div class="mt-3 flex flex-col gap-2 border-t border-stone-200/70 pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex flex-wrap items-center gap-2 text-[11px] text-stone-500">
-                <span>已保存 {{ books.length }} 本</span>
-                <span>预计 {{ estimatedChunks }} 段</span>
-                <span>并发 {{ config.concurrency }}</span>
-                <span>API Key {{ config.apiKey ? '已填写' : '未填写' }}</span>
-                <span v-if="bookTitle">书名：{{ bookTitle }}</span>
+            <div class="mt-3 border-t border-stone-200/70 pt-3">
+              <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <article class="metric-card rounded-[16px] border border-stone-200/70 px-3 py-2.5">
+                  <p class="text-[10px] uppercase tracking-[0.16em] text-stone-400">切片</p>
+                  <p class="mt-1 text-xl font-semibold leading-none text-stone-800">{{ totalChunks || estimatedChunks }}</p>
+                </article>
+                <article class="metric-card rounded-[16px] border border-stone-200/70 px-3 py-2.5">
+                  <p class="text-[10px] uppercase tracking-[0.16em] text-stone-400">结果</p>
+                  <p class="mt-1 text-xl font-semibold leading-none text-stone-800">{{ quotes.length }}</p>
+                </article>
+                <article class="metric-card rounded-[16px] border border-stone-200/70 px-3 py-2.5">
+                  <p class="text-[10px] uppercase tracking-[0.16em] text-stone-400">并发</p>
+                  <p class="mt-1 text-xl font-semibold leading-none text-stone-800">{{ config.concurrency }}</p>
+                </article>
+                <article class="metric-card rounded-[16px] border border-stone-200/70 px-3 py-2.5">
+                  <p class="text-[10px] uppercase tracking-[0.16em] text-stone-400">图书</p>
+                  <p class="mt-1 text-xl font-semibold leading-none text-stone-800">{{ books.length }}</p>
+                </article>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <button type="button" class="btn btn-secondary" @click="reset" :disabled="processing || !activeBookId">重置结果</button>
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                <button type="button" class="btn btn-secondary" @click="reset" :disabled="!selectedBookId || isBookBusy(selectedBook)">清除选中</button>
                 <button type="button" class="btn btn-primary" @click="start" :disabled="!canStart">
-                  <span>{{ processing ? '处理中...' : '开始提取' }}</span>
+                  <span>{{ primaryActionLabel }}</span>
                 </button>
+                <span class="text-xs text-stone-500" v-if="bookTitle">{{ bookTitle }}</span>
               </div>
+              <div class="mt-2 text-xs text-stone-500" v-if="queueHint">{{ queueHint }}</div>
             </div>
           </section>
-        </section>
 
-        <aside class="space-y-6">
-          <section class="panel shadow-soft rounded-[24px] p-4 sm:p-5">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-[11px] uppercase tracking-[0.2em] text-stone-500">状态</p>
-                <h2 class="mt-1 text-lg font-semibold text-stone-800">处理状态</h2>
-              </div>
+          <section class="panel shadow-soft rounded-[26px] p-4 sm:p-5">
+            <div class="flex items-center justify-end gap-3">
               <span
                 class="rounded-full px-2.5 py-1 text-[11px] tracking-[0.14em] uppercase"
-                :class="processing ? 'bg-amber-100 text-amber-800' : (quotes.length ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600')"
+                :class="selectedStatusClass"
               >
-                {{ processing ? 'running' : (quotes.length ? 'ready' : 'idle') }}
+                {{ selectedStatusLabel }}
               </span>
             </div>
 
-            <div class="mt-4 space-y-3">
-              <div class="rounded-[18px] border border-stone-200/70 bg-stone-50/70 p-3">
-                <div class="flex items-center justify-between text-sm text-stone-600">
-                  <span>进度</span>
-                  <span>{{ progressLabel }}</span>
-                </div>
-                <div class="mt-2 h-2 overflow-hidden rounded-full bg-stone-200/80">
-                  <div
-                    class="h-full rounded-full bg-gradient-to-r from-amber-700 via-amber-600 to-orange-500"
-                    :style="{ width: progressPercent + '%' }"
-                  ></div>
-                </div>
-                <div class="mt-3 grid grid-cols-2 gap-2 text-[11px] text-stone-500 sm:grid-cols-4">
-                  <div>总段数 {{ totalChunks || estimatedChunks || 0 }}</div>
-                  <div>已完成 {{ processedChunks }}</div>
-                  <div>失败 {{ failedChunks }}</div>
-                  <div>并发 {{ activeWorkers }}/{{ processing ? runningLimit : config.concurrency }}</div>
-                </div>
-                <div class="mt-2 flex flex-wrap gap-2" v-if="processing">
-                  <button type="button" class="btn btn-danger px-3 py-2 text-xs" @click="stop">停止当前任务</button>
-                </div>
+            <div class="mt-4 rounded-[20px] border border-stone-200/70 bg-stone-50/70 p-3">
+              <div class="flex items-center justify-between text-sm text-stone-600">
+                <span>进度</span>
+                <span>{{ progressLabel }}</span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-stone-200/80">
+                <div
+                  class="h-full rounded-full bg-gradient-to-r from-amber-700 via-amber-600 to-orange-500"
+                  :style="{ width: progressPercent + '%' }"
+                ></div>
+              </div>
+              <div class="mt-3 grid grid-cols-2 gap-2 text-[11px] text-stone-500 sm:grid-cols-4">
+                <div>总段数 {{ totalChunks || estimatedChunks || 0 }}</div>
+                <div>已完成 {{ processedChunks }}</div>
+                <div>失败 {{ failedChunks }}</div>
+                <div>并发 {{ activeWorkers }}/{{ selectedTask.status === 'running' ? runningLimit : config.concurrency }}</div>
+              </div>
+              <div class="mt-2 flex flex-wrap gap-2" v-if="processing">
+                <button type="button" class="btn btn-danger px-3 py-2 text-xs" @click="stop">停止队列</button>
               </div>
             </div>
           </section>
 
-          <section class="panel shadow-soft rounded-[24px] p-4 sm:p-5">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <p class="text-[11px] uppercase tracking-[0.2em] text-stone-500">书库</p>
-                <h2 class="mt-1 text-lg font-semibold text-stone-800">已保存图书</h2>
-              </div>
-              <span class="text-xs text-stone-500">{{ books.length }} 本</span>
-            </div>
-
-            <div v-if="!books.length" class="mt-4 rounded-[18px] border border-dashed border-stone-300 bg-stone-50/70 px-4 py-5 text-sm text-stone-500">
+          <section class="panel shadow-soft rounded-[26px] p-4 sm:p-5">
+            <div v-if="!books.length" class="rounded-[20px] border border-dashed border-stone-300 bg-stone-50/70 px-4 py-5 text-sm text-stone-500">
               上传 txt 后会自动保存到本地浏览器数据库。
             </div>
 
-            <div v-else class="mt-4 space-y-2">
-              <button
-                v-for="book in books"
+            <div v-else class="grid gap-2 md:grid-cols-2">
+              <div
+                v-for="book in books.filter(Boolean)"
                 :key="book.id"
-                type="button"
-                class="w-full rounded-[18px] border px-3 py-3 text-left transition"
-                :class="book.id === activeBookId ? 'border-amber-300 bg-amber-50/80' : 'border-stone-200/70 bg-stone-50/60 hover:border-stone-300'"
+                class="book-card relative w-full rounded-[18px] border px-3 py-3 text-left transition"
+                :class="book.id === selectedBookId ? 'is-active border-amber-300 bg-amber-50/80' : 'border-stone-200/70 bg-stone-50/60 hover:border-stone-300'"
                 @click="selectBook(book.id)"
-                :disabled="processing"
+                :aria-disabled="'false'"
               >
-                <div class="flex items-start justify-between gap-3">
+                <button
+                  type="button"
+                  class="delete-book-btn absolute right-2 top-2 rounded-full border border-stone-200/80 bg-stone-50/95 px-2.5 py-1 text-xs text-stone-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  @click.stop="deleteBook(book.id)"
+                  :disabled="isBookBusy(book)"
+                  aria-label="删除图书"
+                >
+                  删除
+                </button>
+                <div class="book-card-body">
                   <div class="min-w-0">
                     <p class="truncate text-sm font-medium text-stone-800">{{ book.title || '未命名图书' }}</p>
                     <p class="mt-1 text-xs text-stone-500">{{ formatDateTime(book.updatedAt || book.createdAt) }}</p>
+                    <div class="mt-2 flex flex-wrap gap-1.5">
+                      <span v-if="book.id === runningBookId" class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-amber-800">处理中</span>
+                      <span v-else-if="book.task?.status === 'queued'" class="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-sky-800">排队中</span>
+                      <span v-else-if="book.task?.status === 'partial'" class="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-orange-800">部分完成</span>
+                      <span v-else-if="book.task?.status === 'done'" class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-emerald-800">已完成</span>
+                      <span v-else-if="book.task?.status === 'error'" class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-red-700">失败</span>
+                      <span v-else-if="book.task?.status === 'stopped'" class="rounded-full bg-stone-300 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-stone-700">已停止</span>
+                    </div>
                   </div>
-                  <div class="shrink-0 text-right text-xs text-stone-500">
-                    <div>{{ (book.quotes || []).length }} 条</div>
-                    <div>{{ (book.rawText || '').length.toLocaleString() }} 字</div>
+                  <div class="book-stats">
+                    <span><span class="book-stat-strong">{{ (book.quotes || []).length }}</span> 条</span>
+                    <span><span class="book-stat-strong">{{ (book.rawText || '').length.toLocaleString() }}</span> 字</span>
+                    <span v-if="book.task?.status === 'running' || book.task?.status === 'partial' || book.task?.status === 'done' || book.task?.status === 'error' || book.task?.status === 'stopped'">
+                      <span class="book-stat-strong">{{ book.task?.processedChunks || 0 }}</span>/{{ book.task?.totalChunks || 0 }}
+                    </span>
                   </div>
                 </div>
-              </button>
+              </div>
             </div>
           </section>
+        </div>
+      </section>
 
-          <transition name="fade-up">
-            <section v-if="error" class="rounded-[20px] border border-red-200 bg-red-50/90 p-3 text-sm text-red-700 shadow-sm">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="font-medium">发生错误</p>
-                  <p class="mt-2 leading-6">{{ error }}</p>
-                </div>
-                <button type="button" class="text-red-400 transition hover:text-red-600" @click="error = ''" aria-label="关闭错误提示">关闭</button>
-              </div>
-            </section>
-          </transition>
-        </aside>
-      </div>
-
-      <section class="panel shadow-soft rounded-[24px] p-4 sm:p-5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 class="text-lg font-semibold text-stone-800">候选谕句</h2>
-            <p class="mt-1 text-xs text-stone-500" v-if="bookTitle">{{ bookTitle }} · 按生成时间倒序</p>
+      <section class="panel shadow-soft rounded-[28px] p-4 sm:p-5 lg:p-6">
+        <div class="result-toolbar">
+          <div class="min-w-0 space-y-1">
+            <div class="text-xs text-stone-500" v-if="bookTitle">{{ bookTitle }} · 按生成时间倒序</div>
+            <div class="result-summary" v-if="selectedBookId">
+              <span><strong>{{ quotes.length }}</strong> 条</span>
+              <span>，</span>
+              <span><strong>{{ ((selectedBook?.rawText || rawText || '').length).toLocaleString() }}</strong> 字</span>
+            </div>
           </div>
           <div class="flex flex-wrap gap-2" v-if="quotes.length">
+            <button type="button" class="btn btn-secondary px-3 py-2 text-xs" @click="reset" :disabled="isBookBusy(selectedBook)">清空结果</button>
             <button type="button" class="btn btn-secondary px-3 py-2 text-xs" @click="exportJSON">导出 JSON</button>
-            <button type="button" class="btn btn-secondary px-3 py-2 text-xs" @click="copyResults">复制结果</button>
           </div>
         </div>
 
-        <div v-if="!quotes.length" class="mt-4 rounded-[18px] border border-dashed border-stone-300 bg-stone-50/70 px-4 py-5 text-sm leading-6 text-stone-500">
+        <div v-if="!quotes.length" class="mt-4 rounded-[20px] border border-dashed border-stone-300 bg-stone-50/70 px-4 py-5 text-sm leading-6 text-stone-500">
           暂无结果
         </div>
 
-        <div v-else class="mt-4 overflow-hidden rounded-[18px] border border-stone-200/70 bg-shell">
-          <div class="overflow-x-auto">
-            <table class="min-w-full border-collapse text-left">
-              <thead class="bg-stone-100/90 text-[11px] uppercase tracking-[0.12em] text-stone-500">
-                <tr>
-                  <th class="px-3 py-2.5 font-medium">谕句</th>
-                  <th class="px-3 py-2.5 font-medium">情绪</th>
-                  <th class="px-3 py-2.5 font-medium">天气</th>
-                  <th class="px-3 py-2.5 font-medium">场景</th>
-                  <th class="px-3 py-2.5 font-medium">权重</th>
-                  <th class="px-3 py-2.5 font-medium">时间</th>
-                  <th class="px-3 py-2.5 font-medium">来源</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template v-for="(q, i) in quotes" :key="q._id || i">
-                  <tr class="border-t border-stone-200/70 align-top text-sm text-stone-700">
-                    <td class="px-3 py-3">
-                      <p class="min-w-[240px] max-w-[480px] text-[14px] leading-6 text-stone-800">{{ q.text }}</p>
-                    </td>
-                    <td class="px-3 py-3">
-                      <div class="flex min-w-[110px] flex-wrap gap-1.5">
-                        <span v-for="t in q.emotion" :key="`emotion-${i}-${t}`" class="chip chip-emotion">{{ t }}</span>
-                        <span v-if="!q.emotion.length" class="text-xs text-stone-400">-</span>
-                      </div>
-                    </td>
-                    <td class="px-3 py-3">
-                      <div class="flex min-w-[110px] flex-wrap gap-1.5">
-                        <span v-for="t in q.weather_fit" :key="`weather-${i}-${t}`" class="chip chip-weather">{{ t }}</span>
-                        <span v-if="!q.weather_fit.length" class="text-xs text-stone-400">-</span>
-                      </div>
-                    </td>
-                    <td class="px-3 py-3">
-                      <div class="flex min-w-[110px] flex-wrap gap-1.5">
-                        <span v-for="t in q.place_fit" :key="`place-${i}-${t}`" class="chip chip-place">{{ t }}</span>
-                        <span v-if="!q.place_fit.length" class="text-xs text-stone-400">-</span>
-                      </div>
-                    </td>
-                    <td class="px-3 py-3 text-sm font-semibold text-stone-700">{{ q.weight || 1 }}</td>
-                    <td class="px-3 py-3 text-xs text-stone-500">{{ formatDateTime(q._createdAt) }}</td>
-                    <td class="px-3 py-3">
-                      <div class="flex min-w-[110px] flex-col gap-1.5">
-                        <span class="text-xs text-stone-500">片段 {{ q._chunkIndex + 1 }} / {{ totalChunks || estimatedChunks }}</span>
-                        <button type="button" class="text-left text-sm text-amber-800 transition hover:text-amber-700" @click="q._show = !q._show">
-                          {{ q._show ? '收起原文' : '查看原文' }}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr v-if="q._show" class="border-t border-stone-100 bg-stone-50/70">
-                    <td colspan="7" class="px-3 py-3">
-                      <pre class="overflow-y-auto rounded-[14px] bg-stone-100/90 p-3 text-xs leading-5 text-stone-600">{{ q._source }}</pre>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
+        <div v-else class="result-grid mt-4 grid gap-4">
+          <article
+            v-for="(q, i) in quotes"
+            :key="q._id || i"
+            class="quote-card rounded-[20px] border border-stone-200/70 p-3.5 shadow-sm"
+          >
+            <div>
+              <p class="quote-text">
+                {{ q.text }}
+                <sup class="quote-footnote" :title="`权重 ${q.weight || 1} · 片段 ${q._chunkIndex + 1}`">{{ q.weight || 1 }}·{{ q._chunkIndex + 1 }}</sup>
+              </p>
+            </div>
+
+            <div class="quote-tagline">
+              <span v-for="t in q.moods" :key="`mood-${i}-${t}`" class="tag tag-mood">{{ t }}</span>
+              <span v-for="t in q.weather" :key="`weather-${i}-${t}`" class="tag tag-weather">{{ t }}</span>
+              <span v-if="!q.moods.length && !q.weather.length" class="text-xs text-stone-400">无标签</span>
+            </div>
+
+            <div class="quote-meta">
+              <span class="quote-date">{{ formatDateTime(q._createdAt) }}</span>
+              <span>{{ q.lang || 'unknown' }}</span>
+              <span>{{ safeArray(q.genre).join(' / ') || '未分类' }}</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section v-if="error" class="rounded-[22px] border border-red-200 bg-red-50/90 p-3 text-sm text-red-700 shadow-sm">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="font-medium">发生错误</p>
+            <p class="mt-2 leading-6">{{ error }}</p>
           </div>
+          <button type="button" class="text-red-400 transition hover:text-red-600" @click="error = ''" aria-label="关闭错误提示">关闭</button>
         </div>
       </section>
     </div>
@@ -498,41 +546,137 @@
   <script>
     const { createApp, ref, reactive, computed, watch } = window.Vue || {}
 
-    const STORAGE_KEY = 'book-pipeline-state-v3'
+    const STORAGE_KEY = 'book-pipeline-state-v4'
+    const LEGACY_STORAGE_KEYS = ['book-pipeline-state-v3', 'book-pipeline-state-v2']
     const DB_NAME = 'book-pipeline-db'
     const DB_VERSION = 1
     const BOOK_STORE = 'books'
 
-    const DEFAULT_PROMPT = `你是一个文学内容筛选专家。
+    const DEFAULT_PROMPT = `你是一个文学语料库编辑，任务是从以下书籍文本中提取适合「每日名句」产品使用的候选句子。
 
-请从以下文本中提取适合作为"谕句"的短句。
+## 产品背景
+这些句子会出现在一个极简 iOS 小组件上，用户每天看一句，可以按心情筛选。目标是让用户读完之后产生「这说的是我」的感受。
 
-谕句的定义：
-- 短小（15-60字），能脱离上下文独立成立
-- 能触发情绪和思考，有留白感
-- 不是鸡汤、不是说教、不是名言警句
-- 像《答案之书》那样，让人自己去对照
+## 入选标准
+只保留同时满足以下所有条件的句子：
 
-如果没有合适的，返回空数组 []。
+1. 长度：中文 15–60 字，英文 10–40 词
+2. 脱离上下文仍然成立：不依赖前后情节，单独存在有完整的力量
+3. 经验可代入：描述普遍但难以言说的处境或感受，不是奇异经历，不是历史事实，不是知识性陈述
+4. 语言有密度：具体词优于抽象词，动词优于形容词，意象优于判断；不能是口水话
+5. 开放性：给出张力但不完全解释张力；如果是结论句，必须是「读者没有语言表达过但一旦看到就认同」的那种
 
-只输出 JSON 数组，不要任何解释：
-[
-  {
-    "text": "提取的谕句原文",
-    "emotion": ["calm"],
-    "weather_fit": ["rainy"],
-    "place_fit": ["home"],
-    "weight": 2
-  }
-]
+## 排除标准
+以下一律排除：
+- 情节推进句、对话接续句（离开上下文无意义）
+- 纯知识性/历史性陈述
+- 励志空话、鸡汤结论（「坚持就是胜利」类）
+- 过于私人的专有名词导致无法代入
 
-emotion 可选：calm / happy / sad / anxious / angry / resilient / romantic / philosophical
-weather_fit 可选：sunny / cloudy / rainy / snowy / windy
-place_fit 可选：home / outdoor / commute / office
-weight：1=一般  2=较好  3=优秀`
+## 判断示范
+
+以下是 weight=3 的句子，代表最高标准，用来校准你的判断：
+
+// 开放性：给出处境，不解释，读者自己填满
+"从此故乡只有冬夏，再无春秋。"
+→ 没有说是谁离开了、为什么，但所有经历过某种失去的人都能代入
+
+"他终于离开了，我才发现我也并不挽留。"
+→ 张力在「才发现」三个字里，结论没有说完，读者自己完成
+
+"I am not afraid of storms, for I am learning how to sail my ship."
+→ 用具体动作（sail）承载抽象处境（面对困难），不说教
+
+// 结论句但仍入选：读者没语言说出过，但一旦看到就认同
+"你最孤独的时刻往往不是一个人，而是在人群里说着废话。"
+→ 是结论，但说出了普遍经验里一个没被命名过的感受
+
+"The world breaks everyone and afterward many are strong at the broken places."
+→ 是结论，但「broken places」这个意象让它不封闭
+
+// 语言密度示范：同一个意思，密度不同
+"离别是痛苦的，时间会治愈一切。" → 排除，抽象且封闭
+"此情可待成追忆，只是当时已惘然。" → 入选，意象具体，张力悬而未决
+
+以下是应当排除的句子，用来校准边界：
+
+"坚持下去，你会成功的。" → 鸡汤结论，排除
+"1789年法国大革命爆发。" → 知识陈述，排除
+"他走进房间，看见桌上放着一封信。" → 情节推进句，离开上下文无意义，排除
+"生活就像一盒巧克力，你永远不知道下一块是什么味道。" → 已被过度传播，失去密度，排除
+
+## 标签定义
+
+moods（可多选，按强度排序）：
+- calm：静，不一定是好的静
+- sad：失落、离别、错过
+- anxious：悬而未决，等待，不安
+- happy：轻盈，意外的好
+- resilient：撑过去了，但有代价
+- romantic：不一定是爱情，是某种柔软
+- philosophical：看穿了什么，或者什么都没看穿
+- angry：压着的，不是爆发
+
+weathers（可多选）：
+- rainy：适合雨天读，情绪偏内收
+- cloudy：不上不下的状态
+- sunny：不是快乐，是某种敞开
+- snowy：安静，隔绝感
+- windy：躁动，将要发生什么
+
+## 输出格式
+每条严格按以下 JSON 输出，不要添加任何解释文字：
+
+{
+  "id": "001",
+  "text": "原文，中文或英文保持原语言，其他语言输出中文译文",
+  "lang": "zh / en / translated",
+  "author": "作者名",
+  "work": "作品名",
+  "weathers": ["天气1", "天气2"],
+  "year": 出版年份（数字，不知道则填 null）,
+  "genre": ["从以下选择：小说, 诗歌, 散文, 戏剧, 社科, 哲学, 歌词, 古典"],
+  "moods": ["从以下选择一或多个：calm, happy, sad, anxious, angry, resilient, romantic, philosophical"],
+  "weight": 1～3（3=读完想立刻转发给某个具体的人；2=好句子但略平；1=备选）
+}`
+    const TASK_STATUS_SET = new Set(['idle', 'queued', 'running', 'partial', 'done', 'error', 'stopped'])
 
     function safeArray(value) {
       return Array.isArray(value) ? value.filter(Boolean) : []
+    }
+
+    function sanitizeTask(task, fallback = {}) {
+      const status = String(task?.status || fallback.status || 'idle')
+      return {
+        status: TASK_STATUS_SET.has(status) ? status : 'idle',
+        processedChunks: Math.max(0, Number(task?.processedChunks ?? fallback.processedChunks) || 0),
+        failedChunks: Math.max(0, Number(task?.failedChunks ?? fallback.failedChunks) || 0),
+        totalChunks: Math.max(0, Number(task?.totalChunks ?? fallback.totalChunks) || 0),
+        activeWorkers: Math.max(0, Number(task?.activeWorkers ?? fallback.activeWorkers) || 0),
+        lastError: String(task?.lastError || fallback.lastError || ''),
+        lastRunAt: Math.max(0, Number(task?.lastRunAt ?? fallback.lastRunAt) || 0),
+      }
+    }
+
+    function sanitizePrompt(prompt) {
+      const text = String(prompt || DEFAULT_PROMPT)
+      return text
+        .replace(/\s*"place_fit":\s*\[[^\]]*\],?\n?/g, '')
+        .replace(/^place_fit\s*可选：.*\n?/gm, '')
+        .trim()
+    }
+
+    function loadSavedState() {
+      const keys = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS]
+      for (const key of keys) {
+        try {
+          const raw = localStorage.getItem(key)
+          if (!raw) continue
+          const parsed = JSON.parse(raw)
+          if (parsed && typeof parsed === 'object') return parsed
+        } catch {}
+      }
+      return {}
     }
 
     function normalizeQuoteText(text) {
@@ -553,8 +697,12 @@ weight：1=一般  2=较好  3=优秀`
       })
     }
 
-    function sortBooks(list) {
+          function sortBooks(list) {
       return [...list].sort((a, b) => (Number(b.updatedAt) || Number(b.createdAt) || 0) - (Number(a.updatedAt) || Number(a.createdAt) || 0))
+    }
+
+    function sortBooksForQueue(list) {
+      return [...list].sort((a, b) => (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0))
     }
 
     function splitLongParagraph(paragraph, size) {
@@ -658,73 +806,107 @@ weight：1=一般  2=较好  3=优秀`
             chunkSize: 4000,
             concurrency: 3,
             temperature: 0.3,
-            prompt: DEFAULT_PROMPT,
+            prompt: sanitizePrompt(DEFAULT_PROMPT),
           })
 
-          const savedState = (() => {
-            try {
-              return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-            } catch {
-              return {}
-            }
-          })()
+          const savedState = loadSavedState()
 
           if (savedState.config) {
             Object.assign(config, {
               ...config,
               ...savedState.config,
-              prompt: savedState.config.prompt || DEFAULT_PROMPT
+              prompt: sanitizePrompt(DEFAULT_PROMPT)
             })
           }
 
           config.concurrency = Math.min(5, Math.max(1, Number(config.concurrency) || 3))
 
-          const showConfig = ref(savedState.showConfig ?? true)
           const fileInput = ref(null)
           const books = ref([])
-          const activeBookId = ref(savedState.activeBookId || '')
+          const selectedBookId = ref(savedState.selectedBookId || savedState.activeBookId || '')
+          const runningBookId = ref('')
+          const queueBookIds = ref([])
           const bookTitle = ref('')
           const bookAuthor = ref('')
           const rawText = ref('')
           const quotes = ref([])
           const processing = ref(false)
           const stopFlag = ref(false)
-          const processedChunks = ref(0)
-          const failedChunks = ref(0)
-          const activeWorkers = ref(0)
-          const totalChunks = ref(0)
           const error = ref('')
           let hydratingBook = false
-
+          const selectedBook = computed(() => books.value.find((item) => item.id === selectedBookId.value) || null)
+          const runningBook = computed(() => books.value.find((item) => item.id === runningBookId.value) || null)
+          const selectedTask = computed(() => sanitizeTask(selectedBook.value?.task, {
+            totalChunks: Number(selectedBook.value?.totalChunks) || 0,
+          }))
           const estimatedChunks = computed(() => chunkText(rawText.value, config.chunkSize).length || 0)
-          const canStart = computed(() => !processing.value && Boolean(activeBookId.value) && Boolean(rawText.value.trim()) && Boolean(config.apiKey.trim()))
+          const selectedBookLocked = computed(() => processing.value && selectedBookId.value === runningBookId.value)
+          const canStart = computed(() => !processing.value && books.value.some((item) => String(item?.rawText || '').trim()) && Boolean(config.apiKey.trim()))
+          const processedChunks = computed(() => selectedTask.value.processedChunks)
+          const failedChunks = computed(() => selectedTask.value.failedChunks)
+          const activeWorkers = computed(() => selectedTask.value.activeWorkers)
+          const totalChunks = computed(() => selectedTask.value.totalChunks)
           const progressPercent = computed(() => {
-            if (!totalChunks.value || !processedChunks.value) return 0
-            return Math.max(0, Math.min(100, Math.round((processedChunks.value / totalChunks.value) * 100)))
+            if (!selectedTask.value.totalChunks || !selectedTask.value.processedChunks) return 0
+            return Math.max(0, Math.min(100, Math.round((selectedTask.value.processedChunks / selectedTask.value.totalChunks) * 100)))
           })
           const progressLabel = computed(() => {
-            if (processing.value && totalChunks.value) return `${processedChunks.value}/${totalChunks.value}`
-            if (quotes.value.length) return `完成，共 ${quotes.value.length} 条`
+            if (selectedTask.value.status === 'queued') return '排队中'
+            if (selectedTask.value.status === 'running' && selectedTask.value.totalChunks) return `${selectedTask.value.processedChunks}/${selectedTask.value.totalChunks}`
+            if (selectedTask.value.status === 'partial') return `部分完成，共 ${quotes.value.length} 条`
+            if (selectedTask.value.status === 'done') return `完成，共 ${quotes.value.length} 条`
+            if (selectedTask.value.status === 'error') return selectedTask.value.lastError || '执行失败'
+            if (selectedTask.value.status === 'stopped') return '已停止'
             return '尚未开始'
           })
-          const runningLimit = computed(() => Math.min(config.concurrency, totalChunks.value || estimatedChunks.value || config.concurrency))
+          const selectedStatusLabel = computed(() => {
+            const status = selectedTask.value.status
+            if (status === 'queued') return 'queued'
+            if (status === 'running') return 'running'
+            if (status === 'partial') return 'partial'
+            if (status === 'done') return 'ready'
+            if (status === 'error') return 'error'
+            if (status === 'stopped') return 'stopped'
+            return 'idle'
+          })
+          const selectedStatusClass = computed(() => {
+            const status = selectedTask.value.status
+            if (status === 'running') return 'bg-amber-100 text-amber-800'
+            if (status === 'queued') return 'bg-sky-100 text-sky-800'
+            if (status === 'partial') return 'bg-orange-100 text-orange-800'
+            if (status === 'done') return 'bg-emerald-100 text-emerald-800'
+            if (status === 'error') return 'bg-red-100 text-red-700'
+            if (status === 'stopped') return 'bg-stone-300 text-stone-700'
+            return 'bg-stone-200 text-stone-600'
+          })
+          const queueHint = computed(() => {
+            if (!processing.value || !runningBook.value || selectedBookId.value === runningBookId.value) return ''
+            return `当前正在处理：《${runningBook.value.title || '未命名图书'}》`
+          })
+          const primaryActionLabel = computed(() => {
+            if (processing.value) return '队列处理中'
+            if (quotes.value.length) return '重新提取'
+            return '开始提取'
+          })
+          const runningLimit = computed(() => Math.min(config.concurrency, selectedTask.value.totalChunks || estimatedChunks.value || config.concurrency))
 
           function sanitizeQuote(item) {
             return {
               text: String(item?.text || '').trim(),
-              emotion: safeArray(item?.emotion),
-              weather_fit: safeArray(item?.weather_fit),
-              place_fit: safeArray(item?.place_fit),
+              moods: safeArray(item?.moods),
+              weather: safeArray(item?.weather),
               weight: Math.min(3, Math.max(1, Number(item?.weight) || 1)),
               _id: String(item?._id || ''),
               _source: String(item?._source || ''),
-              _show: Boolean(item?._show),
               _chunkIndex: Number(item?._chunkIndex) || 0,
               _createdAt: Number(item?._createdAt) || 0,
             }
           }
 
           function sanitizeBook(book) {
+            const task = sanitizeTask(book?.task, {
+              totalChunks: Number(book?.totalChunks) || 0,
+            })
             return {
               id: String(book?.id || `book-${Date.now()}`),
               title: String(book?.title || ''),
@@ -733,63 +915,90 @@ weight：1=一般  2=较好  3=优秀`
               quotes: sortQuotes(safeArray(book?.quotes).map(sanitizeQuote).filter((item) => item.text)),
               createdAt: Number(book?.createdAt) || Date.now(),
               updatedAt: Number(book?.updatedAt) || Date.now(),
-              totalChunks: Number(book?.totalChunks) || 0,
+              totalChunks: task.totalChunks,
+              task,
             }
           }
 
           function persistUIState() {
+            const { prompt, ...configWithoutPrompt } = config
             localStorage.setItem(STORAGE_KEY, JSON.stringify({
-              config: { ...config },
-              showConfig: showConfig.value,
-              activeBookId: activeBookId.value,
+              config: { ...configWithoutPrompt },
+              selectedBookId: selectedBookId.value,
             }))
           }
 
-          function findActiveBookIndex() {
-            return books.value.findIndex((item) => item.id === activeBookId.value)
+          function findBookIndex(bookId) {
+            return books.value.findIndex((item) => item.id === bookId)
           }
 
-          async function persistActiveBook(extra = {}) {
-            if (!activeBookId.value || hydratingBook) return
-            const index = findActiveBookIndex()
+          function isBookBusy(book) {
+            const status = String(book?.task?.status || '')
+            return status === 'queued' || status === 'running'
+          }
+
+          function syncEditorFromBook(book) {
+            hydratingBook = true
+            bookTitle.value = book?.title || ''
+            bookAuthor.value = book?.author || ''
+            rawText.value = book?.rawText || ''
+            quotes.value = sortQuotes(safeArray(book?.quotes).map(sanitizeQuote).filter((item) => item.text))
+            hydratingBook = false
+          }
+
+          async function persistBook(bookId, extra = {}, options = {}) {
+            if (!bookId) return null
+            const index = findBookIndex(bookId)
             if (index < 0) return
 
+            const current = books.value[index]
+            const baseTask = sanitizeTask(current.task, {
+              totalChunks: Number(current.totalChunks) || 0,
+            })
+            const nextTask = sanitizeTask({
+              ...baseTask,
+              ...(extra.task || {}),
+            }, {
+              totalChunks: extra.totalChunks ?? baseTask.totalChunks,
+            })
             const nextBook = sanitizeBook({
-              ...books.value[index],
+              ...current,
               ...extra,
-              id: activeBookId.value,
-              title: bookTitle.value.trim(),
-              author: bookAuthor.value.trim(),
-              rawText: rawText.value,
-              quotes: quotes.value.map((item) => sanitizeQuote({ ...item, _show: false })),
+              id: bookId,
+              task: nextTask,
               updatedAt: Date.now(),
-              totalChunks: totalChunks.value || estimatedChunks.value,
+              totalChunks: nextTask.totalChunks,
             })
 
             books.value.splice(index, 1, nextBook)
             books.value = sortBooks(books.value)
             persistUIState()
+            if (!options.skipEditorSync && selectedBookId.value === bookId) syncEditorFromBook(nextBook)
 
             try {
               await saveBookToDB(nextBook)
             } catch (dbError) {
               error.value = `本地保存失败：${dbError instanceof Error ? dbError.message : String(dbError)}`
             }
+            return nextBook
           }
 
-          function loadBookIntoEditor(book) {
-            hydratingBook = true
-            bookTitle.value = book?.title || ''
-            bookAuthor.value = book?.author || ''
-            rawText.value = book?.rawText || ''
-            quotes.value = sortQuotes(safeArray(book?.quotes).map(sanitizeQuote).filter((item) => item.text))
-            totalChunks.value = Number(book?.totalChunks) || 0
-            processedChunks.value = 0
-            failedChunks.value = 0
-            activeWorkers.value = 0
-            processing.value = false
-            stopFlag.value = false
-            hydratingBook = false
+          async function persistSelectedBook(extra = {}) {
+            if (!selectedBookId.value || hydratingBook) return
+            return persistBook(selectedBookId.value, {
+              ...extra,
+              id: selectedBookId.value,
+              title: bookTitle.value.trim(),
+              author: bookAuthor.value.trim(),
+              rawText: rawText.value,
+              quotes: quotes.value.map((item) => sanitizeQuote(item)),
+              task: {
+                ...(extra.task || {}),
+                totalChunks: (extra.task?.totalChunks ?? extra.totalChunks ?? selectedTask.value.totalChunks ?? estimatedChunks.value),
+              },
+            }, {
+              skipEditorSync: true,
+            })
           }
 
           function createBookRecord({ title, rawText: nextRawText }) {
@@ -802,14 +1011,20 @@ weight：1=一般  2=较好  3=优秀`
               quotes: [],
               createdAt: timestamp,
               updatedAt: timestamp,
-              totalChunks: chunkText(nextRawText, config.chunkSize).length,
+              task: {
+                status: 'idle',
+                totalChunks: chunkText(nextRawText, config.chunkSize).length,
+              },
             })
           }
 
-          async function addBookRecord(book) {
+          async function addBookRecord(book, options = {}) {
+            const shouldSelect = options.select !== false
             books.value = sortBooks([sanitizeBook(book), ...books.value.filter((item) => item.id !== book.id)])
-            activeBookId.value = book.id
-            loadBookIntoEditor(book)
+            if (shouldSelect) {
+              selectedBookId.value = book.id
+              syncEditorFromBook(book)
+            }
             persistUIState()
             try {
               await saveBookToDB(book)
@@ -865,9 +1080,8 @@ weight：1=一般  2=较好  3=优秀`
                 .filter((item) => item && typeof item.text === 'string' && item.text.trim())
                 .map((item) => ({
                   text: item.text.trim(),
-                  emotion: safeArray(item.emotion),
-                  weather_fit: safeArray(item.weather_fit),
-                  place_fit: safeArray(item.place_fit),
+                  moods: safeArray(item.moods),
+                  weather: safeArray(item.weather),
                   weight: Math.min(3, Math.max(1, Number(item.weight) || 1)),
                 }))
             } catch {
@@ -875,9 +1089,13 @@ weight：1=一般  2=较好  3=优秀`
             }
           }
 
-          async function callAPI(chunk, index) {
-            const meta = [bookTitle.value && `《${bookTitle.value}》`, bookAuthor.value].filter(Boolean).join('，')
-            const userMsg = `${meta ? `来源：${meta}\n` : ''}第 ${index + 1}/${totalChunks.value} 段：\n---\n${chunk}\n---`
+          function getBookById(bookId) {
+            return books.value.find((item) => item.id === bookId) || null
+          }
+
+          async function callAPI(book, chunk, index, chunkCount) {
+            const meta = [book?.title && `《${book.title}》`, book?.author].filter(Boolean).join('，')
+            const userMsg = `${meta ? `来源：${meta}\n` : ''}第 ${index + 1}/${chunkCount} 段：\n---\n${chunk}\n---`
 
             const requestTargets = buildRequestTargets(config.apiUrl)
             const requestBody = {
@@ -935,8 +1153,8 @@ weight：1=一般  2=较好  3=优秀`
             return parseQuotes(data.choices?.[0]?.message?.content || '')
           }
 
-          function mergeQuotes(found, chunk, chunkIndex) {
-            const next = [...quotes.value]
+          function mergeQuotes(existingQuotes, found, chunk, chunkIndex) {
+            const next = [...existingQuotes]
             const seen = new Set(next.map((item) => normalizeQuoteText(item.text)))
 
             for (const item of found) {
@@ -947,67 +1165,107 @@ weight：1=一般  2=较好  3=优秀`
                 ...item,
                 _id: `${chunkIndex}-${normalized}`,
                 _source: chunk,
-                _show: false,
                 _chunkIndex: chunkIndex,
                 _createdAt: Date.now(),
               })
             }
-
-            quotes.value = sortQuotes(next)
+            return sortQuotes(next)
           }
 
-          async function start() {
-            const content = rawText.value.trim()
-            if (!content) {
-              error.value = '请先上传 txt 文件。'
-              return
-            }
-            if (!config.apiKey.trim()) {
-              error.value = '请先填写 API Key。'
-              return
-            }
-            if (!activeBookId.value) {
-              error.value = '请先选择一本书。'
-              return
-            }
+          async function enqueueBook(bookId) {
+            if (!bookId || queueBookIds.value.includes(bookId) || runningBookId.value === bookId) return
+            const book = getBookById(bookId)
+            if (!book || !String(book.rawText || '').trim()) return
+            queueBookIds.value = [...queueBookIds.value, bookId]
+            await persistBook(bookId, {
+              task: {
+                ...book.task,
+                status: 'queued',
+                activeWorkers: 0,
+                lastError: '',
+              },
+            }, {
+              skipEditorSync: false,
+            })
+          }
 
-            error.value = ''
-            quotes.value = []
-            stopFlag.value = false
-            processing.value = true
-            showConfig.value = false
-            processedChunks.value = 0
-            failedChunks.value = 0
-            activeWorkers.value = 0
+          async function resetQueuedBooksToIdle() {
+            const queuedIds = [...queueBookIds.value]
+            queueBookIds.value = []
+            await Promise.all(queuedIds.map(async (bookId) => {
+              const book = getBookById(bookId)
+              if (!book || book.task.status !== 'queued') return
+              await persistBook(bookId, {
+                task: {
+                  ...book.task,
+                  status: 'idle',
+                  activeWorkers: 0,
+                },
+              })
+            }))
+          }
+
+          async function processBook(bookId) {
+            const book = getBookById(bookId)
+            const content = String(book?.rawText || '').trim()
+            if (!content) {
+              return { status: 'skipped', reason: 'EMPTY_CONTENT' }
+            }
 
             const chunks = chunkText(content, config.chunkSize)
-            totalChunks.value = chunks.length
 
             if (!chunks.length) {
-              error.value = '文件内容为空或不可处理。'
-              processing.value = false
-              return
+              return { status: 'skipped', reason: 'EMPTY_CHUNKS' }
             }
 
-            await persistActiveBook({ quotes: [], totalChunks: chunks.length })
-
+            const lastRunAt = Date.now()
+            let processed = 0
+            let failed = 0
+            let active = 0
+            let accumulatedQuotes = []
             let nextIndex = 0
             let fatalError = ''
             const failures = []
             const workerCount = Math.min(Math.max(1, Number(config.concurrency) || 1), 5, chunks.length)
+
+            runningBookId.value = bookId
+            await persistBook(bookId, {
+              quotes: [],
+              task: {
+                status: 'running',
+                processedChunks: 0,
+                failedChunks: 0,
+                activeWorkers: 0,
+                totalChunks: chunks.length,
+                lastRunAt,
+                lastError: '',
+              },
+            })
 
             const worker = async () => {
               while (!stopFlag.value) {
                 const index = nextIndex
                 if (index >= chunks.length) break
                 nextIndex += 1
-                activeWorkers.value += 1
+                active += 1
+                await persistBook(bookId, {
+                  quotes: accumulatedQuotes,
+                  task: {
+                    status: 'running',
+                    processedChunks: processed,
+                    failedChunks: failed,
+                    activeWorkers: active,
+                    totalChunks: chunks.length,
+                    lastRunAt,
+                    lastError: '',
+                  },
+                })
 
                 try {
-                  const found = await callAPI(chunks[index], index)
-                  mergeQuotes(found, chunks[index], index)
+                  const found = await callAPI(book, chunks[index], index, chunks.length)
+                  accumulatedQuotes = mergeQuotes(accumulatedQuotes, found, chunks[index], index)
                 } catch (e) {
-                  failedChunks.value += 1
+                  failed += 1
                   const message = e instanceof Error ? e.message : String(e)
 
                   if (message.includes('Failed to fetch') || message.includes('NetworkError') || message.includes('LOCAL_PROXY_UNAVAILABLE') || message.includes('REQUEST_FAILED')) {
@@ -1017,8 +1275,20 @@ weight：1=一般  2=较好  3=优秀`
                     failures.push(`第 ${index + 1} 段失败：${message}`)
                   }
                 } finally {
-                  processedChunks.value += 1
-                  activeWorkers.value = Math.max(0, activeWorkers.value - 1)
+                  processed += 1
+                  active = Math.max(0, active - 1)
+                  await persistBook(bookId, {
+                    quotes: accumulatedQuotes,
+                    task: {
+                      status: 'running',
+                      processedChunks: processed,
+                      failedChunks: failed,
+                      activeWorkers: active,
+                      totalChunks: chunks.length,
+                      lastRunAt,
+                      lastError: fatalError,
+                    },
+                  })
                 }
               }
             }
@@ -1026,18 +1296,139 @@ weight：1=一般  2=较好  3=优秀`
             await Promise.all(Array.from({ length: workerCount }, () => worker()))
 
             if (fatalError) {
-              error.value = fatalError
-            } else if (stopFlag.value && !error.value) {
-              error.value = '任务已手动停止。当前结果已保留。'
-            } else if (failures.length) {
-              error.value = `完成但有 ${failures.length} 段失败。${failures[0]}`
-            } else if (!quotes.value.length && !error.value) {
-              error.value = '本次没有提取到符合条件的谕句，可以尝试缩小文本范围或调整提示词。'
+              await persistBook(bookId, {
+                quotes: accumulatedQuotes,
+                task: {
+                  status: 'error',
+                  processedChunks: processed,
+                  failedChunks: failed,
+                  activeWorkers: 0,
+                  totalChunks: chunks.length,
+                  lastRunAt,
+                  lastError: fatalError,
+                },
+              })
+              return { status: 'fatal', message: fatalError }
             }
 
+            if (stopFlag.value) {
+              await persistBook(bookId, {
+                quotes: accumulatedQuotes,
+                task: {
+                  status: 'stopped',
+                  processedChunks: processed,
+                  failedChunks: failed,
+                  activeWorkers: 0,
+                  totalChunks: chunks.length,
+                  lastRunAt,
+                  lastError: '',
+                },
+              })
+              return { status: 'stopped' }
+            }
+
+            if (failures.length) {
+              await persistBook(bookId, {
+                quotes: accumulatedQuotes,
+                task: {
+                  status: 'partial',
+                  processedChunks: processed,
+                  failedChunks: failed,
+                  activeWorkers: 0,
+                  totalChunks: chunks.length,
+                  lastRunAt,
+                  lastError: failures[0],
+                },
+              })
+              return { status: 'partial', message: `完成但有 ${failures.length} 段失败。${failures[0]}` }
+            }
+
+            if (!accumulatedQuotes.length) {
+              const emptyMessage = '本次没有提取到符合条件的谕句，可以尝试缩小文本范围或调整提示词。'
+              await persistBook(bookId, {
+                quotes: [],
+                task: {
+                  status: 'done',
+                  processedChunks: processed,
+                  failedChunks: failed,
+                  activeWorkers: 0,
+                  totalChunks: chunks.length,
+                  lastRunAt,
+                  lastError: '',
+                },
+              })
+              return { status: 'empty', message: emptyMessage }
+            }
+
+            await persistBook(bookId, {
+              quotes: accumulatedQuotes,
+              task: {
+                status: 'done',
+                processedChunks: processed,
+                failedChunks: failed,
+                activeWorkers: 0,
+                totalChunks: chunks.length,
+                lastRunAt,
+                lastError: '',
+              },
+            })
+            return { status: 'done' }
+          }
+
+          async function start() {
+            if (processing.value) return
+            if (!config.apiKey.trim()) {
+              error.value = '请先填写 API Key。'
+              return
+            }
+
+            const queue = sortBooksForQueue(books.value).filter((item) => String(item?.rawText || '').trim()).map((item) => item.id)
+            if (!queue.length) {
+              error.value = '请先上传 txt 文件。'
+              return
+            }
+
+            error.value = ''
+            stopFlag.value = false
+            processing.value = true
+            queueBookIds.value = []
+            for (const bookId of queue) {
+              await enqueueBook(bookId)
+            }
+
+            const summaries = []
+
+            while (queueBookIds.value.length) {
+              if (stopFlag.value) break
+              const currentBookId = queueBookIds.value.shift()
+              if (!currentBookId) continue
+              const currentBook = getBookById(currentBookId)
+              if (!currentBook) continue
+              const result = await processBook(currentBookId)
+
+              if (result.status === 'fatal') {
+                error.value = result.message
+                break
+              }
+
+              if (result.status === 'partial' || result.status === 'empty') {
+                summaries.push(`${currentBook.title || '未命名图书'}：${result.message}`)
+              }
+
+              if (result.status === 'stopped') {
+                break
+              }
+            }
+
+            await resetQueuedBooksToIdle()
             processing.value = false
-            activeWorkers.value = 0
-            await persistActiveBook({ totalChunks: chunks.length })
+            runningBookId.value = ''
+
+            if (stopFlag.value && !error.value) {
+              error.value = '任务已手动停止。当前结果已保留。'
+            } else if (!error.value && summaries.length) {
+              error.value = summaries[0]
+            }
           }
 
           function pickFile() {
@@ -1047,11 +1438,6 @@ weight：1=一般  2=较好  3=优秀`
           function handleFile(event) {
             const file = event.target.files?.[0]
             if (!file) return
-            if (processing.value) {
-              error.value = '请先等待当前任务结束。'
-              event.target.value = ''
-              return
-            }
 
             const reader = new FileReader()
             reader.onload = async () => {
@@ -1060,7 +1446,8 @@ weight：1=一般  2=较好  3=优秀`
                 title: file.name.replace(/\.txt$/i, ''),
                 rawText: text,
               })
-              await addBookRecord(book)
+              await addBookRecord(book, { select: !processing.value })
+              if (processing.value) await enqueueBook(book.id)
             }
             reader.onerror = () => {
               error.value = '文件读取失败，请重试。'
@@ -1070,7 +1457,12 @@ weight：1=一般  2=较好  3=优秀`
           }
 
           function exportJSON() {
-            const data = quotes.value.map(({ _id, _source, _show, _chunkIndex, ...rest }) => rest)
+            const data = quotes.value.map(({ _id, _source, _chunkIndex, _createdAt, ...rest }) => ({
+              ...rest,
+              source: _source,
+              chunk_index: _chunkIndex,
+              created_at: _createdAt,
+            }))
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
             const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
@@ -1080,87 +1472,120 @@ weight：1=一般  2=较好  3=优秀`
             URL.revokeObjectURL(url)
           }
 
-          async function copyResults() {
-            try {
-              const data = quotes.value.map(({ _id, _source, _show, _chunkIndex, ...rest }) => rest)
-              await navigator.clipboard.writeText(JSON.stringify(data, null, 2))
-            } catch {
-              error.value = '复制失败，当前环境可能不支持剪贴板写入。'
-            }
-          }
-
-          function clearFile() {
-            if (!activeBookId.value) return
-            rawText.value = ''
-            bookTitle.value = ''
-            bookAuthor.value = ''
-            quotes.value = []
-            totalChunks.value = 0
-            processedChunks.value = 0
-            failedChunks.value = 0
-            error.value = ''
-            void persistActiveBook({ rawText: '', title: '', author: '', quotes: [], totalChunks: 0 })
-          }
-
           function stop() {
             stopFlag.value = true
           }
 
           function reset() {
+            if (!selectedBookId.value) {
+              error.value = '请先选择一本书。'
+              return
+            }
+            if (selectedBookLocked.value || isBookBusy(selectedBook.value)) {
+              error.value = '当前书正在队列中，暂时不能清空。'
+              return
+            }
             quotes.value = []
-            processing.value = false
-            stopFlag.value = false
-            processedChunks.value = 0
-            failedChunks.value = 0
-            activeWorkers.value = 0
-            totalChunks.value = 0
-            error.value = ''
-            void persistActiveBook({ quotes: [], totalChunks: 0 })
+            error.value = '当前书的提取结果已清空。'
+            void persistSelectedBook({
+              quotes: [],
+              task: {
+                status: 'idle',
+                processedChunks: 0,
+                failedChunks: 0,
+                activeWorkers: 0,
+                totalChunks: 0,
+                lastError: '',
+              },
+            })
           }
 
           function selectBook(bookId) {
-            if (processing.value) return
-            activeBookId.value = bookId
+            selectedBookId.value = bookId
           }
 
-          watch(() => ({ config: { ...config }, showConfig: showConfig.value, activeBookId: activeBookId.value }), persistUIState, { deep: true })
-          watch([bookTitle, bookAuthor, rawText], () => { void persistActiveBook() })
-          watch(quotes, () => { void persistActiveBook() }, { deep: true })
-          watch(activeBookId, (nextId) => {
+          async function deleteBook(bookId) {
+            const targetBook = getBookById(bookId)
+            if (isBookBusy(targetBook)) {
+              error.value = '排队中或运行中的图书不能删除。'
+              return
+            }
+            const nextBooks = books.value.filter((item) => item.id !== bookId)
+            books.value = sortBooks(nextBooks)
+            queueBookIds.value = queueBookIds.value.filter((id) => id !== bookId)
+
+            if (selectedBookId.value === bookId) {
+              const nextActive = books.value[0] || null
+              selectedBookId.value = nextActive?.id || ''
+              if (nextActive) {
+                syncEditorFromBook(nextActive)
+              } else {
+                bookTitle.value = ''
+                bookAuthor.value = ''
+                rawText.value = ''
+                quotes.value = []
+              }
+            }
+
+            persistUIState()
+            try {
+              const db = await openBookDB()
+              await new Promise((resolve, reject) => {
+                const transaction = db.transaction(BOOK_STORE, 'readwrite')
+                transaction.oncomplete = () => resolve()
+                transaction.onerror = () => reject(transaction.error || new Error('DELETE_BOOK_FAILED'))
+                transaction.objectStore(BOOK_STORE).delete(bookId)
+              })
+            } catch (dbError) {
+              error.value = `删除图书失败：${dbError instanceof Error ? dbError.message : String(dbError)}`
+            }
+          }
+
+          watch(() => ({ config: { ...config }, selectedBookId: selectedBookId.value }), persistUIState, { deep: true })
+          watch([bookTitle, bookAuthor, rawText], () => { void persistSelectedBook() })
+          watch(quotes, () => { void persistSelectedBook() }, { deep: true })
+          watch(selectedBookId, (nextId) => {
             if (!nextId) return
             const target = books.value.find((item) => item.id === nextId)
-            if (target) loadBookIntoEditor(target)
+            if (target) syncEditorFromBook(target)
           })
           watch(() => config.chunkSize, async () => {
-            if (!activeBookId.value || hydratingBook) return
-            totalChunks.value = chunkText(rawText.value, config.chunkSize).length
-            await persistActiveBook({ totalChunks: totalChunks.value })
+            if (!selectedBookId.value || hydratingBook) return
+            await persistSelectedBook({
+              task: {
+                ...selectedTask.value,
+                totalChunks: chunkText(rawText.value, config.chunkSize).length,
+              },
+            })
           })
 
           ;(async () => {
             try {
-              const loadedBooks = sortBooks((await loadBooksFromDB()).map(sanitizeBook))
+              const loadedBooks = sortBooks((await loadBooksFromDB()).map((book) => {
+                const sanitized = sanitizeBook(book)
+                if (sanitized.task.status === 'queued' || sanitized.task.status === 'running') {
+                  sanitized.task = sanitizeTask({
+                    ...sanitized.task,
+                    status: 'stopped',
+                    activeWorkers: 0,
+                    lastError: '页面刷新后，未完成任务已停止。',
+                  }, {
+                    totalChunks: sanitized.totalChunks,
+                  })
+                }
+                return sanitized
+              }))
               books.value = loadedBooks
 
-              if (!books.value.length && savedState.rawText) {
-                const migratedBook = createBookRecord({
-                  title: '未命名图书',
-                  rawText: String(savedState.rawText || ''),
-                })
-                await addBookRecord(migratedBook)
-                return
-              }
-
-              const existingActive = books.value.find((item) => item.id === activeBookId.value)
+              const existingActive = books.value.find((item) => item.id === selectedBookId.value)
               if (existingActive) {
-                loadBookIntoEditor(existingActive)
-                return
+                syncEditorFromBook(existingActive)
+              } else if (books.value[0]) {
+                selectedBookId.value = books.value[0].id
+                syncEditorFromBook(books.value[0])
               }
 
-              if (books.value[0]) {
-                activeBookId.value = books.value[0].id
-                loadBookIntoEditor(books.value[0])
-              }
+              persistUIState()
             } catch (dbError) {
               error.value = `本地数据库初始化失败：${dbError instanceof Error ? dbError.message : String(dbError)}`
             }
@@ -1168,14 +1593,17 @@ weight：1=一般  2=较好  3=优秀`
 
           return {
             config,
-            showConfig,
             fileInput,
             books,
-            activeBookId,
+            selectedBookId,
+            runningBookId,
             bookTitle,
             bookAuthor,
             rawText,
             quotes,
+            selectedBook,
+            selectedTask,
+            selectedBookLocked,
             processing,
             processedChunks,
             failedChunks,
@@ -1186,17 +1614,22 @@ weight：1=一般  2=较好  3=优秀`
             canStart,
             progressPercent,
             progressLabel,
+            selectedStatusLabel,
+            selectedStatusClass,
+            queueHint,
+            primaryActionLabel,
+            isBookBusy,
             runningLimit,
+            safeArray,
             formatDateTime,
             start,
             stop,
             pickFile,
             handleFile,
             exportJSON,
-            copyResults,
-            clearFile,
             reset,
             selectBook,
+            deleteBook,
           }
         }
       }).mount('#app')
