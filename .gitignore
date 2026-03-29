@@ -1,0 +1,63 @@
+# ===== Node.js =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ===== 环境变量 =====
+.env
+.env.local
+.env.*.local
+.env.production
+
+# ===== SvelteKit =====
+.svelte-kit/
+build/
+dist/
+.vercel/
+.netlify/
+
+# ===== Vite =====
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# ===== Xcode / Swift =====
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+build/
+.build/
+*.resolved
+
+# ===== macOS =====
+.DS_Store
+.AppleDouble
+.LSOverride
+*.icloud
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ===== 编辑器 =====
+.vscode/
+*.swp
+*.swo
+*~
+
+# ===== 上传临时文件 =====
+uploads/
+tmp/
+temp/
+
+# ===== 日志 =====
+logs/
+*.log
+
+
