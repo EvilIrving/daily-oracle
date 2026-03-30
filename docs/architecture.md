@@ -1,11 +1,510 @@
-# Architecture
+# Architecture — Daily Quote App
 
-Describe system boundaries, core modules, and data flow.
+## 总览
 
-## Modules
-- API layer
-- Persistence layer
-- Scheduling / orchestration layer
+系统分三层：**Local 工作台**负责语料生产（书籍解析、AI 提取、人工审核）；**Supabase 业务层**提供数据持久化和面向 App 的业务逻辑；**iOS App**纯展示 + 用户交互。
 
-## Notes
-Keep this document updated when interfaces or ownership change.
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Layer 1: Local 工作台                            │
+│  ┌──────────┐   ┌─────────────┐   ┌─────────────┐   ┌────────────┐  │
+│  │ txt 解析  │──▶│  AI 提取    │──▶│ SQLite 队列 │──▶│ 审核管理 UI │  │
+│  │ 元数据头  │   │ Anthropic   │   │ 待审数据    │   │ SvelteKit  │  │
+│  └──────────┘   └─────────────┘   └─────────────┘   └─────┬──────┘  │
+└───────────────────────────────────────────────────────────┼─────────┘
+                                                            │
+                                      service_role 写入已审核数据
+                                                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                   Layer 2: Supabase 业务层                           │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                    PostgreSQL 数据库                          │   │
+│  │  quotes │ extraction_batches │ almanac_entries │ user_daily_logs │
+│  │  anniversaries                                                │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐    │
+│  │ Edge Function   │   │ Edge Function   │   │ Edge Function   │    │
+│  │ daily-quote     │   │ generate-almanac│   │ log-mood        │    │
+│  └─────────────────┘   └─────────────────┘   └─────────────────┘    │
+│                              ▲ pg_cron 每日触发                      │
+└─────────────────────────────┬───────────────────────────────────────┘
+                              │ anon key 只读
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Layer 3: iOS App 展示层                           │
+│  ┌────────────┐   ┌────────────┐   ┌────────────┐                   │
+│  │ 小组件 2×2 │   │ 长条 2×4   │   │ 大组件 4×4 │                   │
+│  └────────────┘   └────────────┘   └────────────┘                   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ 主界面：预览 / 配置 / 日历历史 / 纪念日 / 主题切换            │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌────────────────┐   ┌────────────────┐                            │
+│  │ QWeatherSDK    │   │ App Group      │                            │
+│  │ + CoreLocation │   │ Widget 数据共享 │                            │
+│  └────────────────┘   └────────────────┘                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Layer 1: Local 工作台
+
+### 职责
+
+- 解析带元数据头的 txt 文件
+- 调用 AI 提取名句（使用 `docs/prompt-oracle.md`）
+- 人工逐条审核（收/弃）
+- 通过 `service_role` key 将已审核数据写入 Supabase
+
+### 技术栈
+
+单一 SvelteKit 项目（`local-server/`）：
+
+| 依赖 | 用途 |
+|------|------|
+| SvelteKit | UI + 服务端路由一体化 |
+| `@anthropic-ai/sdk` | AI 提取，通过 `baseURL` 接入兼容端点 |
+| `better-sqlite3` | 本地待审队列 |
+| TailwindCSS v3 | 样式 |
+| `@supabase/supabase-js` | service_role 写入 |
+
+### txt 元数据头规范
+
+上传的 txt 文件顶部预留结构化元数据，解析器自动读取：
+
+```
+书名：一九八四
+作者：乔治奥威尔
+年份：1986
+语言：中文
+体裁：小说
+
+
+-------------
+
+（正文从分隔符之后开始）
+```
+
+解析规则：
+- 逐行读取直到遇到 `---` 或连续 `-` 分隔符
+- 按 `键：值` 格式提取元数据（书名、作者、年份、语言、体裁）
+- 分隔符之后的全部内容作为正文，进入切片流程
+- 元数据自动填充到 AI prompt 的来源信息和最终入库的 `source_book`/`author`/`year`/`genre` 字段
+- 缺少某个字段不报错，视为空值
+
+### 目录结构
+
+```
+local-server/
+├── src/
+│   ├── routes/
+│   │   ├── +page.svelte              # 提取工作台
+│   │   ├── review/+page.svelte       # 待审清单
+│   │   ├── corpus/+page.svelte       # 语料管理（名句库 + 宜忌 tab）
+│   │   ├── api/
+│   │   │   ├── upload/+server.ts     # POST: 文件上传解析
+│   │   │   ├── extract/+server.ts    # POST: 启动提取 / GET: SSE 进度
+│   │   │   ├── review/+server.ts     # PATCH: 单条审核
+│   │   │   ├── commit/+server.ts     # POST: 写入 Supabase
+│   │   │   └── config/+server.ts     # GET/POST: AI 配置
+│   │   └── +layout.svelte
+│   ├── lib/
+│   │   ├── server/
+│   │   │   ├── ai-client.ts          # Anthropic SDK 封装
+│   │   │   ├── chunker.ts            # 文本切片
+│   │   │   ├── parser.ts             # AI 输出解析 + txt 元数据解析
+│   │   │   ├── db.ts                 # SQLite 操作
+│   │   │   └── supabase.ts           # Supabase service_role client
+│   │   └── types.ts
+│   └── app.html
+├── data/
+│   └── queue.db                      # SQLite 待审数据
+├── package.json
+├── svelte.config.js
+├── tailwind.config.js
+└── vite.config.ts
+```
+
+### 提取流程
+
+```
+上传 txt 文件
+    │
+    ▼
+解析元数据头 → 书名/作者/年份/语言/体裁
+    │
+    ▼
+分隔符后正文 → chunker 按段落边界切片
+    │
+    ▼
+并发调用 AI（p-limit 控制并发数）
+  - 每片独立请求
+  - 失败自动重试 1 次
+  - SSE 推送进度到前端
+    │
+    ▼
+解析 AI 返回的 JSON 数组
+  - 过滤 <think> 标签
+  - 校验必填字段（text, lang, moods, themes）
+    │
+    ▼
+写入 SQLite queue.db（待审状态）
+    │
+    ▼
+待审清单展示 → 人工逐条审核（收/弃）
+    │
+    ▼
+POST /api/commit → 写入 Supabase quotes 表
+```
+
+### AI 客户端配置
+
+使用 `@anthropic-ai/sdk`，通过 `baseURL` 兼容任何 Anthropic Messages API 兼容端点：
+
+```typescript
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  apiKey: config.apiKey,
+  baseURL: config.baseURL, // 留空则走官方 endpoint
+});
+
+const response = await client.messages.create({
+  model: config.model,
+  max_tokens: config.maxTokens,
+  temperature: config.temperature,
+  messages: [
+    { role: 'user', content: `${prompt}\n\n## 待处理文本\n${chunk}` }
+  ],
+});
+```
+
+配置示例（`.env`）：
+
+```
+API_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+API_KEY=your-key
+MODEL=glm-4.7
+CHUNK_SIZE=4000
+CONCURRENCY=3
+TEMPERATURE=0.3
+```
+
+### UI 页面
+
+**提取工作台**：
+- 左栏：API URL、模型、API Key、切片大小、并发数、Temperature 滑块、Prompt 编辑器
+- 右栏：上传按钮（选择 txt）、小字显示书名/作者（只读）、进度条、开始提取按钮
+- 状态：IDLE / RUNNING / DONE / ERROR
+
+**待审清单**：
+- 顶部 tab：全部 / 未审 / 通过 / 排除
+- 每条：名句全文、作者·作品·体裁、mood tags、themes tags
+- 操作：收 / 弃
+- 底部：本批 N 条、通过率、库存、入库后数量
+- 入库按钮
+
+**语料管理**：
+- 名句库 tab：已入库名句列表
+- 宜忌 tab：宜忌历史记录
+
+---
+
+## Layer 2: Supabase 业务层
+
+### 数据库
+
+完整 schema 见 `docs/schema.sql`，核心表：
+
+| 表 | 用途 |
+|----|------|
+| `quotes` | 已审核名句库 |
+| `extraction_batches` | 提取批次元数据 |
+| `almanac_entries` | 每日宜忌 |
+| `user_daily_logs` | 用户每日记录（心情、名句、宜忌） |
+| `anniversaries` | 用户纪念日 |
+
+### 用户身份
+
+使用 **Supabase Anonymous Auth**：
+
+- App 启动时调用 `supabase.auth.signInAnonymously()`
+- 自动获得 `auth.uid()`，无需登录 UI
+- 所有用户相关表用 `user_id uuid references auth.users(id)`
+- RLS 用 `auth.uid()` 限制访问
+- 将来可升级为 Apple Sign In / 邮箱账号，数据不丢失
+
+### Edge Functions
+
+**daily-quote**：
+- App 请求今日名句
+- 按心情 + themes 加权评分查询（见下方策略）
+- 避免连续重复
+
+**generate-almanac**：
+- 调用 LLM 生成宜忌（使用 `docs/prompt-yi.md`）
+- 输入信号：日期、天气描述（原始文本）、近7天心情/阅读偏好、临近纪念日
+- 通过 auth token 获取 user_id 查询用户数据
+
+**log-mood**：
+- 记录用户每日心情选择
+- 更新 `user_daily_logs`
+
+### themes 加权评分查询策略
+
+名句入库时 AI 输出 `themes[]` 语义主题词（如 `["离别", "雨", "父子", "秋"]`），查询时通过主题词加权评分实现软匹配。
+
+**核心逻辑**：
+
+1. 天气描述 → 主题词：从天气 API 原始文本解析关键词
+   - "小雨 17℃" → `["雨"]`
+   - "大雪 -5℃" → `["雪", "冬"]`
+
+2. 节日/纪念日 → 主题词：维护映射表
+   - 父亲节 → `["父子", "亲情"]`
+   - 中秋 → `["月", "团圆", "思乡"]`
+   - 用户纪念日"结婚纪念日" → `["爱情", "婚姻"]`
+
+3. 评分 SQL 示例：
+
+```sql
+-- 父亲节当天，用户心情 calm，天气小雨
+select *,
+  (case when themes @> array['父子'] then 3 else 0 end
+   + case when themes @> array['亲情'] then 2 else 0 end
+   + case when themes @> array['雨'] then 1 else 0 end
+  ) as score
+from quotes
+where is_active = true
+  and mood @> array['calm']::quote_mood[]
+order by score desc, random()
+limit 5;
+```
+
+**关键设计**：
+- 软匹配，不硬过滤：有主题词命中则加分，没命中也能返回结果
+- 映射表有限可控：几十个节日 + 常见天气词，一次性维护
+- 避免预打标签的不准确：天气/节日不存入名句，运行时动态评分
+
+### RLS 策略
+
+| 表 | 策略 |
+|----|------|
+| quotes | anon 公开只读（is_active = true） |
+| almanac_entries | anon 公开只读 |
+| extraction_batches | 仅 service_role |
+| user_daily_logs | `user_id = auth.uid()` |
+| anniversaries | `user_id = auth.uid()` |
+
+### 视图
+
+**v_quote_by_mood**：按心情随机取一条，包含 `id, text, lang, author, work, year, genre, mood, themes`
+
+**v_corpus_stats**：库存统计（总数、按语言）
+
+---
+
+## Layer 3: iOS App 展示层
+
+### 职责
+
+- 每日自动更新展示名句、宜忌
+- 用户心情选择，触发换匹配名句 + 更新宜忌
+- 日历历史视图
+- 纪念日管理
+- 主题切换
+- 小组件数据同步
+
+### 权限
+
+- **CoreLocation**：请求位置权限（`whenInUse`），获取经纬度查天气
+- 首次启动引导授权，拒绝后降级为手动选择城市
+
+### 和风天气集成
+
+参考 `docs/qwd和风/`：
+
+- 使用 QWeatherSDK（Swift Package Manager 集成）
+- JWT 认证（Ed25519 私钥签名）
+- 调用 `weatherNow` 获取实时天气
+- 天气数据用途：1) 界面展示 2) 作为宜忌生成信号
+
+```swift
+// 示例
+let parameter = WeatherParameter(location: locationId)
+let response = try await QWeather.instance.weatherNow(parameter)
+```
+
+### 小组件三尺寸
+
+| 尺寸 | 内容 |
+|------|------|
+| 小 2×2 | 仅名句全文，字号最大，无出处无宜忌 |
+| 长条 2×4 | 名句 + 出处，底部显示宜或忌其中一条（交替） |
+| 大 4×4 | 完整版：名句、出处、宜忌各一条、心情选择条（5格）、日期 |
+
+### 小组件每日自动更新
+
+**触发机制**：
+
+1. **WidgetKit Timeline**：`TimelineProvider` 返回 `.atEnd` 策略，系统在 timeline 耗尽时自动请求新数据
+2. **每日午夜刷新**：timeline 包含一个 entry，`date` 设为次日 05:00，系统到时自动刷新
+3. **App 主动触发**：用户在 App 内操作（切换心情、刷新名句）后调用 `WidgetCenter.shared.reloadAllTimelines()`
+
+**TimelineProvider 实现要点**：
+
+```swift
+struct QuoteTimelineProvider: TimelineProvider {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<QuoteEntry>) -> Void) {
+        Task {
+            // 1. 从 App Group UserDefaults 读取缓存数据
+            // 2. 如果缓存过期或不存在，调用 Supabase daily-quote
+            // 3. 计算下次刷新时间（次日 05:00）
+            let nextUpdate = Calendar.current.startOfDay(for: Date()).addingTimeInterval(86400)
+            let entry = QuoteEntry(date: Date(), quote: quote, almanac: almanac)
+            let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+            completion(timeline)
+        }
+    }
+}
+```
+
+**数据同步流程**：
+
+```
+App Group UserDefaults
+    ├── todayQuote: 当日名句 JSON
+    ├── todayAlmanac: 当日宜忌 JSON  
+    ├── lastFetchDate: 上次拉取日期
+    └── userMood: 用户当前心情
+
+App 启动 / 后台刷新
+    │
+    ├── 检查 lastFetchDate != 今天？
+    │       ├── 是 → 调用 daily-quote + generate-almanac → 更新 UserDefaults
+    │       └── 否 → 使用缓存
+    │
+    └── WidgetCenter.shared.reloadAllTimelines()
+
+Widget Timeline Provider
+    │
+    └── 读取 App Group UserDefaults → 渲染 Entry
+```
+
+**后台刷新**：
+
+- App 注册 `BGAppRefreshTask`，系统在合适时机唤醒 App 拉取新数据
+- Widget 的 `getTimeline` 也可直接调用网络（需处理超时，WidgetKit 限制 ~15s）
+
+### 主界面功能
+
+- 预览当前小组件外观（实时效果）
+- 配置显示内容（心情筛选、刷新名句）
+- 日期显示 / 主题切换
+- 心情选择 → 触发换匹配名句 + 记录到 Supabase
+- **日历视图**：按月查看历史，每天显示当日名句/心情/宜忌
+- **纪念日管理**：添加/编辑/删除纪念日，临近时影响宜忌生成
+
+### 数据架构
+
+| 组件 | 用途 |
+|------|------|
+| Supabase Swift SDK | 与后端通信 |
+| QWeatherSDK | 获取天气 |
+| App Group | 共享 UserDefaults，App ↔ Widget 数据传递 |
+| WidgetKit | timeline provider 定时刷新 + `WidgetCenter.shared.reloadTimelines` |
+
+本地缓存策略：缓存当日数据，离线可用。
+
+---
+
+## 数据流时序图
+
+### 名句入库流程
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant UI as Local UI
+    participant AI as AI Provider
+    participant SQLite as SQLite
+    participant Supabase as Supabase
+
+    User->>UI: 上传 txt 文件
+    UI->>UI: 解析元数据头
+    UI->>UI: 切片正文
+    loop 每个切片
+        UI->>AI: 调用 AI 提取
+        AI-->>UI: 返回 JSON
+    end
+    UI->>SQLite: 写入待审数据
+    User->>UI: 逐条审核（收/弃）
+    User->>UI: 点击入库
+    UI->>Supabase: service_role INSERT quotes
+    Supabase-->>UI: 成功
+```
+
+### App 每日加载流程
+
+```mermaid
+sequenceDiagram
+    participant App as iOS App
+    participant CL as CoreLocation
+    participant QW as QWeatherSDK
+    participant Supa as Supabase
+
+    App->>Supa: signInAnonymously()
+    Supa-->>App: auth.uid()
+    App->>CL: 请求位置
+    CL-->>App: 经纬度
+    App->>QW: weatherNow(location)
+    QW-->>App: 天气数据
+    App->>Supa: daily-quote(mood, weather)
+    Supa-->>App: 名句
+    App->>Supa: generate-almanac(weather, ...)
+    Supa-->>App: 宜忌
+    App->>App: 渲染 + 同步 Widget
+```
+
+### 宜忌生成流程
+
+```mermaid
+sequenceDiagram
+    participant App as iOS App
+    participant Edge as Edge Function
+    participant LLM as LLM Provider
+    participant DB as PostgreSQL
+
+    App->>Edge: generate-almanac(weather, mood_history)
+    Edge->>DB: 查询近7天心情/阅读偏好
+    DB-->>Edge: 用户数据
+    Edge->>DB: 查询临近纪念日
+    DB-->>Edge: 纪念日列表
+    Edge->>LLM: 调用 LLM 生成宜忌
+    LLM-->>Edge: 宜/忌文本
+    Edge->>DB: INSERT almanac_entries
+    Edge-->>App: 返回宜忌
+```
+
+---
+
+## 开发约定
+
+- pnpm 管理 JS 依赖
+- SvelteKit + TailwindCSS v3（Local 工作台）
+- Swift/SwiftUI for iOS
+- 避免 `pnpm dev` 启动服务器
+- 避免 xcode build（仅打包时用）
+
+---
+
+## 扩展接入其他模型
+
+只需修改环境变量，无需改代码：
+
+| 模型 | baseURL | model |
+|------|---------|-------|
+| Anthropic Claude | （留空） | claude-opus-4-6 |
+| GLM / 智谱 | https://open.bigmodel.cn/api/paas/v4 | glm-4.7 |
+| DeepSeek | https://api.deepseek.com | deepseek-chat |
+| 本地 Ollama | http://localhost:11434/v1 | llama3 |

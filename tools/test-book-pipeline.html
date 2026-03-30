@@ -773,12 +773,14 @@ weathers（可多选）：
       createApp({
         setup() {
           const config = reactive({
-            apiUrl: 'https://coding.dashscope.aliyuncs.com/v1',
-            apiKey: '',
-            model: 'qwen3.5-plus',
+            // apiUrl: 'https://coding.dashscope.aliyuncs.com/v1',
+            apiUrl: 'https://open.bigmodel.cn/api/paas/v4',
+            apiKey: '902ac6193f9c49018246bfb405b01f01.rjVVDxF3UljXicfY',
+            model: 'glm-4.7', // 'qwen3.5-plus',
             chunkSize: 4000,
             concurrency: 3,
             temperature: 0.3,
+            maxTokens: 65536,
             prompt: sanitizePrompt(DEFAULT_PROMPT),
           })
 
