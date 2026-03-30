@@ -61,3 +61,7 @@ logs/
 *.log
 
 
+
+
+env.md 
+ed25519*

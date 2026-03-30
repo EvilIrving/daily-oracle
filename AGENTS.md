@@ -74,6 +74,8 @@ Every time something breaks -> you add a guardrail
 
 ## Guardrails
 
+- 不要让 AI 输出 `lang`、`author`、`work`、`year`、`genre` 这类元数据；这些字段统一来自 txt 元数据头，其中 `lang` 由书籍语言派生。
+- 不要用硬编码宽度或静默吞空结果来表示提取状态；进度和结果提示必须基于真实提取状态、chunk 进度或明确的兜底原因。
 - 不要只修改 [AGENTS.md](/Users/cain/Documents/code/swift-daily-oracle/AGENTS.md) 或 [CLAUDE.md](/Users/cain/Documents/code/swift-daily-oracle/CLAUDE.md) 其中一个文件。
 - 不要把 [README.md](/Users/cain/Documents/code/swift-daily-oracle/README.md) 中的旧结构直接当成当前实现事实，目录和架构以 [docs/architecture.md](/Users/cain/Documents/code/swift-daily-oracle/docs/architecture.md) 为准。
 - 不要把本地测试数据、SQLite 队列数据或临时脚本输出当成正式业务数据。

@@ -58,7 +58,7 @@
 
 ### 技术栈
 
-单一 SvelteKit 项目（`local-server/`）：
+单一 SvelteKit 项目（`server/`）：
 
 | 依赖 | 用途 |
 |------|------|
@@ -86,23 +86,21 @@
 ```
 
 解析规则：
+
 - 逐行读取直到遇到 `---` 或连续 `-` 分隔符
 - 按 `键：值` 格式提取元数据（书名、作者、年份、语言、体裁）
 - 分隔符之后的全部内容作为正文，进入切片流程
-- 元数据自动填充到 AI prompt 的来源信息和最终入库的 `source_book`/`author`/`year`/`genre` 字段
+- 元数据自动填充到 AI prompt 的来源信息，并作为最终入库的 `lang`/`source_book`/`author`/`year`/`genre` 字段事实源
 - 缺少某个字段不报错，视为空值
 
 ### 目录结构
 
 ```
-local-server/
+server/
 ├── src/
 │   ├── routes/
 │   │   ├── +page.svelte              # 提取工作台
-│   │   ├── review/+page.svelte       # 待审清单
-│   │   ├── corpus/+page.svelte       # 语料管理（名句库 + 宜忌 tab）
 │   │   ├── api/
-│   │   │   ├── upload/+server.ts     # POST: 文件上传解析
 │   │   │   ├── extract/+server.ts    # POST: 启动提取 / GET: SSE 进度
 │   │   │   ├── review/+server.ts     # PATCH: 单条审核
 │   │   │   ├── commit/+server.ts     # POST: 写入 Supabase
@@ -128,7 +126,7 @@ local-server/
 ### 提取流程
 
 ```
-上传 txt 文件
+本地读取 txt 文件
     │
     ▼
 解析元数据头 → 书名/作者/年份/语言/体裁
@@ -145,7 +143,8 @@ local-server/
     ▼
 解析 AI 返回的 JSON 数组
   - 过滤 <think> 标签
-  - 校验必填字段（text, lang, moods, themes）
+  - 校验必填字段（text, moods, themes）
+  - `lang`/作者/作品/年份等元数据不信任 AI，统一从 txt 元数据头派生或回填
     │
     ▼
 写入 SQLite queue.db（待审状态）
@@ -193,11 +192,13 @@ TEMPERATURE=0.3
 ### UI 页面
 
 **提取工作台**：
-- 左栏：API URL、模型、API Key、切片大小、并发数、Temperature 滑块、Prompt 编辑器
-- 右栏：上传按钮（选择 txt）、小字显示书名/作者（只读）、进度条、开始提取按钮
+
+- 左栏：API URL、模型、API Key、切片大小、并发数、Temperature 滑块、Prompt 编辑器，以及浏览器本地 `保存 / 清空` 配置按钮
+- 右栏：本地读取按钮（选择 txt）、已选书籍卡片、真实提取进度条、开始提取按钮
 - 状态：IDLE / RUNNING / DONE / ERROR
 
 **待审清单**：
+
 - 顶部 tab：全部 / 未审 / 通过 / 排除
 - 每条：名句全文、作者·作品·体裁、mood tags、themes tags
 - 操作：收 / 弃
@@ -205,6 +206,7 @@ TEMPERATURE=0.3
 - 入库按钮
 
 **语料管理**：
+
 - 名句库 tab：已入库名句列表
 - 宜忌 tab：宜忌历史记录
 
@@ -237,16 +239,19 @@ TEMPERATURE=0.3
 ### Edge Functions
 
 **daily-quote**：
+
 - App 请求今日名句
 - 按心情 + themes 加权评分查询（见下方策略）
 - 避免连续重复
 
 **generate-almanac**：
+
 - 调用 LLM 生成宜忌（使用 `docs/prompt-yi.md`）
 - 输入信号：日期、天气描述（原始文本）、近7天心情/阅读偏好、临近纪念日
 - 通过 auth token 获取 user_id 查询用户数据
 
 **log-mood**：
+
 - 记录用户每日心情选择
 - 更新 `user_daily_logs`
 
@@ -282,6 +287,7 @@ limit 5;
 ```
 
 **关键设计**：
+
 - 软匹配，不硬过滤：有主题词命中则加分，没命中也能返回结果
 - 映射表有限可控：几十个节日 + 常见天气词，一次性维护
 - 避免预打标签的不准确：天气/节日不存入名句，运行时动态评分
@@ -430,8 +436,8 @@ sequenceDiagram
     participant SQLite as SQLite
     participant Supabase as Supabase
 
-    User->>UI: 上传 txt 文件
-    UI->>UI: 解析元数据头
+    User->>UI: 本地选择 txt 文件
+    UI->>UI: 读取文件内容并解析元数据头
     UI->>UI: 切片正文
     loop 每个切片
         UI->>AI: 调用 AI 提取
@@ -505,6 +511,6 @@ sequenceDiagram
 | 模型 | baseURL | model |
 |------|---------|-------|
 | Anthropic Claude | （留空） | claude-opus-4-6 |
-| GLM / 智谱 | https://open.bigmodel.cn/api/paas/v4 | glm-4.7 |
-| DeepSeek | https://api.deepseek.com | deepseek-chat |
-| 本地 Ollama | http://localhost:11434/v1 | llama3 |
+| GLM / 智谱 | <https://open.bigmodel.cn/api/paas/v4> | glm-4.7 |
+| DeepSeek | <https://api.deepseek.com> | deepseek-chat |
+| 本地 Ollama | <http://localhost:11434/v1> | llama3 |

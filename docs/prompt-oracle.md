@@ -75,12 +75,8 @@ themes（3-6 个语义主题词）：
 {
   "id": "001",
   "text": "原文，中文或英文保持原语言，其他语言输出中文译文",
-  "lang": "zh / en / translated",
-  "author": "作者名",
-  "work": "作品名",
-  "year": 出版年份（数字，不知道则填 null）,
   "moods": ["calm", "sad"],
   "themes": ["离别", "故乡", "秋"]
 }
 
-注：author、work、year 从文件元数据头获取时可省略或覆盖。genre 不由 AI 输出，从 txt 元数据头解析。
+注：lang、author、work、year、genre 都不由 AI 输出；这些字段统一从 txt 元数据头解析并在入库阶段回填。其中 `lang` 规则是：中文书籍记为 `zh`，英文书籍记为 `en`，其他语言因输出中文译文记为 `translated`。
