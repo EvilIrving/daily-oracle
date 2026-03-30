@@ -1,18 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import type { QuoteCandidateRecord } from '../types';
-
-function requireEnv(...keys: string[]) {
-  for (const key of keys) {
-    const value = process.env[key];
-    if (value) return value;
-  }
-
-  throw new Error(`缺少环境变量：${keys.join(' / ')}`);
-}
+import { requireServerEnv } from './env';
 
 export function createSupabaseReadClient() {
-  const url = requireEnv('SUPABASE_URL');
-  const key = requireEnv('PUBLISHABLE_KEY', 'SUPABASE_ANON_KEY', 'SUPABASE_PUBLISHABLE_KEY');
+  const url = requireServerEnv('SUPABASE_URL');
+  const key = requireServerEnv('PUBLISHABLE_KEY', 'SUPABASE_ANON_KEY', 'SUPABASE_PUBLISHABLE_KEY');
 
   return createClient(url, key, {
     auth: {
@@ -23,8 +15,8 @@ export function createSupabaseReadClient() {
 }
 
 export function createSupabaseServiceClient() {
-  const url = requireEnv('SUPABASE_URL');
-  const key = requireEnv('SUPABASE_SERVICE_ROLE_KEY', 'SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY');
+  const url = requireServerEnv('SUPABASE_URL');
+  const key = requireServerEnv('SUPABASE_SERVICE_ROLE_KEY', 'SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY');
 
   return createClient(url, key, {
     auth: {

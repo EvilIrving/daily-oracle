@@ -129,6 +129,41 @@ export function upsertBook(
   };
 }
 
+export function listBooks(db: Database.Database): BookRecord[] {
+  const rows = db.prepare(`
+    select *
+    from books
+    order by updated_at desc
+  `).all() as Array<{
+    id: string;
+    file_name: string;
+    title: string;
+    author: string | null;
+    year: number | null;
+    language: string | null;
+    genre: string | null;
+    raw_text: string;
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  return rows.map(mapBookRow);
+}
+
+export function clearExtractionDataByBookId(db: Database.Database, bookId: string) {
+  return db.prepare(`
+    delete from extraction_runs
+    where book_id = ?
+  `).run(bookId);
+}
+
+export function deleteBookById(db: Database.Database, bookId: string) {
+  return db.prepare(`
+    delete from books
+    where id = ?
+  `).run(bookId);
+}
+
 export function createExtractionRun(
   db: Database.Database,
   input: { id: string; bookId: string; config: ExtractionConfig; totalChunks: number }
@@ -378,20 +413,7 @@ export function getBookById(db: Database.Database, bookId: string): BookRecord |
 
   if (!row) return null;
 
-  return {
-    id: row.id,
-    fileName: row.file_name,
-    meta: {
-      title: row.title,
-      author: row.author,
-      year: row.year,
-      language: row.language,
-      genre: row.genre
-    },
-    rawText: row.raw_text,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
+  return mapBookRow(row);
 }
 
 export function getLatestRunByBookId(db: Database.Database, bookId: string) {
@@ -449,5 +471,33 @@ function mapCandidateRow(row: any): QuoteCandidateRecord {
     reviewedAt: row.reviewed_at,
     committedAt: row.committed_at,
     createdAt: row.created_at
+  };
+}
+
+function mapBookRow(row: {
+  id: string;
+  file_name: string;
+  title: string;
+  author: string | null;
+  year: number | null;
+  language: string | null;
+  genre: string | null;
+  raw_text: string;
+  created_at: string;
+  updated_at: string;
+}): BookRecord {
+  return {
+    id: row.id,
+    fileName: row.file_name,
+    meta: {
+      title: row.title,
+      author: row.author,
+      year: row.year,
+      language: row.language,
+      genre: row.genre
+    },
+    rawText: row.raw_text,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }

@@ -50,7 +50,6 @@
     ji: string;
   };
 
-  const architectureDoc = '/Users/cain/Documents/code/swift-daily-oracle/docs/architecture.md';
   const CONFIG_STORAGE_KEY = 'daily-quote.extract-config';
   const DEFAULT_PROMPT = `你是一个文学语料库编辑，任务是从以下书籍文本中提取适合「每日名句」产品使用的候选句子。
 
@@ -104,7 +103,7 @@
 
   let config = createDefaultConfig();
   let serverConfigFallback = createDefaultConfig();
-  let configNotice = '';
+  let configReady = false;
 
   let candidates: Candidate[] = [];
   let libraryQuotes: LibraryQuote[] = [];
@@ -114,10 +113,30 @@
     pending: 0
   };
 
-  let extractNotice = '等待本地读取 txt';
+  let extractNotice = '等待导入 txt 文件';
   let extractError = '';
 
   let almanacHistory: AlmanacEntry[] = [];
+
+  function mapBookSummary(book: any) {
+    const bodyLength = book.bodyLength ?? book.body_length;
+
+    return {
+      id: book.id,
+      name: book.fileName || book.file_name,
+      sizeLabel: typeof bodyLength === 'number' && bodyLength > 0 ? formatFileSize(bodyLength) : '已解析',
+      title: book.title,
+      author: book.author || '自动解析',
+      year: book.year,
+      language: book.language,
+      genre: book.genre,
+      bodyLength
+    };
+  }
+
+  function upsertSelectedFile(file: ReturnType<typeof mapBookSummary>) {
+    selectedFiles = [file, ...selectedFiles.filter((item) => item.id !== file.id)];
+  }
 
   function createInitialAlmanacToday(): AlmanacTodayCard | null {
     return null;
@@ -162,9 +181,9 @@
     }
   }
 
-  function persistLocalConfig() {
+  function persistLocalConfig(nextConfig = config) {
     if (!browser) return;
-    window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(normalizeConfig(config)));
+    window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(normalizeConfig(nextConfig)));
   }
 
   function clearLocalConfig() {
@@ -222,22 +241,17 @@
           };
 
           return {
-            id: book.id,
-            name: book.fileName,
-            sizeLabel: formatFileSize(file.size),
-            title: book.title,
-            author: book.author || '自动解析',
-            year: book.year,
-            language: book.language,
-            genre: book.genre,
-            bodyLength: book.bodyLength
+            ...mapBookSummary(book),
+            sizeLabel: formatFileSize(file.size)
           };
         })
       );
 
-      selectedFiles = mapped;
-      currentBookId = mapped[0]?.id || '';
-      extractNotice = `已完成 ${mapped.length} 本 txt 的本地读取与解析`;
+      for (const book of mapped) {
+        upsertSelectedFile(book);
+      }
+      currentBookId = mapped.at(-1)?.id || currentBookId;
+      extractNotice = `已完成 ${mapped.length} 本 txt 文件的读取与解析`;
       if (currentBookId) {
         await refreshExtraction(currentBookId);
       }
@@ -271,15 +285,11 @@
     }
   }
 
-  function saveConfigToBrowser() {
-    persistLocalConfig();
-    configNotice = '已保存到当前浏览器';
-  }
-
-  function clearSavedConfig() {
-    clearLocalConfig();
-    config = normalizeConfig(serverConfigFallback);
-    configNotice = '已清空浏览器保存，并恢复默认配置';
+  function clearApiKey() {
+    config = {
+      ...config,
+      apiKey: ''
+    };
   }
 
   function mapCandidate(item: any): Candidate {
@@ -361,6 +371,81 @@
       : '当前书目还没有提取批次';
   }
 
+  async function clearCurrentBookResults() {
+    const book = getCurrentBook();
+    if (!book?.id) {
+      extractError = '请先选择一本书。';
+      return;
+    }
+
+    if (extractStatus === 'RUNNING') {
+      extractError = '提取进行中，暂时不能清空结果。';
+      return;
+    }
+
+    const response = await fetch('/api/books', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        bookId: book.id,
+        action: 'clear_results'
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      extractError = payload.error || '清空提取结果失败。';
+      return;
+    }
+
+    extractError = '';
+    currentRunId = '';
+    candidates = [];
+    extractStatus = 'IDLE';
+    extractNotice = `已清空《${book.title || book.name}》的提取结果`;
+  }
+
+  async function deleteCurrentBook() {
+    const book = getCurrentBook();
+    if (!book?.id) {
+      extractError = '请先选择一本书。';
+      return;
+    }
+
+    if (extractStatus === 'RUNNING') {
+      extractError = '提取进行中，暂时不能删除书籍。';
+      return;
+    }
+
+    const response = await fetch(`/api/books?bookId=${encodeURIComponent(book.id)}`, {
+      method: 'DELETE'
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      extractError = payload.error || '删除书籍失败。';
+      return;
+    }
+
+    extractError = '';
+    selectedFiles = selectedFiles.filter((item) => item.id !== book.id);
+    const nextBook = selectedFiles[0] ?? null;
+    currentBookId = nextBook?.id || '';
+    currentRunId = '';
+    candidates = [];
+    extractStatus = 'IDLE';
+
+    if (nextBook?.id) {
+      extractNotice = `已删除《${book.title || book.name}》，切换到《${nextBook.title || nextBook.name}》`;
+      await refreshExtraction(nextBook.id);
+      return;
+    }
+
+    extractNotice = `已删除《${book.title || book.name}》`;
+  }
+
   async function refreshLibrary() {
     const response = await fetch('/api/library');
     const payload = await response.json().catch(() => ({}));
@@ -401,6 +486,10 @@
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        console.error('Extraction request failed.', {
+          status: response.status,
+          payload
+        });
         throw new Error(payload.error || '提取失败。');
       }
 
@@ -411,9 +500,10 @@
         candidates.length > 0
           ? `提取完成，生成 ${candidates.length} 条候选`
           : payload.run?.lastError
-            ? `提取结束，但未生成候选：${payload.run.lastError}`
+            ? payload.run.lastError
             : '提取结束，但未生成候选。请检查 prompt、源文本或元数据。';
     } catch (error) {
+      console.error('Extraction failed with raw error.', error);
       extractStatus = 'ERROR';
       extractError = error instanceof Error ? error.message : '提取失败。';
     }
@@ -500,6 +590,9 @@
       : currentRunId && extractStatus === 'DONE'
         ? 'w-full'
         : 'w-0';
+  $: if (configReady) {
+    persistLocalConfig(config);
+  }
 
   onMount(async () => {
     try {
@@ -520,24 +613,14 @@
           prompt: nextConfig.promptTemplate || config.prompt
         });
         config = loadLocalConfig() ?? serverConfigFallback;
-        configNotice = loadLocalConfig() ? '已加载浏览器保存配置' : '当前使用默认配置';
       } else {
         config = loadLocalConfig() ?? createDefaultConfig();
-        configNotice = loadLocalConfig() ? '已加载浏览器保存配置' : '';
       }
+      configReady = true;
 
       if (booksResponse.ok) {
         const booksPayload = await booksResponse.json();
-        selectedFiles = (booksPayload.books || []).map((book: any) => ({
-          id: book.id,
-          name: book.file_name,
-          sizeLabel: '已解析',
-          title: book.title,
-          author: book.author || '自动解析',
-          year: book.year,
-          language: book.language,
-          genre: book.genre
-        }));
+        selectedFiles = (booksPayload.books || []).map((book: any) => mapBookSummary(book));
         if (selectedFiles.length) {
           currentBookId = selectedFiles[0]?.id || '';
           extractNotice = `已恢复 ${selectedFiles.length} 本本地解析记录`;
@@ -566,19 +649,8 @@
   <div class="mx-auto max-w-[1180px]">
     <section class="shell-panel overflow-hidden">
       <header class="px-5 pt-5 sm:px-7 sm:pt-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.16em] text-[#8d7b68]">Layer1 Local Workbench</p>
-            <h1 class="mt-2 text-[1.05rem] font-semibold text-ink">语料工作台</h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-[#6f604f]">
-              按
-              <a class="underline underline-offset-2" href={architectureDoc}>architecture.md</a>
-              约束实现。参考图只决定视觉，不决定字段和流程。
-            </p>
-          </div>
-          <div class="rounded-full border border-[#cfc1af] bg-[#fbf6ee] px-3 py-1.5 text-xs text-[#796a58]">
-            进入实现前先回读架构文档
-          </div>
+        <div>
+          <h1 class="text-[1.05rem] font-semibold text-ink">语料工作台</h1>
         </div>
 
         <nav class="mt-6 flex gap-6 border-b border-[#ded4c7] text-sm">
@@ -596,14 +668,7 @@
             <article class="soft-panel overflow-hidden">
               <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
                 <h2 class="text-[0.98rem] font-medium text-ink">提取配置</h2>
-                <div class="flex items-center gap-2">
-                  {#if configNotice}
-                    <span class="text-xs text-[#7a6a58]">{configNotice}</span>
-                  {/if}
-                  <button class="btn-secondary" type="button" on:click={saveConfigToBrowser}>保存</button>
-                  <button class="btn-secondary" type="button" on:click={clearSavedConfig}>清空</button>
-                  <span class="chip">{extractStatus}</span>
-                </div>
+                <span class="chip">{extractStatus}</span>
               </header>
 
               <div class="space-y-4 p-4 sm:p-5">
@@ -620,10 +685,22 @@
 
                 <label class="block">
                   <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">API KEY</span>
-                  <input class="field px-4 py-2.5 text-sm" bind:value={config.apiKey} />
+                  <div class="field flex items-center gap-2 px-4 py-2.5">
+                    <input class="min-w-0 flex-1 bg-transparent text-sm outline-none" bind:value={config.apiKey} />
+                    {#if config.apiKey}
+                      <button
+                        class="flex h-6 w-6 items-center justify-center rounded-full text-base leading-none text-[#8b7a67] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
+                        type="button"
+                        aria-label="清空 API Key"
+                        on:click={clearApiKey}
+                      >
+                        ×
+                      </button>
+                    {/if}
+                  </div>
                 </label>
 
-                <div class="space-y-4">
+                <div class="grid gap-4 md:grid-cols-3">
                   <label class="block">
                     <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
                       <span>切片大小</span>
@@ -664,21 +741,29 @@
 
             <article class="soft-panel overflow-hidden">
               <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
-                <h2 class="text-[0.98rem] font-medium text-ink">上传文件</h2>
-                <span class="chip">本地读取</span>
+                <h2 class="text-[0.98rem] font-medium text-ink">导入 txt 文件</h2>
               </header>
 
               <div class="space-y-4 p-4 sm:p-5">
                 <label class="block">
                   <div class="rounded-[18px] border border-dashed border-[#d4c7b8] bg-[#fffdf8] px-4 py-8 text-center">
                     <p class="text-sm text-[#7a6a58]">拖入或点击选择</p>
-                    <p class="mt-2 text-xs text-[#8b7a67]">仅本地读取 txt，不经上传接口</p>
+                    <p class="mt-2 text-xs text-[#8b7a67]">仅在当前设备解析，不上传到服务器</p>
                     <span class="btn-secondary mt-4 inline-flex cursor-pointer">
-                      选择 txt
+                      选择 txt 文件
                       <input class="hidden" type="file" multiple accept=".txt,text/plain" on:change={handleFileChange} />
                     </span>
                   </div>
                 </label>
+
+                <div class="flex flex-wrap justify-end gap-2">
+                  <button class="btn-secondary px-3 py-2 text-sm font-medium" type="button" on:click={clearCurrentBookResults}>
+                    清空当前书结果
+                  </button>
+                  <button class="btn-secondary px-3 py-2 text-sm font-medium text-[#9c5a55]" type="button" on:click={deleteCurrentBook}>
+                    删除当前书
+                  </button>
+                </div>
 
                 <div class="space-y-2">
                   {#each selectedFiles as file}
@@ -741,7 +826,7 @@
               </div>
               <div class="flex items-center gap-3">
                 <span class="chip border-[#b5cca8] bg-[#f2f9ed] text-[#648150]">已提取 {candidates.length} 条</span>
-                <button class="btn-secondary font-medium" type="button" on:click={commitApproved}>入库已通过 {approvedCount} 条</button>
+                <button class="chip chip-action font-medium" type="button" on:click={commitApproved}>入库已通过 {approvedCount} 条</button>
               </div>
             </header>
 
@@ -756,7 +841,6 @@
                     {filter.label} {reviewFilterCount(filter.id)}
                   </button>
                 {/each}
-                <span class="chip">精品 ●●●</span>
               </div>
               <div class="text-sm text-[#6f604f]">已审 {processedCount}/{candidates.length}</div>
             </div>

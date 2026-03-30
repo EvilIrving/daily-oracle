@@ -162,11 +162,11 @@ describe('runExtraction', () => {
     });
 
     expect(run.status).toBe('error');
-    expect(run.lastError).toBe('正文为空，无法切片。');
+    expect(run.lastError).toBe('未检测到可提取正文。请检查 txt 分隔符 --- 后是否有正文内容。');
     expect(extractQuotesForChunk).not.toHaveBeenCalled();
     expect(updateRunStatus).toHaveBeenLastCalledWith(db, run.id, {
       status: 'error',
-      lastError: '正文为空，无法切片。',
+      lastError: '未检测到可提取正文。请检查 txt 分隔符 --- 后是否有正文内容。',
       finishedAt: expect.any(String)
     });
   });

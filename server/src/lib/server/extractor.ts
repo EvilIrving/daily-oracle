@@ -37,12 +37,13 @@ export async function runExtraction(input: {
 
   if (chunks.length === 0) {
     const finishedAt = new Date().toISOString();
+    const lastError = '未检测到可提取正文。请检查 txt 分隔符 --- 后是否有正文内容。';
     updateRunStatus(input.db, run.id, {
       status: 'error',
-      lastError: '正文为空，无法切片。',
+      lastError,
       finishedAt
     });
-    return { ...run, status: 'error', lastError: '正文为空，无法切片。', finishedAt };
+    return { ...run, status: 'error', lastError, finishedAt };
   }
 
   let processedChunks = 0;
@@ -92,6 +93,13 @@ export async function runExtraction(input: {
         const candidates = buildQuoteCandidates(extracted, input.meta, chunk.index);
         insertCandidates(input.db, run.id, input.bookId, candidates);
       } catch (error) {
+        console.error('Chunk extraction failed.', {
+          runId: run.id,
+          bookId: input.bookId,
+          chunkIndex: chunk.index,
+          totalChunks: chunks.length,
+          error
+        });
         failedChunks += 1;
         lastError = error instanceof Error ? error.message : String(error);
         failures.push(`第 ${chunk.index + 1} 段失败：${lastError}`);

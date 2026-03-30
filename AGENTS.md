@@ -59,6 +59,7 @@ Every time something breaks -> you add a guardrail
 - TailwindCSS 固定使用 v3，通过 `tailwind.config.js` 配置，不按 v4 的方式组织配置。
 - 避免使用 `pnpm dev` 作为默认工作流；优先使用不会长期占用交互会话的检查、测试、build 命令。
 - 修改页面、接口或状态流时，要同时检查路由层、`lib/server`、类型定义和 UI 文案是否一致。
+- 涉及书籍导入、提取工作台或本地持久化流程时，先对照 [tools/test-book-pipeline.html](/Users/cain/Documents/code/swift-daily-oracle/tools/test-book-pipeline.html) 的现有交互与状态处理，再决定删减或迁移哪些能力。
 
 ## macOS 开发约束
 
@@ -80,4 +81,6 @@ Every time something breaks -> you add a guardrail
 - 不要把 [README.md](/Users/cain/Documents/code/swift-daily-oracle/README.md) 中的旧结构直接当成当前实现事实，目录和架构以 [docs/architecture.md](/Users/cain/Documents/code/swift-daily-oracle/docs/architecture.md) 为准。
 - 不要把本地测试数据、SQLite 队列数据或临时脚本输出当成正式业务数据。
 - 不要在未更新文档的情况下调整架构、schema、环境变量或关键工作流。
+- 不要在 UI、接口或文案里引入 [docs/architecture.md](/Users/cain/Documents/code/swift-daily-oracle/docs/architecture.md) 未定义的业务概念；像“精品”这类标签如果没有数据结构和流程支撑，就不要保留。
+- 不要在 SvelteKit 服务端代码里直接依赖 `process.env` 读取运行时配置；统一通过 `$env/dynamic/private` 封装访问，避免 dev/build 环境取值不一致。
 - 不要提交敏感密钥、私钥或生产凭证；如果在仓库中发现此类内容，优先提醒并推动迁移到安全配置。

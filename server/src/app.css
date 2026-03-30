@@ -86,6 +86,19 @@ textarea {
   background: #fff8ef;
 }
 
+.chip-action {
+  cursor: pointer;
+  padding: 0.42rem 0.9rem;
+  color: var(--text);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.chip-action:hover {
+  transform: translateY(-1px);
+  border-color: #c4b29c;
+  background: #fff8ef;
+}
+
 .tag {
   display: inline-flex;
   align-items: center;

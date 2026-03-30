@@ -1,16 +1,17 @@
 import type { ExtractionConfig } from '../types';
 import { createDb, readConfig, writeConfig } from './db';
 import { loadPromptTemplate } from './ai-client';
+import { readServerEnv } from './env';
 
 export function getDefaultConfig(): ExtractionConfig {
   return {
-    apiBaseUrl: process.env.API_BASE_URL || process.env.APIURL || '',
-    apiKey: process.env.API_KEY || process.env.APIKEY || '',
-    model: process.env.MODEL || 'glm-4.7',
-    chunkSize: Number.parseInt(process.env.CHUNK_SIZE || '3000', 10),
-    concurrency: Number.parseInt(process.env.CONCURRENCY || '3', 10),
-    temperature: Number.parseFloat(process.env.TEMPERATURE || '0.3'),
-    maxTokens: Number.parseInt(process.env.MAX_TOKENS || '65536', 10),
+    apiBaseUrl: readServerEnv('API_BASE_URL', 'APIURL'),
+    apiKey: readServerEnv('API_KEY', 'APIKEY'),
+    model: readServerEnv('MODEL') || 'glm-4.7',
+    chunkSize: Number.parseInt(readServerEnv('CHUNK_SIZE') || '3000', 10),
+    concurrency: Number.parseInt(readServerEnv('CONCURRENCY') || '3', 10),
+    temperature: Number.parseFloat(readServerEnv('TEMPERATURE') || '0.3'),
+    maxTokens: Number.parseInt(readServerEnv('MAX_TOKENS') || '65536', 10),
     promptTemplate: loadPromptTemplate()
   };
 }
