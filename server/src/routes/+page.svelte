@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import QuoteCard from '$lib/components/QuoteCard.svelte';
   import { notifyError, notifySuccess } from '$lib/notifications';
+  import { deriveExtractionProgress, type ExtractionProgressSnapshot } from '$lib/extraction-progress';
 
   type MainTab = 'extract' | 'library' | 'almanac';
   type ReviewFilter = 'all' | 'pending';
@@ -112,6 +113,9 @@
   let runTotalChunks = 0;
   let runFailedChunks = 0;
   let runActiveWorkers = 0;
+  let runLastError: string | null = null;
+  let stopRequestPending = false;
+  let frozenExtractionProgress: ExtractionProgressSnapshot | null = null;
   let progressStream: EventSource | null = null;
   let progressStreamBookId = '';
   let selectedFiles: {
@@ -336,6 +340,20 @@
   }
 
   function applyRunState(run: any) {
+    if (!run) {
+      currentRunId = '';
+      currentRunLabel = '--';
+      extractStatus = 'IDLE';
+      runProcessedChunks = 0;
+      runTotalChunks = 0;
+      runFailedChunks = 0;
+      runActiveWorkers = 0;
+      runLastError = null;
+      stopRequestPending = false;
+      frozenExtractionProgress = null;
+      return;
+    }
+
     currentRunId = run?.id || '';
     currentRunLabel = formatRunLabel(run);
     extractStatus = run?.status?.toUpperCase?.() || 'IDLE';
@@ -343,6 +361,29 @@
     runTotalChunks = Number(run?.totalChunks ?? run?.total_chunks ?? 0);
     runFailedChunks = Number(run?.failedChunks ?? run?.failed_chunks ?? 0);
     runActiveWorkers = Number(run?.activeWorkers ?? run?.active_workers ?? 0);
+    runLastError = run?.lastError ?? run?.last_error ?? null;
+
+    if (extractStatus === 'STOPPED') {
+      if (!frozenExtractionProgress || frozenExtractionProgress.runId !== currentRunId) {
+        frozenExtractionProgress = {
+          runId: currentRunId,
+          processedChunks: runProcessedChunks,
+          failedChunks: runFailedChunks,
+          activeWorkers: runActiveWorkers,
+          totalChunks: runTotalChunks
+        };
+      }
+      stopRequestPending = false;
+      return;
+    }
+
+    if (frozenExtractionProgress?.runId === currentRunId && !stopRequestPending) {
+      frozenExtractionProgress = null;
+    }
+
+    if (!['RUNNING', 'QUEUED'].includes(extractStatus)) {
+      stopRequestPending = false;
+    }
   }
 
   function closeProgressStream() {
@@ -362,29 +403,18 @@
       return;
     }
 
-    if (extractStatus === 'RUNNING' || extractStatus === 'QUEUED') {
-      extractNotice = `正在提取：${runProcessedChunks}/${runTotalChunks || 0} 段，失败 ${runFailedChunks} 段`;
-      return;
-    }
-
-    if (extractStatus === 'DONE') {
-      extractNotice = candidates.length
-        ? `提取完成，生成 ${candidates.length} 条候选`
-        : '提取完成，但未生成候选。';
-      return;
-    }
-
-    if (extractStatus === 'STOPPED') {
-      extractNotice = payload.run.lastError || '提取已停止。';
-      return;
-    }
-
-    if (payload.run.lastError) {
-      extractNotice = payload.run.lastError;
-      return;
-    }
-
-    extractNotice = `已加载${currentRunLabel}，候选 ${(payload.stats || {}).total || 0} 条`;
+    extractNotice = deriveExtractionProgress({
+      runId: currentRunId,
+      status: extractStatus,
+      processedChunks: runProcessedChunks,
+      failedChunks: runFailedChunks,
+      activeWorkers: runActiveWorkers,
+      totalChunks: runTotalChunks,
+      candidatesCount: candidates.length,
+      stopRequestPending,
+      lastError: runLastError,
+      frozenProgress: frozenExtractionProgress
+    }).statusText;
   }
 
   function ensureProgressStream(bookId: string) {
@@ -670,6 +700,9 @@
     runTotalChunks = 0;
     runFailedChunks = 0;
     runActiveWorkers = 0;
+    runLastError = null;
+    stopRequestPending = false;
+    frozenExtractionProgress = null;
     candidates = [];
     extractStatus = 'IDLE';
     closeProgressStream();
@@ -709,6 +742,9 @@
       runTotalChunks = 0;
       runFailedChunks = 0;
       runActiveWorkers = 0;
+      runLastError = null;
+      stopRequestPending = false;
+      frozenExtractionProgress = null;
       candidates = [];
       extractStatus = 'IDLE';
       closeProgressStream();
@@ -761,12 +797,13 @@
       return;
     }
 
-    extractStatus = 'RUNNING';
-    extractNotice = '正在提取，请稍候…';
-    closeProgressStream();
-
     try {
       await saveConfig();
+      stopRequestPending = false;
+      frozenExtractionProgress = null;
+      extractStatus = 'RUNNING';
+      extractNotice = '正在提取，请稍候…';
+      closeProgressStream();
 
       const response = await fetch('/api/extract', {
         method: 'POST',
@@ -789,6 +826,8 @@
       ensureProgressStream(book.id);
     } catch (error) {
       console.error('Extraction failed with raw error.', error);
+      stopRequestPending = false;
+      frozenExtractionProgress = null;
       extractStatus = 'ERROR';
       notifyError(error instanceof Error ? error.message : '提取失败。');
     }
@@ -802,6 +841,14 @@
     }
 
     try {
+      stopRequestPending = true;
+      frozenExtractionProgress = {
+        runId: currentRunId,
+        processedChunks: runProcessedChunks,
+        failedChunks: runFailedChunks,
+        activeWorkers: runActiveWorkers,
+        totalChunks: runTotalChunks
+      };
       const response = await fetch('/api/extract', {
         method: 'PATCH',
         headers: {
@@ -820,10 +867,23 @@
 
       closeProgressStream();
       applyRunState(payload.run);
-      extractNotice = payload.run?.lastError || '提取已停止。';
+      extractNotice = deriveExtractionProgress({
+        runId: currentRunId,
+        status: extractStatus,
+        processedChunks: runProcessedChunks,
+        failedChunks: runFailedChunks,
+        activeWorkers: runActiveWorkers,
+        totalChunks: runTotalChunks,
+        candidatesCount: candidates.length,
+        stopRequestPending,
+        lastError: runLastError,
+        frozenProgress: frozenExtractionProgress
+      }).statusText;
       notifySuccess(extractNotice);
       await refreshExtraction(book.id);
     } catch (error) {
+      stopRequestPending = false;
+      frozenExtractionProgress = null;
       notifyError(error instanceof Error ? error.message : '停止提取失败。');
     }
   }
@@ -999,9 +1059,18 @@
     selectedLibraryMood,
     selectedLibraryTheme
   );
-  $: displayStatus = extractStatus;
-  $: extractProgressPercent =
-    runTotalChunks > 0 ? Math.min(100, Math.round((runProcessedChunks / runTotalChunks) * 100)) : extractStatus === 'DONE' ? 100 : 0;
+  $: extractionProgress = deriveExtractionProgress({
+    runId: currentRunId,
+    status: extractStatus,
+    processedChunks: runProcessedChunks,
+    failedChunks: runFailedChunks,
+    activeWorkers: runActiveWorkers,
+    totalChunks: runTotalChunks,
+    candidatesCount: candidates.length,
+    stopRequestPending,
+    lastError: runLastError,
+    frozenProgress: frozenExtractionProgress
+  });
   $: activeProvider = getProviderById(providerState, activeProviderId);
   $: if (configReady) {
     const nextState: ProviderConfigState = {
@@ -1283,7 +1352,6 @@
             <article class="soft-panel overflow-hidden">
               <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
                 <h2 class="text-[0.98rem] font-medium text-ink">导入 txt 文件</h2>
-                <span class="chip">{displayStatus}</span>
               </header>
 
               <div class="space-y-4 p-4 sm:p-5">
@@ -1342,29 +1410,45 @@
                   {/each}
                 </div>
 
-                <div class="space-y-2 rounded-[18px] bg-[#fbf7f0] px-4 py-3">
-                  <div class="metric flex items-center justify-between">
-                    <span>{extractNotice}</span>
-                    <span>{currentRunLabel}　{runProcessedChunks}/{runTotalChunks || 0}　运行中 {runActiveWorkers}</span>
+                <div class="space-y-3 rounded-[18px] bg-[#fbf7f0] px-4 py-3">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 space-y-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="chip border-[#d9c7b1] bg-[#fffaf2] text-[#7a6a58]">{extractStatus}</span>
+                        <span class="text-sm text-[#7b6b59]">{extractNotice}</span>
+                      </div>
+                      <p class="text-xs text-[#8b7a67]">当前批次：{currentRunLabel}</p>
+                    </div>
+                    <div class="shrink-0 text-right text-xs leading-5 text-[#7b7a67]">
+                      <p>进行到 {extractionProgress.chunkLabel}</p>
+                      <p>失败 {extractionProgress.failedChunks} 段 · 并发 {extractionProgress.activeWorkers}</p>
+                    </div>
                   </div>
                   <div class="h-2 rounded-full bg-[#ece4da]">
                     <div
                       class="h-2 rounded-full bg-[#d7c2a2] transition-all duration-300"
-                      style={`width:${extractProgressPercent}%`}
+                      style={`width:${extractionProgress.progressPercent}%`}
                     ></div>
                   </div>
+                  <div class="flex items-center justify-between gap-3 text-[12px] text-[#7a6a58]">
+                    <span>{extractionProgress.summaryLabel}</span>
+                    <span>{extractionProgress.progressPercent}%</span>
+                  </div>
                 </div>
-                <div class="grid gap-2 sm:grid-cols-2">
-                  <button class="btn-primary w-full py-3 text-base font-medium" type="button" on:click={startExtraction}>开始提取</button>
+                {#if extractionProgress.isRunning}
                   <button
                     class="btn-secondary w-full py-3 text-base font-medium text-[#9c5a55] disabled:cursor-not-allowed disabled:opacity-50"
                     type="button"
-                    disabled={extractStatus !== 'RUNNING'}
+                    disabled={stopRequestPending}
                     on:click={stopExtraction}
                   >
-                    停止提取
+                    {extractionProgress.actionLabel}
                   </button>
-                </div>
+                {:else}
+                  <button class="btn-primary w-full py-3 text-base font-medium" type="button" on:click={startExtraction}>
+                    {extractionProgress.actionLabel}
+                  </button>
+                {/if}
               </div>
             </article>
           </section>
