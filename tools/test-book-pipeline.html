@@ -159,10 +159,6 @@
       gap: 0.8rem;
     }
 
-    .metric-card {
-      background: linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(246, 239, 226, 0.88));
-    }
-
     .result-grid {
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
@@ -173,20 +169,6 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 0.9rem;
-    }
-
-    .result-summary {
-      display: inline-flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.45rem;
-      font-size: 0.84rem;
-      color: rgba(87, 73, 57, 0.82);
-    }
-
-    .result-summary strong {
-      font-weight: 600;
-      color: #4f4438;
     }
 
     .quote-text {
@@ -366,44 +348,13 @@
               </label>
             </div>
 
-            <div class="mt-4 rounded-[20px] border border-stone-200/70 bg-stone-50/70 px-4 py-4">
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div class="min-w-0">
-                  <p class="text-[11px] uppercase tracking-[0.12em] text-stone-500">当前文件</p>
-                  <p class="mt-1 truncate text-sm text-stone-800">{{ bookTitle || '未选择' }}</p>
-                </div>
-                <div class="text-[11px] text-stone-500">{{ rawText ? rawText.length.toLocaleString() + ' 字' : '0 字' }}
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-3 border-t border-stone-200/70 pt-3">
-              <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <article class="metric-card rounded-[16px] border border-stone-200/70 px-3 py-2.5">
-                  <p class="text-[10px] uppercase tracking-[0.16em] text-stone-400">切片</p>
-                  <p class="mt-1 text-xl font-semibold leading-none text-stone-800">{{ totalChunks || estimatedChunks }}
-                  </p>
-                </article>
-                <article class="metric-card rounded-[16px] border border-stone-200/70 px-3 py-2.5">
-                  <p class="text-[10px] uppercase tracking-[0.16em] text-stone-400">结果</p>
-                  <p class="mt-1 text-xl font-semibold leading-none text-stone-800">{{ quotes.length }}</p>
-                </article>
-                <article class="metric-card rounded-[16px] border border-stone-200/70 px-3 py-2.5">
-                  <p class="text-[10px] uppercase tracking-[0.16em] text-stone-400">并发</p>
-                  <p class="mt-1 text-xl font-semibold leading-none text-stone-800">{{ config.concurrency }}</p>
-                </article>
-                <article class="metric-card rounded-[16px] border border-stone-200/70 px-3 py-2.5">
-                  <p class="text-[10px] uppercase tracking-[0.16em] text-stone-400">图书</p>
-                  <p class="mt-1 text-xl font-semibold leading-none text-stone-800">{{ books.length }}</p>
-                </article>
-              </div>
-              <div class="mt-3 flex flex-wrap items-center gap-2">
+            <div class="mt-4 border-t border-stone-200/70 pt-3">
+              <div class="flex flex-wrap items-center gap-2">
                 <button type="button" class="btn btn-secondary" @click="reset"
                   :disabled="!selectedBookId || isBookBusy(selectedBook)">清除选中</button>
                 <button type="button" class="btn btn-primary" @click="start" :disabled="!canStart">
                   <span>{{ primaryActionLabel }}</span>
                 </button>
-                <span class="text-xs text-stone-500" v-if="bookTitle">{{ bookTitle }}</span>
               </div>
               <div class="mt-2 text-xs text-stone-500" v-if="queueHint">{{ queueHint }}</div>
             </div>
@@ -420,18 +371,22 @@
             <div class="mt-4 rounded-[20px] border border-stone-200/70 bg-stone-50/70 p-3">
               <div class="flex items-center justify-between text-sm text-stone-600">
                 <span>进度</span>
-                <span>{{ progressLabel }}</span>
+                <span>{{ progressPercent ? progressPercent + '%' : '—' }}</span>
               </div>
               <div class="mt-2 h-2 overflow-hidden rounded-full bg-stone-200/80">
                 <div class="h-full rounded-full bg-gradient-to-r from-amber-700 via-amber-600 to-orange-500"
                   :style="{ width: progressPercent + '%' }"></div>
               </div>
-              <div class="mt-3 grid grid-cols-2 gap-2 text-[11px] text-stone-500 sm:grid-cols-4">
-                <div>总段数 {{ totalChunks || estimatedChunks || 0 }}</div>
-                <div>已完成 {{ processedChunks }}</div>
-                <div>失败 {{ failedChunks }}</div>
-                <div>并发 {{ activeWorkers }}/{{ selectedTask.status === 'running' ? runningLimit : config.concurrency }}
-                </div>
+              <div class="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-stone-500">
+                <span class="rounded-full border border-stone-200/80 bg-white/70 px-2.5 py-1">
+                  {{ progressCountLabel }}
+                </span>
+                <span class="rounded-full border border-stone-200/80 bg-white/70 px-2.5 py-1">
+                  并发 {{ activeWorkers }}/{{ selectedTask.status === 'running' ? runningLimit : config.concurrency }}
+                </span>
+                <span class="rounded-full border border-stone-200/80 bg-white/70 px-2.5 py-1">
+                  失败 {{ failedChunks }}
+                </span>
               </div>
               <div class="mt-2 flex flex-wrap gap-2" v-if="processing">
                 <button type="button" class="btn btn-danger px-3 py-2 text-xs" @click="stop">停止队列</button>
@@ -494,11 +449,8 @@
       <section class="panel shadow-soft rounded-[28px] p-4 sm:p-5 lg:p-6">
         <div class="result-toolbar">
           <div class="min-w-0 space-y-1">
-            <div class="text-xs text-stone-500" v-if="bookTitle">{{ bookTitle }} · 按生成时间倒序</div>
-            <div class="result-summary" v-if="selectedBookId">
-              <span><strong>{{ quotes.length }}</strong> 条</span>
-              <span>，</span>
-              <span><strong>{{ ((selectedBook?.rawText || rawText || '').length).toLocaleString() }}</strong> 字</span>
+            <div class="text-xs text-stone-500" v-if="bookTitle">
+              {{ bookTitle }} · {{ quotes.length }} 条 · 按生成时间倒序
             </div>
           </div>
           <div class="flex flex-wrap gap-2" v-if="quotes.length">
@@ -558,6 +510,7 @@
 
     const STORAGE_KEY = 'book-pipeline-state-v4'
     const LEGACY_STORAGE_KEYS = ['book-pipeline-state-v3', 'book-pipeline-state-v2']
+    const DEBUG_LOG_KEY = 'book-pipeline-debug-logs-v1'
     const DB_NAME = 'book-pipeline-db'
     const DB_VERSION = 1
     const BOOK_STORE = 'books'
@@ -687,6 +640,16 @@ weathers（可多选）：
         } catch { }
       }
       return {}
+    }
+
+    function loadDebugLogs() {
+      try {
+        const raw = localStorage.getItem(DEBUG_LOG_KEY)
+        const parsed = raw ? JSON.parse(raw) : []
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
     }
 
     function normalizeQuoteText(text) {
@@ -856,18 +819,14 @@ weathers（可多选）：
           const failedChunks = computed(() => selectedTask.value.failedChunks)
           const activeWorkers = computed(() => selectedTask.value.activeWorkers)
           const totalChunks = computed(() => selectedTask.value.totalChunks)
+          const progressCountLabel = computed(() => {
+            const chunkCount = totalChunks.value || estimatedChunks.value || 0
+            if (!chunkCount) return '0/0'
+            return `${processedChunks.value}/${chunkCount}`
+          })
           const progressPercent = computed(() => {
             if (!selectedTask.value.totalChunks || !selectedTask.value.processedChunks) return 0
             return Math.max(0, Math.min(100, Math.round((selectedTask.value.processedChunks / selectedTask.value.totalChunks) * 100)))
-          })
-          const progressLabel = computed(() => {
-            if (selectedTask.value.status === 'queued') return '排队中'
-            if (selectedTask.value.status === 'running' && selectedTask.value.totalChunks) return `${selectedTask.value.processedChunks}/${selectedTask.value.totalChunks}`
-            if (selectedTask.value.status === 'partial') return `部分完成，共 ${quotes.value.length} 条`
-            if (selectedTask.value.status === 'done') return `完成，共 ${quotes.value.length} 条`
-            if (selectedTask.value.status === 'error') return selectedTask.value.lastError || '执行失败'
-            if (selectedTask.value.status === 'stopped') return '已停止'
-            return '尚未开始'
           })
           const selectedStatusLabel = computed(() => {
             const status = selectedTask.value.status
@@ -1635,8 +1594,8 @@ weathers（可多选）：
             error,
             estimatedChunks,
             canStart,
+            progressCountLabel,
             progressPercent,
-            progressLabel,
             selectedStatusLabel,
             selectedStatusClass,
             queueHint,
