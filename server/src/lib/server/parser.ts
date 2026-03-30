@@ -186,8 +186,10 @@ export function buildQuoteCandidates(
 
 export function normalizeQuoteText(text: string): string {
   return String(text || '')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/\s+/g, '')
-    .replace(/[“”"'‘’《》〈〉「」『』,.，。！？!?、；;：:\-—]/g, '')
+    .replace(/[\p{P}\p{S}]+/gu, '')
     .trim()
     .toLowerCase();
 }

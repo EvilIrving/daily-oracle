@@ -178,6 +178,8 @@ const response = await client.messages.create({
   model: config.model,
   max_tokens: config.maxTokens,
   temperature: config.temperature,
+  top_p: config.topP,
+  top_k: config.topK,
   messages: [
     { role: 'user', content: `${prompt}\n\n## 待处理文本\n${chunk}` }
   ],
@@ -193,6 +195,8 @@ MODEL=glm-4.7
 CHUNK_SIZE=4000
 CONCURRENCY=3
 TEMPERATURE=0.3
+TOP_P=0.9
+TOP_K=50
 MAX_TOKENS=4096
 ```
 
@@ -205,7 +209,9 @@ MAX_TOKENS=4096
 
 **提取工作台**：
 
-- 左栏：API URL、模型、API Key、切片大小、并发数、Temperature 滑块、Prompt 编辑器；配置自动保存在浏览器本地，API Key 可单独清空
+- 左栏：支持 4 个可切换的模型提供商（每个提供商独立保存 API URL / 模型 / API Key / 采样参数 / Prompt）；切换提供商不会丢失各自配置，刷新后仍会恢复
+- 输入框支持快捷复制与清空（API URL、模型、API Key）
+- 参数支持：切片大小、并发数、Temperature、Top P、Top K、Max Tokens、Prompt 编辑器
 - 右栏：本地读取按钮（选择 txt）、已选书籍卡片、清空当前书结果、删除当前书、真实提取进度条、开始提取按钮、停止提取按钮
 - 状态：IDLE / QUEUED / RUNNING / DONE / PARTIAL / STOPPED / ERROR
 - 刷新页面后，如当前书目仍有 queued/running 批次，页面会重新订阅该批次的 SSE 进度

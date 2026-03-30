@@ -41,6 +41,8 @@ export type ExtractionConfig = {
   chunkSize: number;
   concurrency: number;
   temperature: number;
+  topP: number;
+  topK: number;
   maxTokens: number;
   promptTemplate: string;
 };

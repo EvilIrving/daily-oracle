@@ -2,7 +2,7 @@
   import { browser } from '$app/environment';
   import { onMount } from 'svelte';
   import QuoteCard from '$lib/components/QuoteCard.svelte';
-  import '../app.css';
+  import { notifyError, notifySuccess } from '$lib/notifications';
 
   type MainTab = 'extract' | 'library' | 'almanac';
   type ReviewFilter = 'all' | 'pending';
@@ -52,7 +52,33 @@
     ji: string;
   };
 
-  const CONFIG_STORAGE_KEY = 'daily-quote.extract-config';
+  type ExtractConfig = {
+    apiUrl: string;
+    model: string;
+    apiKey: string;
+    chunkSize: number;
+    concurrency: number;
+    temperature: number;
+    topP: number;
+    topK: number;
+    maxTokens: number;
+    prompt: string;
+  };
+
+  type ProviderProfile = {
+    id: string;
+    name: string;
+    config: ExtractConfig;
+  };
+
+  type ProviderConfigState = {
+    activeProviderId: string;
+    providers: ProviderProfile[];
+  };
+
+  const LEGACY_CONFIG_STORAGE_KEY = 'daily-quote.extract-config';
+  const CONFIG_STORAGE_KEY = 'daily-quote.extract-config.providers.v1';
+  const DEFAULT_PROVIDER_IDS = ['provider-1', 'provider-2', 'provider-3', 'provider-4'] as const;
   const DEFAULT_PROMPT = `你是一个文学语料库编辑，任务是从以下书籍文本中提取适合「每日名句」产品使用的候选句子。
 
 ## 产品背景
@@ -103,6 +129,9 @@
 
   let config = createDefaultConfig();
   let serverConfigFallback = createDefaultConfig();
+  let providerState = createDefaultProviderState();
+  let activeProviderId = providerState.activeProviderId;
+  let activeProvider: ProviderProfile | null = null;
   let configReady = false;
 
   let candidates: Candidate[] = [];
@@ -117,8 +146,6 @@
   let moodFiltersExpanded = false;
   let themeFiltersExpanded = false;
   let filteredLibraryQuotes: LibraryQuote[] = [];
-  let libraryNotice = '';
-  let libraryError = '';
   let deletingLibraryQuoteIds = new Set<string>();
   let almanacToday: AlmanacTodayCard | null = createInitialAlmanacToday();
   let libraryStats = {
@@ -127,7 +154,6 @@
   };
 
   let extractNotice = '等待导入 txt 文件';
-  let extractError = '';
 
   let almanacHistory: AlmanacEntry[] = [];
 
@@ -155,7 +181,7 @@
     return null;
   }
 
-  function createDefaultConfig() {
+  function createDefaultConfig(): ExtractConfig {
     return {
       apiUrl: 'https://open.bigmodel.cn/api/anthropic',
       model: 'glm-5.1',
@@ -163,45 +189,122 @@
       chunkSize: 3000,
       concurrency: 3,
       temperature: 0.3,
+      topP: 0.9,
+      topK: 50,
+      maxTokens: 4096,
       prompt: DEFAULT_PROMPT
     };
   }
 
-  function normalizeConfig(input: Partial<typeof config> | null | undefined) {
+  function createDefaultProviderState(baseConfig: ExtractConfig = createDefaultConfig()): ProviderConfigState {
+    return {
+      activeProviderId: DEFAULT_PROVIDER_IDS[0],
+      providers: DEFAULT_PROVIDER_IDS.map((id, index) => ({
+        id,
+        name: `提供商 ${index + 1}`,
+        config: normalizeConfig(baseConfig)
+      }))
+    };
+  }
+
+  function normalizeConfig(input: Partial<ExtractConfig> | null | undefined): ExtractConfig {
     const fallback = createDefaultConfig();
     const next = input || {};
+    const toFiniteNumber = (value: unknown, defaultValue: number) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : defaultValue;
+    };
 
     return {
       apiUrl: String(next.apiUrl ?? fallback.apiUrl),
       model: String(next.model ?? fallback.model),
       apiKey: String(next.apiKey ?? fallback.apiKey),
-      chunkSize: Number(next.chunkSize ?? fallback.chunkSize),
-      concurrency: Number(next.concurrency ?? fallback.concurrency),
-      temperature: Number(next.temperature ?? fallback.temperature),
+      chunkSize: toFiniteNumber(next.chunkSize, fallback.chunkSize),
+      concurrency: toFiniteNumber(next.concurrency, fallback.concurrency),
+      temperature: toFiniteNumber(next.temperature, fallback.temperature),
+      topP: toFiniteNumber(next.topP, fallback.topP),
+      topK: toFiniteNumber(next.topK, fallback.topK),
+      maxTokens: toFiniteNumber(next.maxTokens, fallback.maxTokens),
       prompt: String(next.prompt ?? fallback.prompt)
     };
   }
 
-  function loadLocalConfig() {
+  function normalizeProviderState(
+    input: Partial<ProviderConfigState> | null | undefined,
+    baseConfig: ExtractConfig
+  ): ProviderConfigState {
+    const fallback = createDefaultProviderState(baseConfig);
+    const rawProviders = Array.isArray(input?.providers) ? input?.providers : [];
+    const providerMap = new Map<string, ProviderProfile>();
+
+    for (const raw of rawProviders) {
+      if (!raw || typeof raw !== 'object') continue;
+      const id = String(raw.id || '').trim();
+      if (!id) continue;
+      providerMap.set(id, {
+        id,
+        name: String(raw.name || id),
+        config: normalizeConfig(raw.config)
+      });
+    }
+
+    const providers = DEFAULT_PROVIDER_IDS.map((id, index) => {
+      const hit = providerMap.get(id);
+      if (hit) {
+        return hit;
+      }
+
+      return {
+        id,
+        name: `提供商 ${index + 1}`,
+        config: normalizeConfig(baseConfig)
+      };
+    });
+
+    const requestedActiveId = String(input?.activeProviderId || '').trim();
+    const activeProviderId = providers.some((item) => item.id === requestedActiveId)
+      ? requestedActiveId
+      : providers[0]?.id || fallback.activeProviderId;
+
+    return {
+      activeProviderId,
+      providers
+    };
+  }
+
+  function getProviderById(state: ProviderConfigState, id: string) {
+    return state.providers.find((provider) => provider.id === id) ?? null;
+  }
+
+  function loadLocalProviderState(baseConfig: ExtractConfig) {
     if (!browser) return null;
 
     try {
       const raw = window.localStorage.getItem(CONFIG_STORAGE_KEY);
-      if (!raw) return null;
-      return normalizeConfig(JSON.parse(raw));
+      if (raw) {
+        return normalizeProviderState(JSON.parse(raw), baseConfig);
+      }
+
+      const legacyRaw = window.localStorage.getItem(LEGACY_CONFIG_STORAGE_KEY);
+      if (!legacyRaw) return null;
+
+      const legacyConfig = normalizeConfig(JSON.parse(legacyRaw));
+      return createDefaultProviderState(legacyConfig);
     } catch {
       return null;
     }
   }
 
-  function persistLocalConfig(nextConfig = config) {
+  function persistLocalProviderState(nextState = providerState) {
     if (!browser) return;
-    window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(normalizeConfig(nextConfig)));
+    window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(nextState));
   }
 
-  function clearLocalConfig() {
-    if (!browser) return;
-    window.localStorage.removeItem(CONFIG_STORAGE_KEY);
+  function hydrateConfigFromProvider(providerId: string) {
+    const provider = getProviderById(providerState, providerId) ?? providerState.providers[0] ?? null;
+    if (!provider) return;
+    config = normalizeConfig(provider.config);
+    activeProviderId = provider.id;
   }
 
   function getCurrentBook() {
@@ -324,8 +427,6 @@
     const files = Array.from(input.files || []);
     if (!files.length) return;
 
-    extractError = '';
-
     try {
       const mapped = await Promise.all(
         files.map(async (file) => {
@@ -370,11 +471,12 @@
       }
       currentBookId = mapped.at(-1)?.id || currentBookId;
       extractNotice = `已完成 ${mapped.length} 本 txt 文件的读取与解析`;
+      notifySuccess(`已完成 ${mapped.length} 本 txt 文件的读取与解析`);
       if (currentBookId) {
         await refreshExtraction(currentBookId);
       }
     } catch (error) {
-      extractError = error instanceof Error ? error.message : 'TXT 解析失败。';
+      notifyError(error instanceof Error ? error.message : 'TXT 解析失败。');
     } finally {
       input.value = '';
     }
@@ -393,6 +495,9 @@
         chunkSize: Number(config.chunkSize),
         concurrency: Number(config.concurrency),
         temperature: Number(config.temperature),
+        topP: Number(config.topP),
+        topK: Number(config.topK),
+        maxTokens: Number(config.maxTokens),
         promptTemplate: config.prompt
       })
     });
@@ -404,10 +509,55 @@
   }
 
   function clearApiKey() {
+    clearTextField('apiKey');
+  }
+
+  function clearTextField(field: 'apiUrl' | 'model' | 'apiKey') {
     config = {
       ...config,
-      apiKey: ''
+      [field]: ''
     };
+  }
+
+  function updateProviderName(name: string) {
+    providerState = {
+      ...providerState,
+      providers: providerState.providers.map((provider) =>
+        provider.id === activeProviderId ? { ...provider, name: name.trim() || provider.name } : provider
+      )
+    };
+  }
+
+  function switchProvider(providerId: string) {
+    const target = getProviderById(providerState, providerId);
+    if (!target) return;
+
+    providerState = {
+      ...providerState,
+      activeProviderId: providerId,
+      providers: providerState.providers.map((provider) =>
+        provider.id === activeProviderId ? { ...provider, config: normalizeConfig(config) } : provider
+      )
+    };
+    hydrateConfigFromProvider(providerId);
+  }
+
+  async function copyValue(label: string, value: string) {
+    if (!browser) return;
+
+    const text = value || '';
+    if (!text) {
+      notifyError(`${label} 为空，无法复制。`);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      extractNotice = `${label} 已复制到剪贴板`;
+      notifySuccess(`${label} 已复制到剪贴板`);
+    } catch {
+      notifyError(`复制 ${label} 失败，请检查浏览器权限。`);
+    }
   }
 
   function mapCandidate(item: any): Candidate {
@@ -488,12 +638,12 @@
   async function clearCurrentBookResults() {
     const book = getCurrentBook();
     if (!book?.id) {
-      extractError = '请先选择一本书。';
+      notifyError('请先选择一本书。');
       return;
     }
 
     if (extractStatus === 'RUNNING') {
-      extractError = '提取进行中，暂时不能清空结果。';
+      notifyError('提取进行中，暂时不能清空结果。');
       return;
     }
 
@@ -510,11 +660,10 @@
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      extractError = payload.error || '清空提取结果失败。';
+      notifyError(payload.error || '清空提取结果失败。');
       return;
     }
 
-    extractError = '';
     currentRunId = '';
     currentRunLabel = '--';
     runProcessedChunks = 0;
@@ -525,17 +674,18 @@
     extractStatus = 'IDLE';
     closeProgressStream();
     extractNotice = `已清空《${book.title || book.name}》的提取结果`;
+    notifySuccess(`已清空《${book.title || book.name}》的提取结果`);
   }
 
   async function deleteBook(bookId: string) {
     const book = selectedFiles.find((item) => item.id === bookId) ?? null;
     if (!book?.id) {
-      extractError = '未找到要删除的书。';
+      notifyError('未找到要删除的书。');
       return;
     }
 
     if (extractStatus === 'RUNNING' && currentBookId === book.id) {
-      extractError = '提取进行中，暂时不能删除书籍。';
+      notifyError('提取进行中，暂时不能删除书籍。');
       return;
     }
 
@@ -545,11 +695,10 @@
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      extractError = payload.error || '删除书籍失败。';
+      notifyError(payload.error || '删除书籍失败。');
       return;
     }
 
-    extractError = '';
     selectedFiles = selectedFiles.filter((item) => item.id !== book.id);
     if (currentBookId === book.id) {
       const nextBook = selectedFiles[0] ?? null;
@@ -566,15 +715,18 @@
 
       if (nextBook?.id) {
         extractNotice = `已删除《${book.title || book.name}》，切换到《${nextBook.title || nextBook.name}》`;
+        notifySuccess(`已删除《${book.title || book.name}》，切换到《${nextBook.title || nextBook.name}》`);
         await refreshExtraction(nextBook.id);
         return;
       }
 
       extractNotice = `已删除《${book.title || book.name}》`;
+      notifySuccess(`已删除《${book.title || book.name}》`);
       return;
     }
 
     extractNotice = `已删除《${book.title || book.name}》`;
+    notifySuccess(`已删除《${book.title || book.name}》`);
   }
 
   async function refreshLibrary() {
@@ -585,12 +737,9 @@
     libraryStats = payload.stats || libraryStats;
 
     if (!response.ok) {
-      libraryError = payload.error || '读取语料管理库失败。';
-      libraryNotice = '';
+      notifyError(payload.error || '读取语料管理库失败。');
       return;
     }
-
-    libraryError = '';
   }
 
   async function refreshAlmanac() {
@@ -599,16 +748,19 @@
 
     almanacToday = payload.today ? mapAlmanacToday(payload.today) : null;
     almanacHistory = (payload.history || []).map(mapAlmanacEntry);
+
+    if (!response.ok) {
+      notifyError(payload.error || '读取宜忌失败。');
+    }
   }
 
   async function startExtraction() {
     const book = getCurrentBook();
     if (!book?.id) {
-      extractError = '请先读取 txt。';
+      notifyError('请先读取 txt。');
       return;
     }
 
-    extractError = '';
     extractStatus = 'RUNNING';
     extractNotice = '正在提取，请稍候…';
     closeProgressStream();
@@ -638,14 +790,14 @@
     } catch (error) {
       console.error('Extraction failed with raw error.', error);
       extractStatus = 'ERROR';
-      extractError = error instanceof Error ? error.message : '提取失败。';
+      notifyError(error instanceof Error ? error.message : '提取失败。');
     }
   }
 
   async function stopExtraction() {
     const book = getCurrentBook();
     if (!book?.id) {
-      extractError = '当前没有可停止的提取任务。';
+      notifyError('当前没有可停止的提取任务。');
       return;
     }
 
@@ -669,9 +821,10 @@
       closeProgressStream();
       applyRunState(payload.run);
       extractNotice = payload.run?.lastError || '提取已停止。';
+      notifySuccess(extractNotice);
       await refreshExtraction(book.id);
     } catch (error) {
-      extractError = error instanceof Error ? error.message : '停止提取失败。';
+      notifyError(error instanceof Error ? error.message : '停止提取失败。');
     }
   }
 
@@ -681,7 +834,6 @@
     if (!removedCandidate) return;
 
     candidates = candidates.filter((candidate) => candidate.id !== id);
-    extractError = '';
     extractNotice = '';
 
     try {
@@ -703,12 +855,12 @@
           removedCandidate,
           ...candidates.slice(removedIndex)
         ];
-        extractError = payload.error || '审核更新失败。';
+        notifyError(payload.error || '审核更新失败。');
         return;
       }
 
-      extractError = '';
       extractNotice = status === 'approved' ? '已收录到 Supabase' : '已丢弃当前候选';
+      notifySuccess(extractNotice);
 
       if (status === 'approved') {
         await refreshLibrary();
@@ -719,7 +871,7 @@
         removedCandidate,
         ...candidates.slice(removedIndex)
       ];
-      extractError = error instanceof Error ? error.message : '审核更新失败。';
+      notifyError(error instanceof Error ? error.message : '审核更新失败。');
     }
   }
 
@@ -735,8 +887,7 @@
       ...libraryStats,
       totalCommitted: Math.max(0, Number(libraryStats.totalCommitted || 0) - 1)
     };
-    libraryError = '';
-    libraryNotice = '已从语料管理库删除这条名句';
+    notifySuccess('已从语料管理库删除这条名句');
 
     const response = await fetch('/api/library', {
       method: 'DELETE',
@@ -753,8 +904,7 @@
         ...libraryStats,
         totalCommitted: Number(libraryStats.totalCommitted || 0) + 1
       };
-      libraryError = payload.error || '删除名句失败。';
-      libraryNotice = '';
+      notifyError(payload.error || '删除名句失败。');
       deletingLibraryQuoteIds = new Set([...deletingLibraryQuoteIds].filter((quoteId) => quoteId !== id));
       return;
     }
@@ -849,11 +999,19 @@
     selectedLibraryMood,
     selectedLibraryTheme
   );
-  $: displayStatus = extractError ? 'ERROR' : extractStatus;
+  $: displayStatus = extractStatus;
   $: extractProgressPercent =
     runTotalChunks > 0 ? Math.min(100, Math.round((runProcessedChunks / runTotalChunks) * 100)) : extractStatus === 'DONE' ? 100 : 0;
+  $: activeProvider = getProviderById(providerState, activeProviderId);
   $: if (configReady) {
-    persistLocalConfig(config);
+    const nextState: ProviderConfigState = {
+      ...providerState,
+      activeProviderId,
+      providers: providerState.providers.map((provider) =>
+        provider.id === activeProviderId ? { ...provider, config: normalizeConfig(config) } : provider
+      )
+    };
+    persistLocalProviderState(nextState);
   }
 
   onMount(() => {
@@ -873,12 +1031,17 @@
             chunkSize: nextConfig.chunkSize || config.chunkSize,
             concurrency: nextConfig.concurrency || config.concurrency,
             temperature: nextConfig.temperature ?? config.temperature,
+            topP: nextConfig.topP ?? config.topP,
+            topK: nextConfig.topK ?? config.topK,
+            maxTokens: nextConfig.maxTokens ?? config.maxTokens,
             prompt: nextConfig.promptTemplate || config.prompt
           });
-          config = loadLocalConfig() ?? serverConfigFallback;
+          providerState = loadLocalProviderState(serverConfigFallback) ?? createDefaultProviderState(serverConfigFallback);
         } else {
-          config = loadLocalConfig() ?? createDefaultConfig();
+          providerState = loadLocalProviderState(createDefaultConfig()) ?? createDefaultProviderState(createDefaultConfig());
         }
+        activeProviderId = providerState.activeProviderId;
+        hydrateConfigFromProvider(activeProviderId);
         configReady = true;
 
         if (booksResponse.ok) {
@@ -895,7 +1058,7 @@
 
         await Promise.all([refreshLibrary(), refreshAlmanac()]);
       } catch {
-        extractError = '初始化本地工作台失败。';
+        notifyError('初始化本地工作台失败。');
       }
     })();
 
@@ -939,14 +1102,73 @@
               </header>
 
               <div class="space-y-4 p-4 sm:p-5">
+                <div class="grid gap-3 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+                  <label class="block">
+                    <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">模型提供商</span>
+                    <select
+                      class="field w-full px-4 py-2.5 text-sm"
+                      value={activeProviderId}
+                      on:change={(event) => switchProvider((event.currentTarget as HTMLSelectElement).value)}
+                    >
+                      {#each providerState.providers as provider}
+                        <option value={provider.id}>{provider.name}</option>
+                      {/each}
+                    </select>
+                  </label>
+                  <label class="block">
+                    <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">提供商名称</span>
+                    <input
+                      class="field px-4 py-2.5 text-sm"
+                      value={activeProvider?.name || ''}
+                      on:input={(event) => updateProviderName((event.currentTarget as HTMLInputElement).value)}
+                    />
+                  </label>
+                </div>
+
                 <div class="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
                   <label class="block">
                     <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">API URL</span>
-                    <input class="field px-4 py-2.5 text-sm" bind:value={config.apiUrl} />
+                    <div class="field flex items-center gap-2 px-4 py-2.5">
+                      <input class="min-w-0 flex-1 bg-transparent text-sm outline-none" bind:value={config.apiUrl} />
+                      <button
+                        class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
+                        type="button"
+                        on:click={() => copyValue('API URL', config.apiUrl)}
+                      >
+                        复制
+                      </button>
+                      {#if config.apiUrl}
+                        <button
+                          class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
+                          type="button"
+                          on:click={() => clearTextField('apiUrl')}
+                        >
+                          清空
+                        </button>
+                      {/if}
+                    </div>
                   </label>
                   <label class="block">
                     <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">模型</span>
-                    <input class="field px-4 py-2.5 text-sm" bind:value={config.model} />
+                    <div class="field flex items-center gap-2 px-4 py-2.5">
+                      <input class="min-w-0 flex-1 bg-transparent text-sm outline-none" bind:value={config.model} />
+                      <button
+                        class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
+                        type="button"
+                        on:click={() => copyValue('模型', config.model)}
+                      >
+                        复制
+                      </button>
+                      {#if config.model}
+                        <button
+                          class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
+                          type="button"
+                          on:click={() => clearTextField('model')}
+                        >
+                          清空
+                        </button>
+                      {/if}
+                    </div>
                   </label>
                 </div>
 
@@ -954,14 +1176,21 @@
                   <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">API KEY</span>
                   <div class="field flex items-center gap-2 px-4 py-2.5">
                     <input class="min-w-0 flex-1 bg-transparent text-sm outline-none" bind:value={config.apiKey} />
+                    <button
+                      class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
+                      type="button"
+                      on:click={() => copyValue('API Key', config.apiKey)}
+                    >
+                      复制
+                    </button>
                     {#if config.apiKey}
                       <button
-                        class="flex h-6 w-6 items-center justify-center rounded-full text-base leading-none text-[#8b7a67] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
+                        class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
                         type="button"
                         aria-label="清空 API Key"
                         on:click={clearApiKey}
                       >
-                        ×
+                        清空
                       </button>
                     {/if}
                   </div>
@@ -996,6 +1225,51 @@
                       max="1"
                       step="0.1"
                       bind:value={config.temperature}
+                    />
+                  </label>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-3">
+                  <label class="block">
+                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
+                      <span>Top P</span>
+                      <span>{config.topP.toFixed(2)}</span>
+                    </div>
+                    <input
+                      class="w-full accent-[#b59067]"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      bind:value={config.topP}
+                    />
+                  </label>
+
+                  <label class="block">
+                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
+                      <span>Top K</span>
+                      <span>{config.topK}</span>
+                    </div>
+                    <input
+                      class="field w-full px-3 py-2 text-sm"
+                      type="number"
+                      min="1"
+                      step="1"
+                      bind:value={config.topK}
+                    />
+                  </label>
+
+                  <label class="block">
+                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
+                      <span>Max Tokens</span>
+                      <span>{config.maxTokens}</span>
+                    </div>
+                    <input
+                      class="field w-full px-3 py-2 text-sm"
+                      type="number"
+                      min="1"
+                      step="1"
+                      bind:value={config.maxTokens}
                     />
                   </label>
                 </div>
@@ -1094,18 +1368,6 @@
               </div>
             </article>
           </section>
-
-          {#if extractError}
-            <div class="status-banner status-banner-error" role="alert">
-              <strong>操作失败</strong>
-              <span>{extractError}</span>
-            </div>
-          {:else if extractNotice}
-            <div class="status-banner status-banner-info">
-              <strong>当前状态</strong>
-              <span>{extractNotice}</span>
-            </div>
-          {/if}
 
           <section class="soft-panel overflow-hidden">
             <header class="flex flex-wrap items-center justify-between gap-4 border-b border-[#ded4c7] px-4 py-4 sm:px-5">
@@ -1268,18 +1530,6 @@
               </div>
               <div class="text-sm text-[#6f604f]">筛选结果 {filteredLibraryQuotes.length} 条</div>
             </div>
-
-            {#if libraryNotice}
-              <div class="border-b border-[#ded4c7] bg-[#f2f9ed] px-4 py-3 text-sm text-[#648150] sm:px-5">
-                {libraryNotice}
-              </div>
-            {/if}
-
-            {#if libraryError}
-              <div class="border-b border-[#ded4c7] bg-[#fff4f3] px-4 py-3 text-sm text-[#9c5a55] sm:px-5">
-                {libraryError}
-              </div>
-            {/if}
 
             <div>
               {#if filteredLibraryQuotes.length}

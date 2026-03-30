@@ -249,4 +249,8 @@ describe('normalizeQuoteText', () => {
   it('normalizes whitespace and punctuation for dedupe', () => {
     expect(normalizeQuoteText('“此情可待成追忆，只是当时已惘然。”')).toBe('此情可待成追忆只是当时已惘然');
   });
+
+  it('removes all punctuation and symbols before matching', () => {
+    expect(normalizeQuoteText('「我——要，抱着……真诚！」')).toBe('我要抱着真诚');
+  });
 });

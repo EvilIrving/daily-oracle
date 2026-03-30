@@ -177,6 +177,8 @@ export async function POST({ request }) {
       chunkSize: config.chunkSize,
       concurrency: config.concurrency,
       temperature: config.temperature,
+      topP: config.topP,
+      topK: config.topK,
       maxTokens: config.maxTokens,
       promptTemplateLength: config.promptTemplate?.length ?? 0
     });

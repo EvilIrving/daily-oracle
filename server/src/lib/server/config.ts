@@ -11,6 +11,8 @@ export function getDefaultConfig(): ExtractionConfig {
     chunkSize: Number.parseInt(readServerEnv('CHUNK_SIZE') || '3000', 10),
     concurrency: Number.parseInt(readServerEnv('CONCURRENCY') || '3', 10),
     temperature: Number.parseFloat(readServerEnv('TEMPERATURE') || '0.3'),
+    topP: Number.parseFloat(readServerEnv('TOP_P') || '0.9'),
+    topK: Number.parseInt(readServerEnv('TOP_K') || '50', 10),
     maxTokens: Number.parseInt(readServerEnv('MAX_TOKENS') || '4096', 10),
     promptTemplate: loadPromptTemplate()
   };

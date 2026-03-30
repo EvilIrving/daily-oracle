@@ -26,6 +26,8 @@ function createConfig(): ExtractionConfig {
     chunkSize: 1000,
     concurrency: 2,
     temperature: 0.2,
+    topP: 0.9,
+    topK: 50,
     maxTokens: 2048,
     promptTemplate: ''
   };

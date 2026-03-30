@@ -31,6 +31,8 @@ export async function extractQuotesForChunk(input: {
   const systemPrompt = (input.config.promptTemplate || loadPromptTemplate()).trim();
   const userContent = buildChunkUserPrompt(input.meta, input.chunk, input.totalChunks);
   const safeMaxTokens = resolveRequestMaxTokens(input.config.maxTokens);
+  const safeTopP = resolveTopP(input.config.topP);
+  const safeTopK = resolveTopK(input.config.topK);
   if (safeMaxTokens !== input.config.maxTokens) {
     logInfo('ai-client', 'Adjusted maxTokens for non-streaming request.', {
       requestedMaxTokens: input.config.maxTokens,
@@ -44,6 +46,8 @@ export async function extractQuotesForChunk(input: {
     model: input.config.model,
     apiBaseUrl: input.config.apiBaseUrl,
     temperature: input.config.temperature,
+    topP: safeTopP,
+    topK: safeTopK,
     maxTokens: safeMaxTokens,
     chunkLength: input.chunk.text.length,
     meta: input.meta,
@@ -67,6 +71,8 @@ export async function extractQuotesForChunk(input: {
           model: input.config.model,
           max_tokens: safeMaxTokens,
           temperature: input.config.temperature,
+          top_p: safeTopP,
+          top_k: safeTopK,
           system: systemPrompt,
           messages: [{ role: 'user', content: userContent }]
         },
@@ -137,6 +143,18 @@ export function resolveRequestMaxTokens(value: number): number {
   }
 
   return Math.min(parsed, NON_STREAMING_MAX_TOKENS_LIMIT);
+}
+
+export function resolveTopP(value: number): number {
+  const parsed = Number.isFinite(value) ? value : NaN;
+  if (!Number.isFinite(parsed)) return 0.9;
+  return Math.max(0, Math.min(1, parsed));
+}
+
+export function resolveTopK(value: number): number {
+  const parsed = Number.isFinite(value) ? Math.floor(value) : NaN;
+  if (!Number.isFinite(parsed)) return 50;
+  return Math.max(1, parsed);
 }
 
 function createTimeoutSignal(externalSignal: AbortSignal | undefined, timeoutMs: number) {

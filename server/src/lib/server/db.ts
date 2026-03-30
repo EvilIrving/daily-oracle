@@ -331,10 +331,12 @@ export function readConfig(db: Database.Database): Partial<ExtractionConfig> {
         break;
       case 'chunkSize':
       case 'concurrency':
+      case 'topK':
       case 'maxTokens':
         config[row.key] = Number.parseInt(row.value, 10) as never;
         break;
       case 'temperature':
+      case 'topP':
         config[row.key] = Number.parseFloat(row.value) as never;
         break;
     }
