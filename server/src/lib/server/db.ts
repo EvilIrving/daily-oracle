@@ -291,6 +291,13 @@ export function updateCandidateReviewStatus(
   `).run(status, new Date().toISOString(), candidateId);
 }
 
+export function deleteCandidateById(db: Database.Database, candidateId: string) {
+  db.prepare(`
+    delete from quote_candidates
+    where id = ?
+  `).run(candidateId);
+}
+
 export function markCandidatesCommitted(db: Database.Database, candidateIds: string[]) {
   if (!candidateIds.length) return;
 
@@ -356,6 +363,7 @@ export function listCandidatesByRun(db: Database.Database, runId: string) {
   const rows = db.prepare(`
     select * from quote_candidates
     where run_id = ?
+      and review_status != 'committed'
     order by created_at desc
   `).all(runId);
 

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { buildQuoteCandidates, normalizeQuoteText, parseAiJsonArray, parseTxtWithMeta } from './parser';
+import { buildQuoteCandidates, normalizeQuoteText, parseAiJsonArray, parseTxtWithMeta, sanitizeQuoteMoods } from './parser';
 
 describe('parseTxtWithMeta', () => {
-  it('parses metadata header and body after separator', () => {
+  it('parses json-style metadata header and body after separator', () => {
     const parsed = parseTxtWithMeta(
-      `书名：一九八四
-作者：乔治·奥威尔
-年份：1984
-语言：中文
-体裁：小说
+      `"title": "一九八四",
+"author": "乔治·奥威尔",
+"year": 1984,
+"language": "中文",
+"genre": "小说"
 
 -------------
 
@@ -27,7 +27,7 @@ describe('parseTxtWithMeta', () => {
 
   it('falls back gracefully when fields are missing', () => {
     const parsed = parseTxtWithMeta(
-      `书名：围城
+      `"title": "围城"
 
 ---
 
@@ -38,6 +38,55 @@ describe('parseTxtWithMeta', () => {
     expect(parsed.meta.title).toBe('围城');
     expect(parsed.meta.author).toBeNull();
     expect(parsed.meta.year).toBeNull();
+    expect(parsed.body).toBe('正文');
+  });
+
+  it('accepts separator lines with unicode dashes and invisible chars', () => {
+    const parsed = parseTxtWithMeta(
+      `\uFEFF"title": "局外人",
+"author": "加缪"
+
+\u200B———————
+
+今天，妈妈死了。也许是在昨天，我不知道。`,
+      'fallback'
+    );
+
+    expect(parsed.meta.title).toBe('局外人');
+    expect(parsed.meta.author).toBe('加缪');
+    expect(parsed.body).toContain('今天，妈妈死了');
+  });
+
+  it('keeps inline body content after the separator', () => {
+    const parsed = parseTxtWithMeta(
+      `"title": "变形记"
+--- 一天早晨，格里高尔从不安的梦中醒来。`,
+      'fallback'
+    );
+
+    expect(parsed.meta.title).toBe('变形记');
+    expect(parsed.body).toBe('一天早晨，格里高尔从不安的梦中醒来。');
+  });
+
+  it('accepts braces and null values in metadata header', () => {
+    const parsed = parseTxtWithMeta(
+      `{
+"title": "扶桑",
+"author": "严歌苓",
+"year": 1998,
+"language": "中文",
+"genre": "小说"
+}
+---
+正文`,
+      'fallback'
+    );
+
+    expect(parsed.meta.title).toBe('扶桑');
+    expect(parsed.meta.author).toBe('严歌苓');
+    expect(parsed.meta.year).toBe(1998);
+    expect(parsed.meta.language).toBe('中文');
+    expect(parsed.meta.genre).toBe('小说');
     expect(parsed.body).toBe('正文');
   });
 });
@@ -72,6 +121,55 @@ describe('parseAiJsonArray', () => {
 
     expect(parsed).toHaveLength(1);
     expect(parsed[0]?.themes).toEqual(['回忆', '离别']);
+  });
+
+  it('keeps quotes when moods and themes are missing', () => {
+    const parsed = parseAiJsonArray(`
+[
+  {
+    "text": "战争就是和平，自由就是奴役，无知就是力量。"
+  }
+]
+`);
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]?.text).toContain('战争就是和平');
+    expect(parsed[0]?.moods).toEqual([]);
+    expect(parsed[0]?.themes).toEqual([]);
+  });
+
+  it('drops items only when text is missing', () => {
+    const parsed = parseAiJsonArray(`
+[
+  {
+    "moods": ["sad"],
+    "themes": ["孤独"]
+  }
+]
+`);
+
+    expect(parsed).toEqual([]);
+  });
+
+  it('drops moods outside the schema enum', () => {
+    const parsed = parseAiJsonArray(`
+[
+  {
+    "text": "人是为了活着本身而活着，而不是为了活着之外的任何事物而活着。",
+    "moods": ["sad", "melancholy", "哲思"],
+    "themes": ["生存"]
+  }
+]
+`);
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]?.moods).toEqual(['sad']);
+  });
+});
+
+describe('sanitizeQuoteMoods', () => {
+  it('keeps only schema-supported mood enums', () => {
+    expect(sanitizeQuoteMoods(['calm', 'melancholy', 'happy', '', null])).toEqual(['calm', 'happy']);
   });
 });
 

@@ -591,7 +591,6 @@ weathers（可多选）：
 每条严格按以下 JSON 输出，不要添加任何解释文字：
 
 {
-  "id": "001",
   "text": "原文，中文或英文保持原语言，其他语言输出中文译文",
   "lang": "zh / en / translated",
   "author": "作者名",
@@ -780,7 +779,7 @@ weathers（可多选）：
             chunkSize: 4000,
             concurrency: 3,
             temperature: 0.3,
-            maxTokens: 65536,
+            maxTokens: 100 * 1000,
             prompt: sanitizePrompt(DEFAULT_PROMPT),
           })
 

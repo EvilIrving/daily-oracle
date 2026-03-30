@@ -54,7 +54,7 @@
 - 解析带元数据头的 txt 文件
 - 调用 AI 提取名句（使用 `docs/prompt-oracle.md`）
 - 人工逐条审核（收/弃）
-- 通过 `service_role` key 将已审核数据写入 Supabase
+- `收` 时通过 `service_role` key 立即写入 Supabase，`弃` 时立即删除本地待审项
 
 ### 技术栈
 
@@ -73,13 +73,11 @@
 上传的 txt 文件顶部预留结构化元数据，解析器自动读取：
 
 ```
-书名：一九八四
-作者：乔治奥威尔
-年份：1986
-语言：中文
-体裁：小说
-
-
+"title": "一九八四",
+"author": "乔治奥威尔",
+"year": 1986,
+"language": "中文",
+"genre": "小说"
 -------------
 
 （正文从分隔符之后开始）
@@ -88,7 +86,7 @@
 解析规则：
 
 - 逐行读取直到遇到 `---` 或连续 `-` 分隔符
-- 按 `键：值` 格式提取元数据（书名、作者、年份、语言、体裁）
+- 按 JSON 风格的 `key: value` 行提取元数据（`title`、`author`、`year`、`language`、`genre`）
 - 分隔符之后的全部内容作为正文，进入切片流程
 - 元数据自动填充到 AI prompt 的来源信息，并作为最终入库的 `lang`/`source_book`/`author`/`year`/`genre` 字段事实源
 - 缺少某个字段不报错，视为空值
@@ -101,9 +99,9 @@ server/
 │   ├── routes/
 │   │   ├── +page.svelte              # 提取工作台
 │   │   ├── api/
-│   │   │   ├── extract/+server.ts    # POST: 启动提取 / GET: SSE 进度
-│   │   │   ├── review/+server.ts     # PATCH: 单条审核
-│   │   │   ├── commit/+server.ts     # POST: 写入 Supabase
+│   │   │   ├── extract/+server.ts    # POST: 启动后台提取 / GET: 查询或 SSE 进度 / PATCH: 停止提取
+│   │   │   ├── review/+server.ts     # PATCH: 单条终态审核（收即入库，弃即删除）
+│   │   │   ├── commit/+server.ts     # POST: 兼容旧的批量入库流程
 │   │   │   └── config/+server.ts     # GET/POST: AI 配置
 │   │   └── +layout.svelte
 │   ├── lib/
@@ -129,21 +127,29 @@ server/
 本地读取 txt 文件
     │
     ▼
-解析元数据头 → 书名/作者/年份/语言/体裁
+解析元数据头 → title/author/year/language/genre
     │
     ▼
 分隔符后正文 → chunker 按段落边界切片
     │
     ▼
-并发调用 AI（p-limit 控制并发数）
+POST /api/extract 立即创建批次并启动后台任务
+  - 前端不等待整本书同步返回
+  - 当前书目若已有 queued/running 批次，则拒绝重复启动
+    │
+    ▼
+后台并发调用 AI
   - 每片独立请求
   - 失败自动重试 1 次
-  - SSE 推送进度到前端
+  - GET /api/extract?stream=1 通过 SSE 推送真实进度到前端
+  - PATCH /api/extract 可中止运行中的批次
+  - 服务端控制台打印上传解析结果、分片调度、模型输入输出与错误日志，便于本地排查
     │
     ▼
 解析 AI 返回的 JSON 数组
   - 过滤 <think> 标签
-  - 校验必填字段（text, moods, themes）
+  - 保留提取出的名句正文；`moods` / `themes` 仅作为补充标签，缺失时不应导致候选被丢弃
+  - `moods` 只允许保留 `docs/schema.sql` 中 `quote_mood` 枚举支持的值；非法标签在入 SQLite 和 Supabase 前都必须过滤，避免人工点击 `收` 时因枚举不匹配失败
   - `lang`/作者/作品/年份等元数据不信任 AI，统一从 txt 元数据头派生或回填
     │
     ▼
@@ -151,9 +157,9 @@ server/
     │
     ▼
 待审清单展示 → 人工逐条审核（收/弃）
-    │
-    ▼
-POST /api/commit → 写入 Supabase quotes 表
+  - 收录前服务端必须用候选句的归一化文本去原始正文做一次存在性校验；正文中不存在则直接报错拦截，不允许把 AI 编造或改写过度的句子写入 Supabase
+  - 收：立即写入 Supabase quotes 表，并从本地待审清单移除
+  - 弃：立即从本地待审清单删除
 ```
 
 ### AI 客户端配置
@@ -187,28 +193,36 @@ MODEL=glm-4.7
 CHUNK_SIZE=4000
 CONCURRENCY=3
 TEMPERATURE=0.3
+MAX_TOKENS=4096
 ```
+
+说明：
+
+- 当前实现使用非 streaming `messages.create`；`max_tokens` 必须控制在 Anthropic SDK 的 10 分钟非流式超时保护阈值内
+- 默认 `MAX_TOKENS` 为 `4096`；如果配置值过大，服务端会在发请求前自动收敛到安全上限，避免整个提取批次在本地被 SDK 直接拒绝
 
 ### UI 页面
 
 **提取工作台**：
 
 - 左栏：API URL、模型、API Key、切片大小、并发数、Temperature 滑块、Prompt 编辑器；配置自动保存在浏览器本地，API Key 可单独清空
-- 右栏：本地读取按钮（选择 txt）、已选书籍卡片、清空当前书结果、删除当前书、真实提取进度条、开始提取按钮
-- 状态：IDLE / RUNNING / DONE / ERROR
+- 右栏：本地读取按钮（选择 txt）、已选书籍卡片、清空当前书结果、删除当前书、真实提取进度条、开始提取按钮、停止提取按钮
+- 状态：IDLE / QUEUED / RUNNING / DONE / PARTIAL / STOPPED / ERROR
+- 刷新页面后，如当前书目仍有 queued/running 批次，页面会重新订阅该批次的 SSE 进度
 - 书籍列表持久化在本地 SQLite，页面刷新后恢复；删除书籍时连同其提取批次和候选一起删除，清空结果仅清除当前书的提取批次与候选，不删除书籍正文
 
 **待审清单**：
 
-- 顶部 tab：全部 / 未审 / 通过 / 排除
+- 顶部 tab：全部 / 待处理
 - 每条：名句全文、作者·作品·体裁、mood tags、themes tags
 - 操作：收 / 弃
-- 底部：本批 N 条、通过率、库存、入库后数量
-- 入库按钮
+- `收` 后立即入库并从清单消失；`弃` 后立即删除并从清单消失
+- 不保留“收了再弃 / 弃了再收”的中间状态
 
 **语料管理**：
 
 - 名句库 tab：已入库名句列表
+- 支持在工作台中手动删除已入库名句；删除动作走 Supabase 软删除（`is_active = false`）
 - 宜忌 tab：宜忌历史记录
 
 ---

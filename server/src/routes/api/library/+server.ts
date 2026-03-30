@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { createDb, getCandidateStats } from '$lib/server/db';
-import { listSupabaseQuotes } from '$lib/server/supabase';
+import { deactivateSupabaseQuote, listSupabaseQuotes } from '$lib/server/supabase';
 
 export async function GET() {
   const db = createDb();
@@ -25,6 +25,25 @@ export async function GET() {
           pending: pendingStats.pending ?? 0
         }
       },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE({ request }) {
+  const payload = (await request.json()) as { quoteId?: string };
+  const quoteId = String(payload.quoteId || '').trim();
+
+  if (!quoteId) {
+    return json({ error: 'quoteId 必填。' }, { status: 400 });
+  }
+
+  try {
+    await deactivateSupabaseQuote(quoteId);
+    return json({ quoteId });
+  } catch (error) {
+    return json(
+      { error: error instanceof Error ? error.message : '删除 Supabase 名句失败。' },
       { status: 500 }
     );
   }

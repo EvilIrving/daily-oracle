@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { json } from '@sveltejs/kit';
 import { clearExtractionDataByBookId, createDb, deleteBookById, getBookById, listBooks, upsertBook } from '$lib/server/db';
+import { logError, logInfo } from '$lib/server/logger';
 import { parseTxtWithMeta } from '$lib/server/parser';
 
 export async function GET() {
@@ -22,39 +23,73 @@ export async function GET() {
 }
 
 export async function POST({ request }) {
-  const payload = (await request.json()) as {
-    fileName?: string;
-    rawText?: string;
-  };
+  try {
+    const payload = (await request.json()) as {
+      fileName?: string;
+      rawText?: string;
+    };
 
-  const fileName = String(payload.fileName || '').trim();
-  const rawText = String(payload.rawText || '');
+    const fileName = String(payload.fileName || '').trim();
+    const rawText = String(payload.rawText || '');
 
-  if (!fileName || !rawText.trim()) {
-    return json({ error: 'fileName 和 rawText 必填。' }, { status: 400 });
-  }
+    logInfo('api/books', 'Received book upload request.', {
+      fileName,
+      rawTextLength: rawText.length
+    });
 
-  const parsed = parseTxtWithMeta(rawText, fileName.replace(/\.txt$/i, ''));
-  const db = createDb();
-  const record = upsertBook(db, {
-    id: crypto.randomUUID(),
-    fileName,
-    meta: parsed.meta,
-    rawText: parsed.body
-  });
-
-  return json({
-    book: {
-      id: record.id,
-      fileName: record.fileName,
-      title: record.meta.title,
-      author: record.meta.author,
-      year: record.meta.year,
-      language: record.meta.language,
-      genre: record.meta.genre,
-      bodyLength: parsed.body.length
+    if (!fileName || !rawText.trim()) {
+      logError('api/books', 'Rejected book upload because required fields are missing.', {
+        fileName,
+        rawTextLength: rawText.length
+      });
+      return json({ error: 'fileName 和 rawText 必填。' }, { status: 400 });
     }
-  });
+
+    const parsed = parseTxtWithMeta(rawText, fileName.replace(/\.txt$/i, ''));
+    logInfo('api/books', 'Parsed txt metadata and body.', {
+      fileName,
+      meta: parsed.meta,
+      header: parsed.header,
+      bodyLength: parsed.body.length,
+      bodyPreview: parsed.body.slice(0, 500)
+    });
+
+    const db = createDb();
+    const record = upsertBook(db, {
+      id: crypto.randomUUID(),
+      fileName,
+      meta: parsed.meta,
+      rawText: parsed.body
+    });
+
+    logInfo('api/books', 'Stored uploaded book in local workspace queue.', {
+      bookId: record.id,
+      fileName: record.fileName,
+      meta: record.meta,
+      bodyLength: parsed.body.length
+    });
+
+    return json({
+      book: {
+        id: record.id,
+        fileName: record.fileName,
+        title: record.meta.title,
+        author: record.meta.author,
+        year: record.meta.year,
+        language: record.meta.language,
+        genre: record.meta.genre,
+        bodyLength: parsed.body.length
+      }
+    });
+  } catch (error) {
+    logError('api/books', 'POST /api/books failed.', { error });
+    return json(
+      {
+        error: error instanceof Error ? error.message : '上传书籍失败。'
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PATCH({ request }) {

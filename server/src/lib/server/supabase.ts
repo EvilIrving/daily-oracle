@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { QuoteCandidateRecord } from '../types';
 import { requireServerEnv } from './env';
+import { sanitizeQuoteMoods } from './parser';
 
 export function createSupabaseReadClient() {
   const url = requireServerEnv('SUPABASE_URL');
@@ -39,6 +40,22 @@ export async function listSupabaseQuotes(limit = 100) {
   return data ?? [];
 }
 
+export async function deactivateSupabaseQuote(quoteId: string) {
+  const client = createSupabaseServiceClient();
+  const { data, error } = await client
+    .from('quotes')
+    .update({ is_active: false })
+    .eq('id', quoteId)
+    .eq('is_active', true)
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  if (!data) throw new Error('未找到可删除的名句。');
+
+  return data;
+}
+
 export async function listSupabaseAlmanac(limit = 30) {
   const client = createSupabaseReadClient();
   const { data, error } = await client
@@ -66,6 +83,7 @@ export async function commitApprovedCandidates(input: {
   }
 
   const client = createSupabaseServiceClient();
+
   const { data: batch, error: batchError } = await client
     .from('extraction_batches')
     .insert({
@@ -98,7 +116,7 @@ export async function commitApprovedCandidates(input: {
       work: candidate.work,
       year: candidate.year,
       genre: candidate.genre,
-      mood: candidate.moods,
+      mood: sanitizeQuoteMoods(candidate.moods),
       themes: candidate.themes,
       source_book: candidate.sourceBook,
       batch_id: batch.id

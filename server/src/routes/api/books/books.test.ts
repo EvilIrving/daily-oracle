@@ -113,7 +113,7 @@ describe('/api/books', () => {
       request: new Request('http://localhost/api/books', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: '1984.txt', rawText: '书名：一九八四\n---\n正文内容' })
+        body: JSON.stringify({ fileName: '1984.txt', rawText: '"title": "一九八四"\n---\n正文内容' })
       })
     } as Parameters<typeof POST>[0]);
 
@@ -130,7 +130,7 @@ describe('/api/books', () => {
         bodyLength: 4
       }
     });
-    expect(parseTxtWithMeta).toHaveBeenCalledWith('书名：一九八四\n---\n正文内容', '1984');
+    expect(parseTxtWithMeta).toHaveBeenCalledWith('"title": "一九八四"\n---\n正文内容', '1984');
     expect(upsertBook).toHaveBeenCalled();
   });
 

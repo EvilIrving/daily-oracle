@@ -1,14 +1,15 @@
 import type { BookMeta, ExtractedQuotePayload, ParsedBook, QuoteCandidate, QuoteMood } from '../types';
+import { logError, logInfo } from './logger';
 
 const META_LABELS = new Map<string, keyof BookMeta>([
-  ['书名', 'title'],
-  ['作者', 'author'],
-  ['年份', 'year'],
-  ['语言', 'language'],
-  ['体裁', 'genre']
+  ['title', 'title'],
+  ['author', 'author'],
+  ['year', 'year'],
+  ['language', 'language'],
+  ['genre', 'genre']
 ]);
 
-const VALID_MOODS = new Set<QuoteMood>([
+const ALLOWED_MOODS = new Set<QuoteMood>([
   'calm',
   'happy',
   'sad',
@@ -20,7 +21,9 @@ const VALID_MOODS = new Set<QuoteMood>([
 ]);
 
 export function parseTxtWithMeta(rawText: string, fallbackTitle = ''): ParsedBook {
-  const lines = String(rawText || '').replace(/\r\n/g, '\n').split('\n');
+  const lines = String(rawText || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n');
   const meta: BookMeta = {
     title: fallbackTitle,
     author: null,
@@ -34,24 +37,33 @@ export function parseTxtWithMeta(rawText: string, fallbackTitle = ''): ParsedBoo
   let inBody = false;
 
   for (const line of lines) {
-    const trimmed = line.trim();
+    const normalizedLine = sanitizeTxtLine(line);
+    const trimmed = normalizedLine.trim();
 
-    if (!inBody && /^-{3,}$/.test(trimmed)) {
+    if (!inBody && isBodySeparator(trimmed)) {
       inBody = true;
+      const inlineBody = extractInlineBodyAfterSeparator(trimmed);
+      if (inlineBody) {
+        bodyLines.push(inlineBody);
+      }
       continue;
     }
 
     if (!inBody) {
-      headerLines.push(line);
-      const match = trimmed.match(/^([^：:]+)[：:]\s*(.+)$/);
+      headerLines.push(normalizedLine);
+      if (/^[{}]+$/.test(trimmed)) {
+        continue;
+      }
+
+      const match = trimmed.match(/^"?([A-Za-z_]+)"?\s*:\s*(.+?)(?:,)?$/);
       if (!match) continue;
 
-      const key = META_LABELS.get(match[1].trim());
+      const key = META_LABELS.get(match[1].trim().toLowerCase());
       if (!key) continue;
-      const value = match[2].trim();
+      const value = parseMetaValue(match[2].trim());
 
       if (key === 'year') {
-        const parsedYear = Number.parseInt(value, 10);
+        const parsedYear = Number.parseInt(value || '', 10);
         meta.year = Number.isFinite(parsedYear) ? parsedYear : null;
       } else if (key === 'title') {
         meta.title = value || fallbackTitle;
@@ -61,14 +73,52 @@ export function parseTxtWithMeta(rawText: string, fallbackTitle = ''): ParsedBoo
       continue;
     }
 
-    bodyLines.push(line);
+    bodyLines.push(normalizedLine);
   }
 
-  return {
+  const parsedBook = {
     meta,
     body: bodyLines.join('\n').trim(),
     header: headerLines.join('\n').trim()
   };
+
+  logInfo('parser', 'Parsed txt metadata header.', {
+    fallbackTitle,
+    meta: parsedBook.meta,
+    header: parsedBook.header,
+    bodyLength: parsedBook.body.length
+  });
+
+  return parsedBook;
+}
+
+function sanitizeTxtLine(line: string): string {
+  return String(line || '').replace(/[\uFEFF\u200B\u200C\u200D\u2060]/g, '');
+}
+
+function isBodySeparator(line: string): boolean {
+  return /^[\s\-—－─_]{3,}(?:\s+.*)?$/.test(line);
+}
+
+function extractInlineBodyAfterSeparator(line: string): string {
+  const match = line.match(/^[\s\-—－─_]{3,}\s+(.+)$/);
+  return match?.[1]?.trim() || '';
+}
+
+function parseMetaValue(rawValue: string): string | null {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return null;
+
+  if (/^null$/i.test(trimmed)) {
+    return null;
+  }
+
+  const quoted = trimmed.match(/^"(.*)"$/);
+  if (quoted) {
+    return quoted[1].trim() || null;
+  }
+
+  return trimmed;
 }
 
 export function stripThinkingAndFences(raw: string): string {
@@ -81,15 +131,34 @@ export function stripThinkingAndFences(raw: string): string {
 export function parseAiJsonArray(raw: string): ExtractedQuotePayload[] {
   const cleaned = stripThinkingAndFences(raw);
   const match = cleaned.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-  if (!match) return [];
+  if (!match) {
+    logError('parser', 'AI response did not contain JSON payload.', {
+      raw,
+      cleaned
+    });
+    return [];
+  }
 
   try {
     const parsed = JSON.parse(match[0]);
     const items = Array.isArray(parsed) ? parsed : [parsed];
-    return items
+    const sanitized = items
       .map((item) => sanitizeExtractedQuote(item))
       .filter((item): item is ExtractedQuotePayload => item !== null);
+    logInfo('parser', 'Sanitized AI JSON payload.', {
+      raw,
+      cleaned,
+      parsedItemCount: items.length,
+      sanitizedItemCount: sanitized.length,
+      sanitized
+    });
+    return sanitized;
   } catch {
+    logError('parser', 'Failed to parse AI JSON payload.', {
+      raw,
+      cleaned,
+      jsonCandidate: match[0]
+    });
     return [];
   }
 }
@@ -128,10 +197,10 @@ function sanitizeExtractedQuote(input: unknown): ExtractedQuotePayload | null {
 
   const item = input as Record<string, unknown>;
   const text = String(item.text || '').trim();
-  const moods = sanitizeMoods(item.moods);
+  const moods = sanitizeQuoteMoods(item.moods);
   const themes = sanitizeThemes(item.themes);
 
-  if (!text || moods.length === 0 || themes.length === 0) {
+  if (!text) {
     return null;
   }
 
@@ -167,11 +236,12 @@ function deriveQuoteLang(value: string | null, text: string): 'zh' | 'en' | 'tra
   return 'translated';
 }
 
-function sanitizeMoods(value: unknown): QuoteMood[] {
+export function sanitizeQuoteMoods(value: unknown): QuoteMood[] {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => String(item || '').trim())
-    .filter((item): item is QuoteMood => VALID_MOODS.has(item as QuoteMood));
+    .filter((item): item is QuoteMood => ALLOWED_MOODS.has(item as QuoteMood))
+    .slice(0, 8);
 }
 
 function sanitizeThemes(value: unknown): string[] {

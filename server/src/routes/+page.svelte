@@ -1,18 +1,19 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { onMount } from 'svelte';
+  import QuoteCard from '$lib/components/QuoteCard.svelte';
   import '../app.css';
 
   type MainTab = 'extract' | 'library' | 'almanac';
-  type ReviewFilter = 'all' | 'pending' | 'approved' | 'rejected';
+  type ReviewFilter = 'all' | 'pending';
   type CandidateStatus = 'pending' | 'approved' | 'rejected';
-  type LibraryFilter = 'all' | 'pending' | 'sad' | 'classical';
 
   type Candidate = {
     id: string;
     text: string;
     author: string;
     work: string;
+    year?: number | null;
     genre: string;
     moods: string[];
     themes: string[];
@@ -25,6 +26,7 @@
     text: string;
     author: string;
     work: string;
+    year?: number | null;
     genre: string;
     moods: string[];
     themes: string[];
@@ -71,24 +73,21 @@
 
   const reviewFilters: { id: ReviewFilter; label: string }[] = [
     { id: 'all', label: '全部' },
-    { id: 'pending', label: '未审' },
-    { id: 'approved', label: '通过' },
-    { id: 'rejected', label: '排除' }
-  ];
-
-  const libraryFilters: { id: LibraryFilter; label: string }[] = [
-    { id: 'all', label: '全部' },
-    { id: 'pending', label: '待审' },
-    { id: 'sad', label: 'sad' },
-    { id: 'classical', label: '古典' }
+    { id: 'pending', label: '待处理' }
   ];
 
   let activeTab: MainTab = 'extract';
   let activeReviewFilter: ReviewFilter = 'all';
-  let activeLibraryFilter: LibraryFilter = 'all';
   let currentBookId = '';
   let currentRunId = '';
+  let currentRunLabel = '--';
   let extractStatus = 'IDLE';
+  let runProcessedChunks = 0;
+  let runTotalChunks = 0;
+  let runFailedChunks = 0;
+  let runActiveWorkers = 0;
+  let progressStream: EventSource | null = null;
+  let progressStreamBookId = '';
   let selectedFiles: {
     id?: string;
     name: string;
@@ -100,6 +99,7 @@
     genre?: string | null;
     bodyLength?: number;
   }[] = [];
+  let currentBook: (typeof selectedFiles)[number] | null = null;
 
   let config = createDefaultConfig();
   let serverConfigFallback = createDefaultConfig();
@@ -107,6 +107,19 @@
 
   let candidates: Candidate[] = [];
   let libraryQuotes: LibraryQuote[] = [];
+  let libraryAuthorOptions: { value: string; label: string; count: number }[] = [];
+  let libraryMoodOptions: { value: string; label: string; count: number }[] = [];
+  let libraryThemeOptions: { value: string; label: string; count: number }[] = [];
+  let selectedLibraryAuthor = 'all';
+  let selectedLibraryMood = 'all';
+  let selectedLibraryTheme = 'all';
+  let authorFiltersExpanded = false;
+  let moodFiltersExpanded = false;
+  let themeFiltersExpanded = false;
+  let filteredLibraryQuotes: LibraryQuote[] = [];
+  let libraryNotice = '';
+  let libraryError = '';
+  let deletingLibraryQuoteIds = new Set<string>();
   let almanacToday: AlmanacTodayCard | null = createInitialAlmanacToday();
   let libraryStats = {
     totalCommitted: 0,
@@ -195,10 +208,115 @@
     return selectedFiles.find((file) => file.id === currentBookId) ?? selectedFiles[0] ?? null;
   }
 
+  $: currentBook = getCurrentBook();
+
   function formatFileSize(bytes: number) {
     if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
     return `${bytes} B`;
+  }
+
+  function formatRunLabel(run: any) {
+    if (!run) return '--';
+
+    const stamp = run.startedAt || run.started_at || run.finishedAt || run.finished_at;
+    if (!stamp) return '本次提取';
+
+    const date = new Date(stamp);
+    if (Number.isNaN(date.getTime())) return '本次提取';
+
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return `${month}-${day} ${hour}:${minute} 提取`;
+  }
+
+  function applyRunState(run: any) {
+    currentRunId = run?.id || '';
+    currentRunLabel = formatRunLabel(run);
+    extractStatus = run?.status?.toUpperCase?.() || 'IDLE';
+    runProcessedChunks = Number(run?.processedChunks ?? run?.processed_chunks ?? 0);
+    runTotalChunks = Number(run?.totalChunks ?? run?.total_chunks ?? 0);
+    runFailedChunks = Number(run?.failedChunks ?? run?.failed_chunks ?? 0);
+    runActiveWorkers = Number(run?.activeWorkers ?? run?.active_workers ?? 0);
+  }
+
+  function closeProgressStream() {
+    progressStream?.close();
+    progressStream = null;
+    progressStreamBookId = '';
+  }
+
+  function syncFromExtractionPayload(payload: any, { preserveNotice = false } = {}) {
+    applyRunState(payload.run);
+    candidates = (payload.candidates || []).map(mapCandidate);
+
+    if (preserveNotice) return;
+
+    if (!payload.run) {
+      extractNotice = '当前书目还没有提取批次';
+      return;
+    }
+
+    if (extractStatus === 'RUNNING' || extractStatus === 'QUEUED') {
+      extractNotice = `正在提取：${runProcessedChunks}/${runTotalChunks || 0} 段，失败 ${runFailedChunks} 段`;
+      return;
+    }
+
+    if (extractStatus === 'DONE') {
+      extractNotice = candidates.length
+        ? `提取完成，生成 ${candidates.length} 条候选`
+        : '提取完成，但未生成候选。';
+      return;
+    }
+
+    if (extractStatus === 'STOPPED') {
+      extractNotice = payload.run.lastError || '提取已停止。';
+      return;
+    }
+
+    if (payload.run.lastError) {
+      extractNotice = payload.run.lastError;
+      return;
+    }
+
+    extractNotice = `已加载${currentRunLabel}，候选 ${(payload.stats || {}).total || 0} 条`;
+  }
+
+  function ensureProgressStream(bookId: string) {
+    if (!browser || !bookId) return;
+    if (!currentRunId || !['RUNNING', 'QUEUED'].includes(extractStatus)) {
+      closeProgressStream();
+      return;
+    }
+
+    if (progressStreamBookId && progressStreamBookId !== bookId) {
+      closeProgressStream();
+    }
+
+    if (progressStream) return;
+
+    progressStream = new EventSource(`/api/extract?bookId=${encodeURIComponent(bookId)}&stream=1`);
+    progressStreamBookId = bookId;
+    progressStream.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        syncFromExtractionPayload(payload);
+
+        if (!['RUNNING', 'QUEUED'].includes(extractStatus)) {
+          closeProgressStream();
+        }
+      } catch (error) {
+        console.error('Failed to parse extraction stream payload.', error);
+      }
+    };
+    progressStream.onerror = async () => {
+      closeProgressStream();
+      if (bookId) {
+        await refreshExtraction(bookId);
+      }
+    };
   }
 
   async function handleFileChange(event: Event) {
@@ -298,11 +416,12 @@
       text: item.text,
       author: item.author || '未知作者',
       work: item.work || item.sourceBook || '未知作品',
+      year: item.year,
       genre: item.genre || '未标注',
       moods: item.moods || [],
       themes: item.themes || [],
-      status: item.reviewStatus,
-      dot: item.reviewStatus === 'approved' ? '#7ca36c' : item.reviewStatus === 'rejected' ? '#c58a7b' : '#b59067'
+      status: 'pending',
+      dot: '#b59067'
     };
   }
 
@@ -312,6 +431,7 @@
       text: item.text,
       author: item.author || '未知作者',
       work: item.work || '未知作品',
+      year: item.year ?? null,
       genre: item.genre || '未标注',
       moods: item.mood || [],
       themes: item.themes || [],
@@ -361,14 +481,8 @@
     }
 
     const payload = await response.json();
-    currentRunId = payload.run?.id || '';
-    extractStatus = payload.run?.status?.toUpperCase?.() || 'IDLE';
-    candidates = (payload.candidates || []).map(mapCandidate);
-
-    const stats = payload.stats || {};
-    extractNotice = currentRunId
-      ? `已加载批次 ${currentRunId.slice(0, 8)}，候选 ${stats.total || 0} 条`
-      : '当前书目还没有提取批次';
+    syncFromExtractionPayload(payload);
+    ensureProgressStream(bookId);
   }
 
   async function clearCurrentBookResults() {
@@ -402,19 +516,25 @@
 
     extractError = '';
     currentRunId = '';
+    currentRunLabel = '--';
+    runProcessedChunks = 0;
+    runTotalChunks = 0;
+    runFailedChunks = 0;
+    runActiveWorkers = 0;
     candidates = [];
     extractStatus = 'IDLE';
+    closeProgressStream();
     extractNotice = `已清空《${book.title || book.name}》的提取结果`;
   }
 
-  async function deleteCurrentBook() {
-    const book = getCurrentBook();
+  async function deleteBook(bookId: string) {
+    const book = selectedFiles.find((item) => item.id === bookId) ?? null;
     if (!book?.id) {
-      extractError = '请先选择一本书。';
+      extractError = '未找到要删除的书。';
       return;
     }
 
-    if (extractStatus === 'RUNNING') {
+    if (extractStatus === 'RUNNING' && currentBookId === book.id) {
       extractError = '提取进行中，暂时不能删除书籍。';
       return;
     }
@@ -431,15 +551,26 @@
 
     extractError = '';
     selectedFiles = selectedFiles.filter((item) => item.id !== book.id);
-    const nextBook = selectedFiles[0] ?? null;
-    currentBookId = nextBook?.id || '';
-    currentRunId = '';
-    candidates = [];
-    extractStatus = 'IDLE';
+    if (currentBookId === book.id) {
+      const nextBook = selectedFiles[0] ?? null;
+      currentBookId = nextBook?.id || '';
+      currentRunId = '';
+      currentRunLabel = '--';
+      runProcessedChunks = 0;
+      runTotalChunks = 0;
+      runFailedChunks = 0;
+      runActiveWorkers = 0;
+      candidates = [];
+      extractStatus = 'IDLE';
+      closeProgressStream();
 
-    if (nextBook?.id) {
-      extractNotice = `已删除《${book.title || book.name}》，切换到《${nextBook.title || nextBook.name}》`;
-      await refreshExtraction(nextBook.id);
+      if (nextBook?.id) {
+        extractNotice = `已删除《${book.title || book.name}》，切换到《${nextBook.title || nextBook.name}》`;
+        await refreshExtraction(nextBook.id);
+        return;
+      }
+
+      extractNotice = `已删除《${book.title || book.name}》`;
       return;
     }
 
@@ -452,6 +583,14 @@
 
     libraryQuotes = (payload.quotes || []).map(mapLibraryQuote);
     libraryStats = payload.stats || libraryStats;
+
+    if (!response.ok) {
+      libraryError = payload.error || '读取语料管理库失败。';
+      libraryNotice = '';
+      return;
+    }
+
+    libraryError = '';
   }
 
   async function refreshAlmanac() {
@@ -472,6 +611,7 @@
     extractError = '';
     extractStatus = 'RUNNING';
     extractNotice = '正在提取，请稍候…';
+    closeProgressStream();
 
     try {
       await saveConfig();
@@ -493,15 +633,8 @@
         throw new Error(payload.error || '提取失败。');
       }
 
-      currentRunId = payload.run?.id || '';
-      extractStatus = payload.run?.status?.toUpperCase?.() || 'DONE';
-      candidates = (payload.candidates || []).map(mapCandidate);
-      extractNotice =
-        candidates.length > 0
-          ? `提取完成，生成 ${candidates.length} 条候选`
-          : payload.run?.lastError
-            ? payload.run.lastError
-            : '提取结束，但未生成候选。请检查 prompt、源文本或元数据。';
+      syncFromExtractionPayload(payload);
+      ensureProgressStream(book.id);
     } catch (error) {
       console.error('Extraction failed with raw error.', error);
       extractStatus = 'ERROR';
@@ -509,131 +642,266 @@
     }
   }
 
-  async function setCandidateStatus(id: string, status: CandidateStatus) {
-    const response = await fetch('/api/review', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        candidateId: id,
-        status
-      })
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      extractError = payload.error || '审核更新失败。';
+  async function stopExtraction() {
+    const book = getCurrentBook();
+    if (!book?.id) {
+      extractError = '当前没有可停止的提取任务。';
       return;
     }
 
-    candidates = candidates.map((candidate) =>
-      candidate.id === id ? mapCandidate(payload.candidate) : candidate
-    );
+    try {
+      const response = await fetch('/api/extract', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          runId: currentRunId || undefined
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || '停止提取失败。');
+      }
+
+      closeProgressStream();
+      applyRunState(payload.run);
+      extractNotice = payload.run?.lastError || '提取已停止。';
+      await refreshExtraction(book.id);
+    } catch (error) {
+      extractError = error instanceof Error ? error.message : '停止提取失败。';
+    }
   }
 
-  async function commitApproved() {
-    const book = getCurrentBook();
-    if (!book?.id || !currentRunId) {
-      extractError = '当前没有可提交批次。';
+  async function setCandidateStatus(id: string, status: CandidateStatus) {
+    const removedIndex = candidates.findIndex((candidate) => candidate.id === id);
+    const removedCandidate = removedIndex >= 0 ? candidates[removedIndex] : null;
+    if (!removedCandidate) return;
+
+    candidates = candidates.filter((candidate) => candidate.id !== id);
+    extractError = '';
+    extractNotice = '';
+
+    try {
+      const response = await fetch('/api/review', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          candidateId: id,
+          status
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        candidates = [
+          ...candidates.slice(0, removedIndex),
+          removedCandidate,
+          ...candidates.slice(removedIndex)
+        ];
+        extractError = payload.error || '审核更新失败。';
+        return;
+      }
+
+      extractError = '';
+      extractNotice = status === 'approved' ? '已收录到 Supabase' : '已丢弃当前候选';
+
+      if (status === 'approved') {
+        await refreshLibrary();
+      }
+    } catch (error) {
+      candidates = [
+        ...candidates.slice(0, removedIndex),
+        removedCandidate,
+        ...candidates.slice(removedIndex)
+      ];
+      extractError = error instanceof Error ? error.message : '审核更新失败。';
+    }
+  }
+
+  async function deleteLibraryQuote(id: string) {
+    const target = libraryQuotes.find((quote) => quote.id === id);
+    if (!target || deletingLibraryQuoteIds.has(id)) {
       return;
     }
 
-    const response = await fetch('/api/commit', {
-      method: 'POST',
+    deletingLibraryQuoteIds = new Set([...deletingLibraryQuoteIds, id]);
+    libraryQuotes = libraryQuotes.filter((quote) => quote.id !== id);
+    libraryStats = {
+      ...libraryStats,
+      totalCommitted: Math.max(0, Number(libraryStats.totalCommitted || 0) - 1)
+    };
+    libraryError = '';
+    libraryNotice = '已从语料管理库删除这条名句';
+
+    const response = await fetch('/api/library', {
+      method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        bookId: book.id,
-        runId: currentRunId
-      })
+      body: JSON.stringify({ quoteId: id })
     });
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      extractError = payload.error || '提交 Supabase 失败。';
+      libraryQuotes = [target, ...libraryQuotes];
+      libraryStats = {
+        ...libraryStats,
+        totalCommitted: Number(libraryStats.totalCommitted || 0) + 1
+      };
+      libraryError = payload.error || '删除名句失败。';
+      libraryNotice = '';
+      deletingLibraryQuoteIds = new Set([...deletingLibraryQuoteIds].filter((quoteId) => quoteId !== id));
       return;
     }
 
-    extractNotice = `已提交 ${payload.insertedCount || 0} 条到 Supabase`;
-    await refreshExtraction(book.id);
-    await refreshLibrary();
+    deletingLibraryQuoteIds = new Set([...deletingLibraryQuoteIds].filter((quoteId) => quoteId !== id));
   }
 
   function reviewFilterCount(filter: ReviewFilter) {
     if (filter === 'all') return candidates.length;
-    return candidates.filter((candidate) => candidate.status === filter).length;
+    return candidates.length;
   }
 
-  function libraryFilterMatch(item: LibraryQuote) {
-    if (activeLibraryFilter === 'all') return true;
-    if (activeLibraryFilter === 'pending') return item.state === '待审';
-    if (activeLibraryFilter === 'sad') return item.moods.includes('sad');
-    if (activeLibraryFilter === 'classical') return item.genre === '古典';
-    return true;
+  function buildLibraryOptions(values: string[], allLabel: string) {
+    const counts = new Map<string, number>();
+    for (const value of values) {
+      if (!value) continue;
+      counts.set(value, (counts.get(value) || 0) + 1);
+    }
+
+    return [
+      { value: 'all', label: allLabel, count: values.length },
+      ...Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh-Hans-CN'))
+        .map(([value, count]) => ({ value, label: value, count }))
+    ];
+  }
+
+  function visibleLibraryOptions(
+    options: { value: string; label: string; count: number }[],
+    expanded: boolean,
+    limit = 8
+  ) {
+    if (expanded || options.length <= limit) return options;
+    return options.slice(0, limit);
+  }
+
+  function applyLibraryFilters(
+    quotes: LibraryQuote[],
+    authorFilter: string,
+    moodFilter: string,
+    themeFilter: string
+  ) {
+    return quotes.filter((quote) => {
+      const authorMatch = authorFilter === 'all' || quote.author === authorFilter;
+      const moodMatch = moodFilter === 'all' || quote.moods.includes(moodFilter);
+      const themeMatch = themeFilter === 'all' || quote.themes.includes(themeFilter);
+      return authorMatch && moodMatch && themeMatch;
+    });
+  }
+
+  function selectLibraryAuthor(value: string) {
+    selectedLibraryAuthor = value;
+  }
+
+  function selectLibraryMood(value: string) {
+    selectedLibraryMood = value;
+  }
+
+  function selectLibraryTheme(value: string) {
+    selectedLibraryTheme = value;
   }
 
   $: filteredCandidates =
     activeReviewFilter === 'all'
       ? candidates
       : candidates.filter((candidate) => candidate.status === activeReviewFilter);
-  $: approvedCount = candidates.filter((candidate) => candidate.status === 'approved').length;
   $: pendingCount = candidates.filter((candidate) => candidate.status === 'pending').length;
-  $: rejectedCount = candidates.filter((candidate) => candidate.status === 'rejected').length;
-  $: processedCount = approvedCount + rejectedCount;
-  $: approvalRate = candidates.length ? Math.round((approvedCount / candidates.length) * 100) : 0;
-  $: filteredLibraryQuotes = libraryQuotes.filter(libraryFilterMatch);
-  $: extractProgressWidth =
-    extractStatus === 'RUNNING'
-      ? 'w-[55%]'
-      : currentRunId && extractStatus === 'DONE'
-        ? 'w-full'
-        : 'w-0';
+  $: libraryAuthorOptions = buildLibraryOptions(
+    libraryQuotes.map((quote) => quote.author).filter(Boolean),
+    '全部作者'
+  );
+  $: libraryMoodOptions = buildLibraryOptions(
+    libraryQuotes.flatMap((quote) => quote.moods).filter(Boolean),
+    '全部心情'
+  );
+  $: libraryThemeOptions = buildLibraryOptions(
+    libraryQuotes.flatMap((quote) => quote.themes).filter(Boolean),
+    '全部主题'
+  );
+  $: if (selectedLibraryAuthor !== 'all' && !libraryAuthorOptions.some((option) => option.value === selectedLibraryAuthor)) {
+    selectedLibraryAuthor = 'all';
+  }
+  $: if (selectedLibraryMood !== 'all' && !libraryMoodOptions.some((option) => option.value === selectedLibraryMood)) {
+    selectedLibraryMood = 'all';
+  }
+  $: if (selectedLibraryTheme !== 'all' && !libraryThemeOptions.some((option) => option.value === selectedLibraryTheme)) {
+    selectedLibraryTheme = 'all';
+  }
+  $: filteredLibraryQuotes = applyLibraryFilters(
+    libraryQuotes,
+    selectedLibraryAuthor,
+    selectedLibraryMood,
+    selectedLibraryTheme
+  );
+  $: displayStatus = extractError ? 'ERROR' : extractStatus;
+  $: extractProgressPercent =
+    runTotalChunks > 0 ? Math.min(100, Math.round((runProcessedChunks / runTotalChunks) * 100)) : extractStatus === 'DONE' ? 100 : 0;
   $: if (configReady) {
     persistLocalConfig(config);
   }
 
-  onMount(async () => {
-    try {
-      const [configResponse, booksResponse] = await Promise.all([
-        fetch('/api/config'),
-        fetch('/api/books')
-      ]);
-      if (configResponse.ok) {
-        const configPayload = await configResponse.json();
-        const nextConfig = configPayload.config;
-        serverConfigFallback = normalizeConfig({
-          apiUrl: nextConfig.apiBaseUrl || config.apiUrl,
-          model: nextConfig.model || config.model,
-          apiKey: nextConfig.apiKey || '',
-          chunkSize: nextConfig.chunkSize || config.chunkSize,
-          concurrency: nextConfig.concurrency || config.concurrency,
-          temperature: nextConfig.temperature ?? config.temperature,
-          prompt: nextConfig.promptTemplate || config.prompt
-        });
-        config = loadLocalConfig() ?? serverConfigFallback;
-      } else {
-        config = loadLocalConfig() ?? createDefaultConfig();
-      }
-      configReady = true;
+  onMount(() => {
+    void (async () => {
+      try {
+        const [configResponse, booksResponse] = await Promise.all([
+          fetch('/api/config'),
+          fetch('/api/books')
+        ]);
+        if (configResponse.ok) {
+          const configPayload = await configResponse.json();
+          const nextConfig = configPayload.config;
+          serverConfigFallback = normalizeConfig({
+            apiUrl: nextConfig.apiBaseUrl || config.apiUrl,
+            model: nextConfig.model || config.model,
+            apiKey: nextConfig.apiKey || '',
+            chunkSize: nextConfig.chunkSize || config.chunkSize,
+            concurrency: nextConfig.concurrency || config.concurrency,
+            temperature: nextConfig.temperature ?? config.temperature,
+            prompt: nextConfig.promptTemplate || config.prompt
+          });
+          config = loadLocalConfig() ?? serverConfigFallback;
+        } else {
+          config = loadLocalConfig() ?? createDefaultConfig();
+        }
+        configReady = true;
 
-      if (booksResponse.ok) {
-        const booksPayload = await booksResponse.json();
-        selectedFiles = (booksPayload.books || []).map((book: any) => mapBookSummary(book));
-        if (selectedFiles.length) {
-          currentBookId = selectedFiles[0]?.id || '';
-          extractNotice = `已恢复 ${selectedFiles.length} 本本地解析记录`;
-          if (currentBookId) {
-            await refreshExtraction(currentBookId);
+        if (booksResponse.ok) {
+          const booksPayload = await booksResponse.json();
+          selectedFiles = (booksPayload.books || []).map((book: any) => mapBookSummary(book));
+          if (selectedFiles.length) {
+            currentBookId = selectedFiles[0]?.id || '';
+            extractNotice = `已恢复 ${selectedFiles.length} 本本地解析记录`;
+            if (currentBookId) {
+              await refreshExtraction(currentBookId);
+            }
           }
         }
-      }
 
-      await Promise.all([refreshLibrary(), refreshAlmanac()]);
-    } catch {
-      extractError = '初始化本地工作台失败。';
-    }
+        await Promise.all([refreshLibrary(), refreshAlmanac()]);
+      } catch {
+        extractError = '初始化本地工作台失败。';
+      }
+    })();
+
+    return () => {
+      closeProgressStream();
+    };
   });
 </script>
 
@@ -668,7 +936,6 @@
             <article class="soft-panel overflow-hidden">
               <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
                 <h2 class="text-[0.98rem] font-medium text-ink">提取配置</h2>
-                <span class="chip">{extractStatus}</span>
               </header>
 
               <div class="space-y-4 p-4 sm:p-5">
@@ -742,91 +1009,117 @@
             <article class="soft-panel overflow-hidden">
               <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
                 <h2 class="text-[0.98rem] font-medium text-ink">导入 txt 文件</h2>
+                <span class="chip">{displayStatus}</span>
               </header>
 
               <div class="space-y-4 p-4 sm:p-5">
                 <label class="block">
-                  <div class="rounded-[18px] border border-dashed border-[#d4c7b8] bg-[#fffdf8] px-4 py-8 text-center">
+                  <div class="rounded-[18px] border border-dashed border-[#d4c7b8] bg-[#fffdf8] px-4 py-6 text-center">
                     <p class="text-sm text-[#7a6a58]">拖入或点击选择</p>
-                    <p class="mt-2 text-xs text-[#8b7a67]">仅在当前设备解析，不上传到服务器</p>
-                    <span class="btn-secondary mt-4 inline-flex cursor-pointer">
+                    <p class="mt-1.5 text-xs text-[#8b7a67]">仅在当前设备解析，不上传到服务器</p>
+                    <span class="btn-secondary mt-3 inline-flex cursor-pointer px-5 py-2 text-base font-medium">
                       选择 txt 文件
                       <input class="hidden" type="file" multiple accept=".txt,text/plain" on:change={handleFileChange} />
                     </span>
                   </div>
                 </label>
 
-                <div class="flex flex-wrap justify-end gap-2">
-                  <button class="btn-secondary px-3 py-2 text-sm font-medium" type="button" on:click={clearCurrentBookResults}>
-                    清空当前书结果
-                  </button>
-                  <button class="btn-secondary px-3 py-2 text-sm font-medium text-[#9c5a55]" type="button" on:click={deleteCurrentBook}>
-                    删除当前书
-                  </button>
-                </div>
-
                 <div class="space-y-2">
                   {#each selectedFiles as file}
-                    <button
-                      class={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 text-left text-sm ${currentBookId === file.id ? 'bg-[#eadfce]' : 'bg-[#f6f2eb]'}`}
-                      type="button"
-                      on:click={async () => {
-                        currentBookId = file.id || '';
-                        if (currentBookId) {
-                          await refreshExtraction(currentBookId);
-                        }
-                      }}
-                    >
-                      <div class="min-w-0">
-                        <p class="truncate text-[#5f5244]">{file.name}</p>
-                        <p class="mt-1 truncate text-xs text-[#867562]">
-                          {file.title}
-                          {#if file.author}
-                            · {file.author}
-                          {/if}
-                          {#if file.genre}
-                            · {file.genre}
-                          {/if}
-                        </p>
-                      </div>
-                      <div class="ml-3 flex items-center gap-2 text-xs text-[#8b7a67]">
-                        <span>{file.sizeLabel}</span>
-                      </div>
-                    </button>
+                    <div class="group relative">
+                      <button
+                        class={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 pr-11 text-left text-sm ${currentBookId === file.id ? 'bg-[#eadfce]' : 'bg-[#f6f2eb]'}`}
+                        type="button"
+                        on:click={async () => {
+                          currentBookId = file.id || '';
+                          if (currentBookId) {
+                            await refreshExtraction(currentBookId);
+                          }
+                        }}
+                      >
+                        <div class="min-w-0">
+                          <p class="truncate text-[#5f5244]">{file.name}</p>
+                          <p class="mt-1 truncate text-xs text-[#867562]">
+                            {file.title}
+                            {#if file.author}
+                              · {file.author}
+                            {/if}
+                            {#if file.year}
+                              · {file.year}
+                            {/if}
+                            {#if file.genre}
+                              · {file.genre}
+                            {/if}
+                          </p>
+                        </div>
+                        <div class="ml-3 flex items-center gap-2 text-xs text-[#8b7a67]">
+                          <span>{file.sizeLabel}</span>
+                        </div>
+                      </button>
+                      <button
+                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-[#dbcbb9] bg-[#fffaf2] text-sm text-[#9c5a55] opacity-100 shadow-sm transition sm:opacity-0 sm:group-hover:opacity-100"
+                        type="button"
+                        aria-label={`删除《${file.title || file.name}》`}
+                        on:click|stopPropagation={() => deleteBook(file.id || '')}
+                      >
+                        ×
+                      </button>
+                    </div>
                   {/each}
                 </div>
 
                 <div class="space-y-2 rounded-[18px] bg-[#fbf7f0] px-4 py-3">
                   <div class="metric flex items-center justify-between">
                     <span>{extractNotice}</span>
-                    <span>批次 {currentRunId ? currentRunId.slice(0, 8) : '--'}　并发 {config.concurrency}</span>
+                    <span>{currentRunLabel}　{runProcessedChunks}/{runTotalChunks || 0}　运行中 {runActiveWorkers}</span>
                   </div>
                   <div class="h-2 rounded-full bg-[#ece4da]">
                     <div
-                      class={`h-2 rounded-full bg-[#d7c2a2] transition-all duration-300 ${extractProgressWidth}`}
+                      class="h-2 rounded-full bg-[#d7c2a2] transition-all duration-300"
+                      style={`width:${extractProgressPercent}%`}
                     ></div>
                   </div>
                 </div>
-
-                {#if extractError}
-                  <div class="rounded-[16px] border border-[#e4c7c7] bg-[#fff4f3] px-4 py-3 text-sm text-[#9c5a55]">
-                    {extractError}
-                  </div>
-                {/if}
-
-                <button class="btn-primary w-full font-medium" type="button" on:click={startExtraction}>开始提取</button>
+                <div class="grid gap-2 sm:grid-cols-2">
+                  <button class="btn-primary w-full py-3 text-base font-medium" type="button" on:click={startExtraction}>开始提取</button>
+                  <button
+                    class="btn-secondary w-full py-3 text-base font-medium text-[#9c5a55] disabled:cursor-not-allowed disabled:opacity-50"
+                    type="button"
+                    disabled={extractStatus !== 'RUNNING'}
+                    on:click={stopExtraction}
+                  >
+                    停止提取
+                  </button>
+                </div>
               </div>
             </article>
           </section>
+
+          {#if extractError}
+            <div class="status-banner status-banner-error" role="alert">
+              <strong>操作失败</strong>
+              <span>{extractError}</span>
+            </div>
+          {:else if extractNotice}
+            <div class="status-banner status-banner-info">
+              <strong>当前状态</strong>
+              <span>{extractNotice}</span>
+            </div>
+          {/if}
 
           <section class="soft-panel overflow-hidden">
             <header class="flex flex-wrap items-center justify-between gap-4 border-b border-[#ded4c7] px-4 py-4 sm:px-5">
               <div>
                 <h2 class="text-[0.98rem] font-medium text-ink">待审清单</h2>
+                {#if currentBook}
+                  <p class="mt-1 text-sm text-[#7b6b59]">当前书籍：{currentBook.title || currentBook.name}</p>
+                {/if}
               </div>
               <div class="flex items-center gap-3">
                 <span class="chip border-[#b5cca8] bg-[#f2f9ed] text-[#648150]">已提取 {candidates.length} 条</span>
-                <button class="chip chip-action font-medium" type="button" on:click={commitApproved}>入库已通过 {approvedCount} 条</button>
+                <button class="btn-secondary px-3.5 py-2 text-sm font-medium" type="button" on:click={clearCurrentBookResults}>
+                  清空当前书结果
+                </button>
               </div>
             </header>
 
@@ -842,35 +1135,32 @@
                   </button>
                 {/each}
               </div>
-              <div class="text-sm text-[#6f604f]">已审 {processedCount}/{candidates.length}</div>
+              <div class="text-sm text-[#6f604f]">待处理 {pendingCount} 条</div>
             </div>
 
             <div>
               {#if filteredCandidates.length}
                 {#each filteredCandidates as candidate}
-                  <article class="flex flex-wrap items-start justify-between gap-4 border-b border-[#ded4c7] px-4 py-5 sm:px-5">
-                    <div class="min-w-0 flex-1">
-                      <p class="quote-text text-[1.08rem]">{candidate.text}</p>
-                      <div class="mt-4 flex flex-wrap items-center gap-2 text-[0.84rem] text-[#7b6b59]">
-                        <span class="tiny-dot" style={`background:${candidate.dot}`}></span>
-                        <span>{candidate.author}</span>
-                        <span>{candidate.work}</span>
-                        <span>{candidate.genre}</span>
-                        {#each candidate.moods as mood}
-                          <span class="tag">{mood}</span>
-                        {/each}
-                        {#each candidate.themes as theme}
-                          <span class="tag">{theme}</span>
-                        {/each}
-                        <span class="text-base leading-none text-[#8f806f]">•••</span>
-                      </div>
-                    </div>
-
-                    <div class="action-stack flex items-center gap-2">
-                      <button class="action-button" type="button" on:click={() => setCandidateStatus(candidate.id, 'approved')}>收</button>
-                      <button class="action-button" type="button" on:click={() => setCandidateStatus(candidate.id, 'rejected')}>弃</button>
-                    </div>
-                  </article>
+                  <QuoteCard
+                    text={candidate.text}
+                    author={candidate.author}
+                    work={candidate.work}
+                    year={candidate.year ?? null}
+                    genre={candidate.genre}
+                    moods={candidate.moods}
+                    themes={candidate.themes}
+                    dot={candidate.dot}
+                    actions={[
+                      {
+                        label: '收',
+                        onClick: () => setCandidateStatus(candidate.id, 'approved')
+                      },
+                      {
+                        label: '弃',
+                        onClick: () => setCandidateStatus(candidate.id, 'rejected')
+                      }
+                    ]}
+                  />
                 {/each}
               {:else}
                 <div class="px-4 py-12 text-center text-sm text-[#7b6b59] sm:px-5">
@@ -881,92 +1171,149 @@
 
             <footer class="flex flex-wrap gap-x-6 gap-y-2 bg-[#f5f1ea] px-4 py-3 text-[0.82rem] text-[#6f604f] sm:px-5">
               <span>本批 {candidates.length} 条</span>
-              <span>通过率 {approvalRate}%</span>
               <span>待审 {pendingCount} 条</span>
-              <span>待入库 {approvedCount} 条</span>
+              <span>收/弃后即从当前清单移除</span>
             </footer>
           </section>
         </div>
       {:else if activeTab === 'library'}
         <div class="px-4 py-4 sm:px-6 sm:py-5">
           <section class="soft-panel overflow-hidden">
-            <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-4 sm:px-5">
-              <div>
-                <h2 class="text-[0.98rem] font-medium text-ink">语料管理</h2>
-                <div class="mt-3 flex gap-6 border-b border-transparent text-sm">
-                  <span class="tab-trigger is-active">名句库</span>
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#ded4c7] px-4 py-4 sm:px-5">
+              <div class="min-w-0 flex-1 space-y-3">
+                <div class="flex items-start gap-3 text-sm text-[#6f604f]">
+                  <span class="w-12 shrink-0 pt-1">作者</span>
+                  <div class="min-w-0 flex-1 flex items-start gap-2">
+                    <div class="flex flex-wrap gap-2">
+                      {#each visibleLibraryOptions(libraryAuthorOptions, authorFiltersExpanded) as option}
+                        <button
+                          type="button"
+                          class:chip={true}
+                          class:is-active={selectedLibraryAuthor === option.value}
+                          aria-pressed={selectedLibraryAuthor === option.value}
+                          on:click={() => selectLibraryAuthor(option.value)}
+                        >
+                          {option.label} {option.count}
+                        </button>
+                      {/each}
+                    </div>
+                    {#if libraryAuthorOptions.length > 8}
+                      <button
+                        type="button"
+                        class="chip shrink-0"
+                        aria-expanded={authorFiltersExpanded}
+                        on:click={() => (authorFiltersExpanded = !authorFiltersExpanded)}
+                      >
+                        {authorFiltersExpanded ? '▲' : '▼'}
+                      </button>
+                    {/if}
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 text-sm text-[#6f604f]">
+                  <span class="w-12 shrink-0 pt-1">心情</span>
+                  <div class="min-w-0 flex-1 flex items-start gap-2">
+                    <div class="flex flex-wrap gap-2">
+                      {#each visibleLibraryOptions(libraryMoodOptions, moodFiltersExpanded) as option}
+                        <button
+                          type="button"
+                          class:chip={true}
+                          class:is-active={selectedLibraryMood === option.value}
+                          aria-pressed={selectedLibraryMood === option.value}
+                          on:click={() => selectLibraryMood(option.value)}
+                        >
+                          {option.label} {option.count}
+                        </button>
+                      {/each}
+                    </div>
+                    {#if libraryMoodOptions.length > 8}
+                      <button
+                        type="button"
+                        class="chip shrink-0"
+                        aria-expanded={moodFiltersExpanded}
+                        on:click={() => (moodFiltersExpanded = !moodFiltersExpanded)}
+                      >
+                        {moodFiltersExpanded ? '▲' : '▼'}
+                      </button>
+                    {/if}
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 text-sm text-[#6f604f]">
+                  <span class="w-12 shrink-0 pt-1">主题</span>
+                  <div class="min-w-0 flex-1 flex items-start gap-2">
+                    <div class="flex flex-wrap gap-2">
+                      {#each visibleLibraryOptions(libraryThemeOptions, themeFiltersExpanded) as option}
+                        <button
+                          type="button"
+                          class:chip={true}
+                          class:is-active={selectedLibraryTheme === option.value}
+                          aria-pressed={selectedLibraryTheme === option.value}
+                          on:click={() => selectLibraryTheme(option.value)}
+                        >
+                          {option.label} {option.count}
+                        </button>
+                      {/each}
+                    </div>
+                    {#if libraryThemeOptions.length > 8}
+                      <button
+                        type="button"
+                        class="chip shrink-0"
+                        aria-expanded={themeFiltersExpanded}
+                        on:click={() => (themeFiltersExpanded = !themeFiltersExpanded)}
+                      >
+                        {themeFiltersExpanded ? '▲' : '▼'}
+                      </button>
+                    {/if}
+                  </div>
                 </div>
               </div>
-            </header>
-
-            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#ded4c7] px-4 py-4 sm:px-5">
-              <div class="flex flex-wrap gap-2">
-                {#each libraryFilters as filter}
-                  <button
-                    class:chip={true}
-                    class:is-active={activeLibraryFilter === filter.id}
-                    on:click={() => (activeLibraryFilter = filter.id)}
-                  >
-                    {filter.label}
-                  </button>
-                {/each}
-              </div>
-              <button class="btn-secondary px-6" type="button">导入</button>
+              <div class="text-sm text-[#6f604f]">筛选结果 {filteredLibraryQuotes.length} 条</div>
             </div>
+
+            {#if libraryNotice}
+              <div class="border-b border-[#ded4c7] bg-[#f2f9ed] px-4 py-3 text-sm text-[#648150] sm:px-5">
+                {libraryNotice}
+              </div>
+            {/if}
+
+            {#if libraryError}
+              <div class="border-b border-[#ded4c7] bg-[#fff4f3] px-4 py-3 text-sm text-[#9c5a55] sm:px-5">
+                {libraryError}
+              </div>
+            {/if}
 
             <div>
               {#if filteredLibraryQuotes.length}
                 {#each filteredLibraryQuotes as quote}
-                  <article class="flex items-start justify-between gap-4 border-b border-[#ded4c7] px-4 py-5 sm:px-5">
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-start gap-3">
-                        <span class="tiny-dot mt-2" style={`background:${quote.dot}`}></span>
-                        <div class="min-w-0">
-                          <p class="quote-text text-[1.08rem]">{quote.text}</p>
-                          <div class="mt-4 flex flex-wrap items-center gap-2 text-[0.84rem] text-[#7b6b59]">
-                            <span>{quote.author}</span>
-                            <span>{quote.work}</span>
-                            <span class="tag">{quote.genre}</span>
-                            {#each quote.moods as mood}
-                              <span class="tag">{mood}</span>
-                            {/each}
-                            {#each quote.themes as theme}
-                              <span class="tag">{theme}</span>
-                            {/each}
-                            {#if quote.state}
-                              <span class="tag bg-[#f7f0dd] text-[#8b7047]">{quote.state}</span>
-                            {/if}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <button class="text-xl leading-none text-[#8f806f]" type="button">⋮</button>
-                  </article>
+                  <QuoteCard
+                    text={quote.text}
+                    author={quote.author}
+                    work={quote.work}
+                    year={quote.year ?? null}
+                    genre={quote.genre}
+                    moods={quote.moods}
+                    themes={quote.themes}
+                    dot={quote.dot}
+                    actions={[
+                      {
+                        label: '删除',
+                        onClick: () => deleteLibraryQuote(quote.id),
+                        tone: 'danger',
+                        disabled: deletingLibraryQuoteIds.has(quote.id)
+                      }
+                    ]}
+                  />
                 {/each}
               {:else}
                 <div class="px-4 py-12 text-center text-sm text-[#7b6b59] sm:px-5">
-                  名句库为空。提交通过的候选后，这里才会出现内容。
+                  还没有已入库名句。
                 </div>
               {/if}
             </div>
-
-            <footer class="flex flex-wrap gap-x-6 gap-y-2 bg-[#f5f1ea] px-4 py-3 text-[0.82rem] text-[#6f604f] sm:px-5">
-              <span>{libraryStats.totalCommitted} 条已入库</span>
-              <span>{libraryStats.pending} 条待审</span>
-              <span>{filteredLibraryQuotes.length} 条当前列表</span>
-            </footer>
           </section>
         </div>
       {:else}
         <div class="px-4 py-4 sm:px-6 sm:py-5">
           <section class="soft-panel overflow-hidden">
-            <header class="border-b border-[#ded4c7] px-4 py-4 sm:px-5">
-              <h2 class="text-[0.98rem] font-medium text-ink">语料管理</h2>
-              <div class="mt-3 flex gap-6 text-sm">
-                <span class="tab-trigger is-active">宜忌</span>
-              </div>
-            </header>
-
             {#each almanacToday ? [almanacToday] : [] as today}
               <section class="space-y-4 border-b border-[#ded4c7] px-4 py-4 sm:px-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -1013,7 +1360,7 @@
                 {/each}
               {:else}
                 <div class="px-4 py-12 text-center text-sm text-[#7b6b59] sm:px-5">
-                  宜忌记录为空。连接 Supabase 后，这里会显示今日与历史记录。
+                  还没有宜忌记录。
                 </div>
               {/if}
             </div>

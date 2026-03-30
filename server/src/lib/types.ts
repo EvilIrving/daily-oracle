@@ -47,7 +47,7 @@ export type ExtractionConfig = {
 
 export type ExtractedQuotePayload = {
   text: string;
-  moods: QuoteMood[];
+  moods: string[];
   themes: string[];
 };
 
@@ -58,7 +58,7 @@ export type QuoteCandidate = {
   work: string | null;
   year: number | null;
   genre: string | null;
-  moods: QuoteMood[];
+  moods: string[];
   themes: string[];
   sourceBook: string | null;
   chunkIndex: number;

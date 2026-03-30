@@ -126,13 +126,21 @@ textarea {
   justify-content: center;
   border-radius: 16px;
   border: 1px solid var(--line-strong);
-  padding: 0.9rem 1.15rem;
+  padding: 0.68rem 1rem;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
 .btn-primary:hover,
 .btn-secondary:hover {
   transform: translateY(-1px);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
 }
 
 .btn-primary {
@@ -181,6 +189,36 @@ textarea {
 .metric {
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+.status-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: baseline;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  padding: 0.95rem 1rem;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.status-banner strong {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-banner-info {
+  border-color: #d8c8b4;
+  background: #fbf7f0;
+  color: #5f5244;
+}
+
+.status-banner-error {
+  border-color: #e4b8b1;
+  background: #fff4f3;
+  color: #964f4a;
 }
 
 .quote-text {
