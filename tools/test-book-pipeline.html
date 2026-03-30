@@ -806,6 +806,7 @@ weathers（可多选）：
           const processing = ref(false)
           const stopFlag = ref(false)
           const error = ref('')
+          const debugLogs = ref(loadDebugLogs())
           let hydratingBook = false
           const selectedBook = computed(() => books.value.find((item) => item.id === selectedBookId.value) || null)
           const runningBook = computed(() => books.value.find((item) => item.id === runningBookId.value) || null)
@@ -858,6 +859,29 @@ weathers（可多选）：
             return '开始提取'
           })
           const runningLimit = computed(() => Math.min(config.concurrency, selectedTask.value.totalChunks || estimatedChunks.value || config.concurrency))
+
+          function persistDebugLogs() {
+            try {
+              localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(debugLogs.value.slice(0, 50)))
+            } catch { }
+          }
+
+          function addDebugLog(type, payload) {
+            const entry = {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              type,
+              createdAt: Date.now(),
+              payload,
+            }
+            debugLogs.value = [entry, ...debugLogs.value].slice(0, 50)
+            persistDebugLogs()
+            try {
+              console.groupCollapsed(`[book-pipeline:${type}] ${new Date(entry.createdAt).toLocaleString('zh-CN')}`)
+              console.log(payload)
+              console.groupEnd()
+            } catch { }
+            return entry
+          }
 
           function sanitizeQuote(item) {
             return {
@@ -1077,9 +1101,22 @@ weathers（可多选）：
 
             let response = null
             let lastError = null
+            let lastAttemptMeta = null
 
             for (const target of requestTargets) {
-              fetch('http://127.0.0.1:7520/ingest/cd2e8a0d-b018-4246-af7e-6910cad37010', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c8122e' }, body: JSON.stringify({ sessionId: 'c8122e', location: 'test-book-pipeline.html:callAPI-entry', message: 'callAPI start', data: { protocol: location.protocol, origin: location.origin, targetUrl: target.url, transport: target.kind, hasKey: Boolean(config.apiKey.trim()), model: config.model, chunkIndex: index }, timestamp: Date.now(), hypothesisId: 'A,B,C,D' }) }).catch(() => { })
+              lastAttemptMeta = {
+                bookId: book?.id || '',
+                bookTitle: book?.title || '',
+                chunkIndex: index,
+                chunkCount,
+                transport: target.kind,
+                targetUrl: target.url,
+                model: config.model,
+                temperature: config.temperature,
+                hasKey: Boolean(config.apiKey.trim()),
+                requestBody,
+              }
+              addDebugLog('request', lastAttemptMeta)
 
               try {
                 response = await fetch(target.url, {
@@ -1091,11 +1128,22 @@ weathers（可多选）：
                   },
                   body: JSON.stringify(requestBody),
                 })
-
-                fetch('http://127.0.0.1:7520/ingest/cd2e8a0d-b018-4246-af7e-6910cad37010', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c8122e' }, body: JSON.stringify({ sessionId: 'c8122e', location: 'test-book-pipeline.html:callAPI-response', message: 'fetch got response', data: { transport: target.kind, status: response.status, ok: response.ok, corsHeaders: response.headers.get('access-control-allow-origin') }, timestamp: Date.now(), hypothesisId: 'B,D' }) }).catch(() => { })
+                addDebugLog('response-meta', {
+                  ...lastAttemptMeta,
+                  status: response.status,
+                  ok: response.ok,
+                  statusText: response.statusText,
+                  contentType: response.headers.get('content-type'),
+                  corsHeaders: response.headers.get('access-control-allow-origin'),
+                })
 
                 if (target.kind === 'proxy' && (response.status === 404 || response.status === 405 || response.status === 501)) {
                   lastError = new Error('LOCAL_PROXY_UNAVAILABLE')
+                  addDebugLog('response-error', {
+                    ...lastAttemptMeta,
+                    status: response.status,
+                    message: 'LOCAL_PROXY_UNAVAILABLE',
+                  })
                   response = null
                   continue
                 }
@@ -1103,21 +1151,39 @@ weathers（可多选）：
                 break
               } catch (fetchErr) {
                 lastError = fetchErr
-
-                fetch('http://127.0.0.1:7520/ingest/cd2e8a0d-b018-4246-af7e-6910cad37010', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c8122e' }, body: JSON.stringify({ sessionId: 'c8122e', location: 'test-book-pipeline.html:callAPI-fetchErr', message: 'fetch threw exception', data: { protocol: location.protocol, errorName: fetchErr?.name, errorMessage: fetchErr?.message, targetUrl: target.url, transport: target.kind }, timestamp: Date.now(), hypothesisId: 'A,B,C' }) }).catch(() => { })
+                addDebugLog('fetch-error', {
+                  ...lastAttemptMeta,
+                  errorName: fetchErr?.name || 'Error',
+                  errorMessage: fetchErr?.message || String(fetchErr),
+                })
               }
             }
 
             if (!response) {
+              addDebugLog('request-failed', {
+                ...(lastAttemptMeta || {}),
+                errorName: lastError?.name || 'Error',
+                errorMessage: lastError?.message || 'REQUEST_FAILED',
+              })
               throw lastError || new Error('REQUEST_FAILED')
             }
 
             if (!response.ok) {
               const body = await response.text()
+              addDebugLog('http-error', {
+                ...(lastAttemptMeta || {}),
+                status: response.status,
+                statusText: response.statusText,
+                responseBody: body,
+              })
               throw new Error(`API ${response.status}: ${body.slice(0, 300)}`)
             }
 
             const data = await response.json()
+            addDebugLog('response-body', {
+              ...(lastAttemptMeta || {}),
+              data,
+            })
             return parseQuotes(data.choices?.[0]?.message?.content || '')
           }
 
