@@ -1,0 +1,19 @@
+
+
+获取 accesstoken
+
+curl -X POST 'https://iwoauzftqntuunnfifwc.supabase.co/auth/v1/token?grant_type=password' \
+    -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3b2F1emZ0cW50dXVubmZpZndjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDg1MjIxNywiZXhwIjoyMDkwNDI4MjE3fQ.0QXcMvxIg8Jnd1QL82gTurw5j-g3-pL0sBe1lsFyeS0' \
+    -H 'Content-Type: application/json' \
+    -d '{"email":"dong.yy1916@gmail.com","password":"syaBbje7&_#hZF!"}'
+
+ 2. 拿到 access_token 后调用函数：
+ 
+
+
+
+    curl -X POST 'https://iwoauzftqntuunnfifwc.supabase.co/functions/v1/generate-almanac' \
+    -H 'Authorization: Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6IjVlODIzMzA5LTZlYjEtNDkwNS1hODI5LTUyODVhZDBkYzlhMCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2l3b2F1emZ0cW50dXVubmZpZndjLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiZjM5Yjc4NC01NGI4LTQzMzktYjNiNC1iNThiOTkzNWM1MTEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc0OTUxMzM5LCJpYXQiOjE3NzQ5NDc3MzksImVtYWlsIjoiZG9uZy55eTE5MTZAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NzQ5NDc3Mzl9XSwic2Vzc2lvbl9pZCI6Ijg4NDg2MDllLWIxOWQtNDI0Yi04MDBlLTUyMDg5Nzk0ZDg3OSIsImlzX2Fub255bW91cyI6ZmFsc2V9.0OlZZOky14L0BsVblW7Pt3lcnpkOWowOX73wc0dTGTAqsj72063J_HkGylUU5OawsAPXpFBWwAodYUs0RAzm1A' \
+    -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3b2F1emZ0cW50dXVubmZpZndjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDg1MjIxNywiZXhwIjoyMDkwNDI4MjE3fQ.0QXcMvxIg8Jnd1QL82gTurw5j-g3-pL0sBe1lsFyeS0' \
+    -H 'Content-Type: application/json' \
+    -d '{"weather":"晴","temperature":"22"}'

@@ -1,145 +1,136 @@
-<svg width="100%" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" viewBox="0 0 680 540" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
     <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   </marker>
-<mask id="imagine-text-gaps-h3e20o" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="680" height="620" fill="white"/><rect x="36" y="17.72218894958496" width="31.994861602783203" height="19.11115264892578" fill="black" rx="2"/><rect x="36" y="33.72218704223633" width="55.98971939086914" height="19.11115264892578" fill="black" rx="2"/><rect x="266" y="17.72218894958496" width="31.994857788085938" height="19.11115264892578" fill="black" rx="2"/><rect x="266" y="33.72218704223633" width="43.992286682128906" height="19.11115264892578" fill="black" rx="2"/><rect x="495.9999694824219" y="17.72218894958496" width="31.994857788085938" height="19.11115264892578" fill="black" rx="2"/><rect x="495.9999694824219" y="33.72218704223633" width="67.97238540649414" height="19.11115264892578" fill="black" rx="2"/><rect x="105.00080871582031" y="73.02775573730469" width="49.99837875366211" height="21.944494247436523" fill="black" rx="2"/><rect x="76.30585479736328" y="92.44441986083984" width="107.38829040527344" height="19.11115264892578" fill="black" rx="2"/><rect x="98.0060043334961" y="157.0277557373047" width="63.98800277709961" height="21.944494247436523" fill="black" rx="2"/><rect x="79.99510192871094" y="176.4444122314453" width="100.00980377197266" height="19.11115264892578" fill="black" rx="2"/><rect x="98.0060043334961" y="241.02774047851562" width="63.98800277709961" height="21.944494247436523" fill="black" rx="2"/><rect x="78.01766204833984" y="260.4444274902344" width="103.96467590332031" height="19.11115264892578" fill="black" rx="2"/><rect x="98.0060043334961" y="325.02777099609375" width="63.98800277709961" height="21.944494247436523" fill="black" rx="2"/><rect x="72.01895141601562" y="344.44439697265625" width="115.96210479736328" height="19.11115264892578" fill="black" rx="2"/><rect x="84.00900268554688" y="409.0277404785156" width="91.98200225830078" height="21.944494247436523" fill="black" rx="2"/><rect x="84.0163803100586" y="428.4444274902344" width="91.96724700927734" height="19.11115264892578" fill="black" rx="2"/><rect x="320.5979919433594" y="73.02775573730469" width="78.80401611328125" height="21.944494247436523" fill="black" rx="2"/><rect x="291.0323791503906" y="92.44441986083984" width="137.9352569580078" height="19.11115264892578" fill="black" rx="2"/><rect x="302.7494201660156" y="157.0277557373047" width="114.50115966796875" height="21.944494247436523" fill="black" rx="2"/><rect x="310.9100341796875" y="176.4444122314453" width="98.179931640625" height="19.11115264892578" fill="black" rx="2"/><rect x="314.0090026855469" y="241.02774047851562" width="91.98200225830078" height="21.944494247436523" fill="black" rx="2"/><rect x="308.0176696777344" y="260.4444274902344" width="103.96467590332031" height="19.11115264892578" fill="black" rx="2"/><rect x="307.0068054199219" y="325.02777099609375" width="105.98638153076172" height="21.944494247436523" fill="black" rx="2"/><rect x="310.9100341796875" y="344.44439697265625" width="98.179931640625" height="19.11115264892578" fill="black" rx="2"/><rect x="328.0059814453125" y="409.0277404785156" width="63.98800277709961" height="21.944494247436523" fill="black" rx="2"/><rect x="297.4664001464844" y="428.4444274902344" width="125.0671615600586" height="19.11115264892578" fill="black" rx="2"/><rect x="314.0090026855469" y="493.0277404785156" width="91.98200225830078" height="21.944494247436523" fill="black" rx="2"/><rect x="294.3600769042969" y="512.4443969726562" width="131.27985382080078" height="19.11115264892578" fill="black" rx="2"/><rect x="548.0059814453125" y="73.02775573730469" width="63.98800277709961" height="21.944494247436523" fill="black" rx="2"/><rect x="546.0137939453125" y="92.44441986083984" width="67.97238540649414" height="19.11115264892578" fill="black" rx="2"/><rect x="541.0038452148438" y="157.0277557373047" width="77.99237823486328" height="21.944494247436523" fill="black" rx="2"/><rect x="537.9712524414062" y="176.4444122314453" width="84.05750274658203" height="19.11115264892578" fill="black" rx="2"/><rect x="534.009033203125" y="241.02774047851562" width="91.98200225830078" height="21.944494247436523" fill="black" rx="2"/><rect x="527.6339721679688" y="260.4444274902344" width="104.73204040527344" height="19.11115264892578" fill="black" rx="2"/><rect x="534.009033203125" y="325.02777099609375" width="91.98200225830078" height="21.944494247436523" fill="black" rx="2"/><rect x="529.4638671875" y="344.44439697265625" width="101.07230377197266" height="19.11115264892578" fill="black" rx="2"/><rect x="43.999996185302734" y="576.7222290039062" width="55.989715576171875" height="19.11115264892578" fill="black" rx="2"/><rect x="134" y="576.7222290039062" width="67.97238540649414" height="19.11115264892578" fill="black" rx="2"/><rect x="242" y="576.7222290039062" width="55.989715576171875" height="19.11115264892578" fill="black" rx="2"/></mask></defs>
+</defs>
 
 <!-- Phase labels -->
-<text x="40" y="32" text-anchor="start" style="font-weight:500;fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:500;text-anchor:start;dominant-baseline:auto">一期</text>
-<text x="40" y="48" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">核心体验</text>
-<text x="270" y="32" text-anchor="start" style="font-weight:500;fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:500;text-anchor:start;dominant-baseline:auto">二期</text>
-<text x="270" y="48" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">个性化</text>
-<text x="500" y="32" text-anchor="start" style="font-weight:500;fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:500;text-anchor:start;dominant-baseline:auto">三期</text>
-<text x="500" y="48" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">传播与社交</text>
+<text x="40" y="32" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;font-weight:500;fill:#3D3D3A">一期</text>
+<text x="40" y="48" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#3D3D3A">核心体验</text>
+<text x="270" y="32" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;font-weight:500;fill:#3D3D3A">二期</text>
+<text x="270" y="48" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#3D3D3A">个性化</text>
+<text x="500" y="32" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;font-weight:500;fill:#3D3D3A">三期</text>
+<text x="500" y="48" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#3D3D3A">数据回顾</text>
 
 <!-- Phase dividers -->
-<line x1="250" y1="24" x2="250" y2="600" stroke="var(--b)" stroke-width="0.5" stroke-dasharray="4 4" mask="url(#imagine-text-gaps-h3e20o)" style="fill:rgb(0, 0, 0);stroke:rgba(31, 30, 29, 0.3);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-dasharray:4px, 4px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<line x1="480" y1="24" x2="480" y2="600" stroke="var(--b)" stroke-width="0.5" stroke-dasharray="4 4" style="fill:rgb(0, 0, 0);stroke:rgba(31, 30, 29, 0.3);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-dasharray:4px, 4px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="250" y1="24" x2="250" y2="520" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 4"/>
+<line x1="480" y1="24" x2="480" y2="520" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 4"/>
 
-<!-- === PHASE 1 === -->
+<!-- === PHASE 1: 核心体验 === -->
 
 <!-- 语料库 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="30" y="64" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(238, 237, 254);stroke:rgb(83, 74, 183);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="130" y="84" text-anchor="middle" dominant-baseline="central" style="fill:rgb(60, 52, 137);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">语料库</text>
-  <text x="130" y="102" text-anchor="middle" dominant-baseline="central" style="fill:rgb(83, 74, 183);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">AI 提取 + 人工终审</text>
+<g>
+  <rect x="30" y="64" width="200" height="52" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="130" y="84" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#3C3489">语料库</text>
+  <text x="130" y="102" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#534AB7">AI 提取 + 人工终审</text>
 </g>
 
 <!-- 每日名句 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="30" y="148" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(238, 237, 254);stroke:rgb(83, 74, 183);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="130" y="168" text-anchor="middle" dominant-baseline="central" style="fill:rgb(60, 52, 137);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">每日名句</text>
-  <text x="130" y="186" text-anchor="middle" dominant-baseline="central" style="fill:rgb(83, 74, 183);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">小/中/大三种组件</text>
+<g>
+  <rect x="30" y="148" width="200" height="52" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="130" y="168" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#3C3489">每日名句</text>
+  <text x="130" y="186" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#534AB7">小/中/大三种组件</text>
 </g>
 
 <!-- 心情标签 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="30" y="232" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(238, 237, 254);stroke:rgb(83, 74, 183);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="130" y="252" text-anchor="middle" dominant-baseline="central" style="fill:rgb(60, 52, 137);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">心情标签</text>
-  <text x="130" y="270" text-anchor="middle" dominant-baseline="central" style="fill:rgb(83, 74, 183);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">五种心情匹配筛选</text>
+<g>
+  <rect x="30" y="232" width="200" height="52" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="130" y="252" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#3C3489">心情标签</text>
+  <text x="130" y="270" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#534AB7">八种心情匹配筛选</text>
 </g>
 
-<!-- 现代宜忌（生成式） -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="30" y="316" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(238, 237, 254);stroke:rgb(83, 74, 183);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="130" y="336" text-anchor="middle" dominant-baseline="central" style="fill:rgb(60, 52, 137);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">现代宜忌</text>
-  <text x="130" y="354" text-anchor="middle" dominant-baseline="central" style="fill:rgb(83, 74, 183);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">生成式，每日不重样</text>
+<!-- 现代宜忌 -->
+<g>
+  <rect x="30" y="316" width="200" height="52" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="130" y="336" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#3C3489">现代宜忌</text>
+  <text x="130" y="354" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#534AB7">生成式，每日不重样</text>
 </g>
 
-<!-- 节假日定制 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="30" y="400" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(238, 237, 254);stroke:rgb(83, 74, 183);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="130" y="420" text-anchor="middle" dominant-baseline="central" style="fill:rgb(60, 52, 137);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">节假日定制句</text>
-  <text x="130" y="438" text-anchor="middle" dominant-baseline="central" style="fill:rgb(83, 74, 183);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">中西节日标签池</text>
+<!-- 节假日匹配 -->
+<g>
+  <rect x="30" y="400" width="200" height="52" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="130" y="420" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#3C3489">节假日匹配</text>
+  <text x="130" y="438" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#534AB7">节日信号影响选句</text>
 </g>
 
-<!-- arrows phase 1 -->
-<line x1="130" y1="116" x2="130" y2="148" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<line x1="130" y1="200" x2="130" y2="232" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<line x1="130" y1="284" x2="130" y2="316" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<line x1="130" y1="368" x2="130" y2="400" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Phase 1 arrows -->
+<line x1="130" y1="116" x2="130" y2="148" marker-end="url(#arrow)" stroke="#737268" stroke-width="1.5" fill="none"/>
+<line x1="130" y1="200" x2="130" y2="232" marker-end="url(#arrow)" stroke="#737268" stroke-width="1.5" fill="none"/>
+<line x1="130" y1="284" x2="130" y2="316" marker-end="url(#arrow)" stroke="#737268" stroke-width="1.5" fill="none"/>
+<line x1="130" y1="368" x2="130" y2="400" marker-end="url(#arrow)" stroke="#737268" stroke-width="1.5" fill="none"/>
 
-<!-- === PHASE 2 === -->
+<!-- === PHASE 2: 个性化 === -->
 
 <!-- 天气 + 位置 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="260" y="64" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="360" y="84" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">天气 + 位置</text>
-  <text x="360" y="102" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">接入 API，影响宜忌生成</text>
-</g>
-
-<!-- HealthKit -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="260" y="148" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="360" y="168" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Apple HealthKit</text>
-  <text x="360" y="186" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">睡眠 / 周期 / 心率</text>
+<g>
+  <rect x="260" y="64" width="200" height="52" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="360" y="84" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#085041">天气 + 位置</text>
+  <text x="360" y="102" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#0F6E56">App 传坐标，Edge 查天气</text>
 </g>
 
 <!-- 月历情绪视图 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="260" y="232" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="360" y="252" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">月历情绪视图</text>
-  <text x="360" y="270" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">整月心情图标汇总</text>
+<g>
+  <rect x="260" y="148" width="200" height="52" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="360" y="168" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#085041">月历情绪视图</text>
+  <text x="360" y="186" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#0F6E56">整月心情图标汇总</text>
 </g>
 
-<!-- 主题定制 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="260" y="316" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="360" y="336" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">小组件主题定制</text>
-  <text x="360" y="354" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">字体 / 配色 / 留白</text>
+<!-- 小组件主题定制 -->
+<g>
+  <rect x="260" y="232" width="200" height="52" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="360" y="252" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#085041">小组件主题定制</text>
+  <text x="360" y="270" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#0F6E56">字体 / 配色 / 留白</text>
 </g>
 
-<!-- 生日提醒 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="260" y="400" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="360" y="420" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">生日提醒</text>
-  <text x="360" y="438" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">本人 / 亲友，匹配句子</text>
+<!-- 纪念日信号 -->
+<g>
+  <rect x="260" y="316" width="200" height="52" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="360" y="336" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#085041">纪念日信号</text>
+  <text x="360" y="354" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#0F6E56">生日/纪念日影响选句</text>
 </g>
 
-<!-- 类型筛选 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="260" y="484" width="200" height="52" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="360" y="504" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">语料类型筛选</text>
-  <text x="360" y="522" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">外国 / 中文 / 古典 / 诗词</text>
+<!-- 体裁筛选 -->
+<g>
+  <rect x="260" y="400" width="200" height="52" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="360" y="420" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#085041">体裁筛选</text>
+  <text x="360" y="438" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#0F6E56">按 genre 匹配偏好</text>
 </g>
 
-<!-- === PHASE 3 === -->
+<!-- === PHASE 3: 数据回顾 === -->
 
 <!-- 年度回顾 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="490" y="64" width="180" height="52" rx="8" stroke-width="0.5" style="fill:rgb(250, 236, 231);stroke:rgb(153, 60, 29);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="580" y="84" text-anchor="middle" dominant-baseline="central" style="fill:rgb(113, 43, 19);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">年度回顾</text>
-  <text x="580" y="102" text-anchor="middle" dominant-baseline="central" style="fill:rgb(153, 60, 29);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">可分享长图</text>
+<g>
+  <rect x="490" y="64" width="180" height="52" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <text x="580" y="84" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#712B13">年度回顾</text>
+  <text x="580" y="102" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#993C1D">可分享长图</text>
 </g>
 
 <!-- 年历热力图 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="490" y="148" width="180" height="52" rx="8" stroke-width="0.5" style="fill:rgb(250, 236, 231);stroke:rgb(153, 60, 29);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="580" y="168" text-anchor="middle" dominant-baseline="central" style="fill:rgb(113, 43, 19);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">年历热力图</text>
-  <text x="580" y="186" text-anchor="middle" dominant-baseline="central" style="fill:rgb(153, 60, 29);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">52 周情绪色块</text>
+<g>
+  <rect x="490" y="148" width="180" height="52" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <text x="580" y="168" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px;font-weight:500;fill:#712B13">年历热力图</text>
+  <text x="580" y="186" text-anchor="middle" dominant-baseline="central" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#993C1D">52 周情绪色块</text>
 </g>
 
-<!-- 生日卡片 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="490" y="232" width="180" height="52" rx="8" stroke-width="0.5" style="fill:rgb(250, 236, 231);stroke:rgb(153, 60, 29);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="580" y="252" text-anchor="middle" dominant-baseline="central" style="fill:rgb(113, 43, 19);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">生日名句卡片</text>
-  <text x="580" y="270" text-anchor="middle" dominant-baseline="central" style="fill:rgb(153, 60, 29);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">生成 + 分享给对方</text>
-</g>
+<!-- Phase 3 arrow -->
+<line x1="580" y1="116" x2="580" y2="148" marker-end="url(#arrow)" stroke="#737268" stroke-width="1.5" fill="none"/>
 
-<!-- 节日卡片 -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="490" y="316" width="180" height="52" rx="8" stroke-width="0.5" style="fill:rgb(250, 236, 231);stroke:rgb(153, 60, 29);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="580" y="336" text-anchor="middle" dominant-baseline="central" style="fill:rgb(113, 43, 19);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">节日名句卡片</text>
-  <text x="580" y="354" text-anchor="middle" dominant-baseline="central" style="fill:rgb(153, 60, 29);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">春节 / 圣诞可发送</text>
-</g>
+<!-- Cross-phase dependency arrows (dashed) -->
+<!-- 现代宜忌 → 天气+位置 -->
+<path d="M230 342 L256 342 L256 90 L260 90" fill="none" stroke="#737268" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<!-- 节假日匹配 → 纪念日信号 -->
+<line x1="230" y1="426" x2="260" y2="342" fill="none" stroke="#737268" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<!-- 月历情绪视图 → 年历热力图 -->
+<line x1="460" y1="174" x2="490" y2="174" fill="none" stroke="#737268" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
 
-<!-- legend -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"><rect x="30" y="580" width="12" height="12" rx="3" style="fill:rgb(238, 237, 254);stroke:rgb(83, 74, 183);color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/></g>
-<text x="48" y="591" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">一期必做</text>
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"><rect x="120" y="580" width="12" height="12" rx="3" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/></g>
-<text x="138" y="591" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">二期个性化</text>
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"><rect x="228" y="580" width="12" height="12" rx="3" style="fill:rgb(250, 236, 231);stroke:rgb(153, 60, 29);color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/></g>
-<text x="246" y="591" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">三期传播</text>
+<!-- Legend -->
+<rect x="30" y="500" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7"/>
+<text x="48" y="511" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#3D3D3A">一期必做</text>
+<rect x="120" y="500" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56"/>
+<text x="138" y="511" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#3D3D3A">二期个性化</text>
+<rect x="228" y="500" width="12" height="12" rx="3" fill="#FAECE7" stroke="#993C1D"/>
+<text x="246" y="511" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:12px;fill:#3D3D3A">三期回顾</text>
+<text x="320" y="511" style="font-family:'Anthropic Sans',-apple-system,system-ui,'Segoe UI',sans-serif;font-size:11px;fill:rgba(31,30,29,0.5)">虚线 = 跨期依赖</text>
 
 </svg>

@@ -62,6 +62,16 @@ Every time something breaks -> you add a guardrail
 - 修改页面、接口或状态流时，要同时检查路由层、`lib/server`、类型定义和 UI 文案是否一致。
 - 涉及书籍导入、提取工作台或本地持久化流程时，先对照 [tools/test-book-pipeline.html](/Users/cain/Documents/code/swift-daily-oracle/tools/test-book-pipeline.html) 的现有交互与状态处理，再决定删减或迁移哪些能力。
 
+## iOS 开发约束
+
+- iOS App 目录为 `daily-oracle/`，使用 SwiftUI + SwiftData + WidgetKit。
+- Deployment Target: iOS 17.0。
+- 测试框架使用 Swift Testing（`import Testing`），不使用 XCTest。
+- 本地存储使用 SwiftData；SwiftData store URL 指向 App Group container 以实现主 App 与 Widget 数据共享。
+- 轻量级标志位（如 `lastFetchDate`）可使用 App Group UserDefaults，业务数据统一走 SwiftData。
+- Widget 只能使用 SwiftUI，不可引入 UIKit。
+- 一期不接后端，使用 mock 数据开发；后续接入 Supabase Swift SDK 和 QWeatherSDK。
+
 ## macOS 开发约束
 
 - 开发过程中避免使用 `xcode build` 作为频繁验证手段。
