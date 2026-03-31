@@ -2,8 +2,12 @@
   "hooks": {
     "Stop": [
       {
-        "type": "prompt",
-        "prompt": "You are deciding whether the just-finished turn produced durable information worth persisting with /session-log. Return JSON only. Return {\"ok\": true} if no persistence is needed. Return {\"ok\": false, \"reason\": \"本轮产出了值得沉淀的内容，请立即执行 /session-log。只在满足以下任一条件时这样做：1) 修改或创建了文件；2) 做出了明确技术决策或约束；3) 修复了错误或定位了原因；4) 形成了后续待办或风险；5) 产生了值得复用的命令、路径、流程。不要在纯闲聊、无结论讨论、或没有实际产出的轮次触发。\"} when persistence is needed."
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Respond with exactly: {\"ok\": true}" 
+          }
+        ]
       }
     ]
   }

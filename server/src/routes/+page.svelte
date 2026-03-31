@@ -79,7 +79,7 @@
 
   const LEGACY_CONFIG_STORAGE_KEY = 'daily-quote.extract-config';
   const CONFIG_STORAGE_KEY = 'daily-quote.extract-config.providers.v1';
-  const DEFAULT_PROVIDER_IDS = ['provider-1', 'provider-2', 'provider-3', 'provider-4'] as const;
+  const DEFAULT_PROVIDER_IDS = [] as const;
   const DEFAULT_PROMPT = `你是一个文学语料库编辑，任务是从以下书籍文本中提取适合「每日名句」产品使用的候选句子。
 
 ## 产品背景
@@ -137,6 +137,7 @@
   let activeProviderId = providerState.activeProviderId;
   let activeProvider: ProviderProfile | null = null;
   let configReady = false;
+  let promptExpanded = false;
 
   let candidates: Candidate[] = [];
   let libraryQuotes: LibraryQuote[] = [];
@@ -201,13 +202,14 @@
   }
 
   function createDefaultProviderState(baseConfig: ExtractConfig = createDefaultConfig()): ProviderConfigState {
+    const newId = `provider_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     return {
-      activeProviderId: DEFAULT_PROVIDER_IDS[0],
-      providers: DEFAULT_PROVIDER_IDS.map((id, index) => ({
-        id,
-        name: `提供商 ${index + 1}`,
+      activeProviderId: newId,
+      providers: [{
+        id: newId,
+        name: `提供商 1`,
         config: normalizeConfig(baseConfig)
-      }))
+      }]
     };
   }
 
@@ -252,18 +254,19 @@
       });
     }
 
-    const providers = DEFAULT_PROVIDER_IDS.map((id, index) => {
-      const hit = providerMap.get(id);
-      if (hit) {
-        return hit;
-      }
-
-      return {
-        id,
-        name: `提供商 ${index + 1}`,
+    let providers: ProviderProfile[];
+    if (providerMap.size > 0) {
+      // Use cached providers
+      providers = Array.from(providerMap.values());
+    } else {
+      // No cache: create single default provider
+      const newId = `provider_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      providers = [{
+        id: newId,
+        name: `提供商 1`,
         config: normalizeConfig(baseConfig)
-      };
-    });
+      }];
+    }
 
     const requestedActiveId = String(input?.activeProviderId || '').trim();
     const activeProviderId = providers.some((item) => item.id === requestedActiveId)
@@ -549,15 +552,6 @@
     };
   }
 
-  function updateProviderName(name: string) {
-    providerState = {
-      ...providerState,
-      providers: providerState.providers.map((provider) =>
-        provider.id === activeProviderId ? { ...provider, name: name.trim() || provider.name } : provider
-      )
-    };
-  }
-
   function switchProvider(providerId: string) {
     const target = getProviderById(providerState, providerId);
     if (!target) return;
@@ -570,6 +564,65 @@
       )
     };
     hydrateConfigFromProvider(providerId);
+  }
+
+  function addProvider() {
+    const newId = `provider_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const newProvider: ProviderProfile = {
+      id: newId,
+      name: `提供商 ${providerState.providers.length + 1}`,
+      config: normalizeConfig(config)
+    };
+    providerState = {
+      ...providerState,
+      providers: [...providerState.providers, newProvider],
+      activeProviderId: newId
+    };
+    activeProviderId = newId;
+    hydrateConfigFromProvider(newId);
+  }
+
+  function removeProvider(providerId: string) {
+    const remaining = providerState.providers.filter((p) => p.id !== providerId);
+    if (remaining.length === 0) return;
+    const newActive = providerId === activeProviderId ? remaining[0].id : activeProviderId;
+    providerState = {
+      providers: remaining,
+      activeProviderId: newActive
+    };
+    activeProviderId = newActive;
+    hydrateConfigFromProvider(newActive);
+  }
+
+  let editDialogProvider: ProviderProfile | null = null;
+  let editDialogName = '';
+  let editDialogConfig = createDefaultConfig();
+
+  function openEditDialog(provider: ProviderProfile) {
+    editDialogProvider = provider;
+    editDialogName = provider.name;
+    editDialogConfig = { ...provider.config };
+  }
+
+  function confirmEdit() {
+    if (!editDialogProvider) return;
+    const newConfig = normalizeConfig(editDialogConfig);
+    providerState = {
+      ...providerState,
+      providers: providerState.providers.map((p) =>
+        p.id === editDialogProvider!.id
+          ? { ...p, name: editDialogName.trim() || p.name, config: newConfig }
+          : p
+      )
+    };
+    if (editDialogProvider.id === activeProviderId) {
+      config = { ...newConfig, prompt: config.prompt };
+    }
+    editDialogProvider = null;
+  }
+
+  function cancelEdit() {
+    editDialogProvider = null;
   }
 
   async function copyValue(label: string, value: string) {
@@ -1164,197 +1217,126 @@
 
       {#if activeTab === 'extract'}
         <div class="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
-          <section class="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
+          <section>
             <article class="soft-panel overflow-hidden">
-              <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
-                <h2 class="text-[0.98rem] font-medium text-ink">提取配置</h2>
+              <header class="flex flex-wrap items-center justify-between gap-3 border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
+                <h2 class="text-[0.98rem] font-medium text-ink">提取</h2>
+                <div class="flex flex-wrap items-center gap-2">
+                  {#each providerState.providers as provider}
+                    <div class="group relative">
+                      <button
+                        class="chip cursor-pointer transition-all"
+                        class:is-active={provider.id === activeProviderId}
+                        on:click={() => switchProvider(provider.id)}
+                        on:dblclick={() => openEditDialog(provider)}
+                        type="button"
+                      >
+                        {provider.name}
+                      </button>
+                      <button
+                        class="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#c4b0a0] text-[9px] text-white opacity-0 transition-all group-hover:opacity-100 hover:bg-[#a08070]"
+                        class:hidden={providerState.providers.length <= 1}
+                        on:click|stopPropagation={() => removeProvider(provider.id)}
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  {/each}
+                  <button
+                    class="chip cursor-pointer border-dashed transition-all hover:border-[#c4b0a0] hover:bg-[#faf5ee]"
+                    on:click={addProvider}
+                    type="button"
+                  >
+                    + 新增
+                  </button>
+                </div>
               </header>
 
-              <div class="space-y-4 p-4 sm:p-5">
-                <div class="grid gap-3 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">模型提供商</span>
-                    <select
-                      class="field w-full px-4 py-2.5 text-sm"
-                      value={activeProviderId}
-                      on:change={(event) => switchProvider((event.currentTarget as HTMLSelectElement).value)}
-                    >
-                      {#each providerState.providers as provider}
-                        <option value={provider.id}>{provider.name}</option>
-                      {/each}
-                    </select>
-                  </label>
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">提供商名称</span>
-                    <input
-                      class="field px-4 py-2.5 text-sm"
-                      value={activeProvider?.name || ''}
-                      on:input={(event) => updateProviderName((event.currentTarget as HTMLInputElement).value)}
-                    />
-                  </label>
-                </div>
-
-                <div class="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">API URL</span>
-                    <div class="field flex items-center gap-2 px-4 py-2.5">
-                      <input class="min-w-0 flex-1 bg-transparent text-sm outline-none" bind:value={config.apiUrl} />
-                      <button
-                        class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
-                        type="button"
-                        on:click={() => copyValue('API URL', config.apiUrl)}
-                      >
-                        复制
-                      </button>
-                      {#if config.apiUrl}
-                        <button
-                          class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
-                          type="button"
-                          on:click={() => clearTextField('apiUrl')}
-                        >
-                          清空
-                        </button>
-                      {/if}
+              {#if editDialogProvider}
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]" on:click|self={cancelEdit} on:keydown={(e) => e.key === 'Escape' && cancelEdit()} role="dialog" aria-modal="true" tabindex="-1">
+                  <div class="soft-panel w-[420px] max-h-[90vh] overflow-y-auto p-5">
+                    <p class="mb-4 text-sm font-medium text-ink">编辑提供商</p>
+                    <div class="space-y-3">
+                      <label class="block">
+                        <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">名称</span>
+                        <input class="field w-full px-3 py-2 text-sm" bind:value={editDialogName} on:keydown={(e) => { if (e.key === 'Escape') cancelEdit(); }} />
+                      </label>
+                      <label class="block">
+                        <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">API URL</span>
+                        <input class="field w-full px-3 py-2 text-sm" bind:value={editDialogConfig.apiUrl} />
+                      </label>
+                      <div class="grid grid-cols-2 gap-3">
+                        <label class="block">
+                          <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">模型</span>
+                          <input class="field w-full px-3 py-2 text-sm" bind:value={editDialogConfig.model} />
+                        </label>
+                        <label class="block">
+                          <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">并发数</span>
+                          <input class="field w-full px-3 py-2 text-sm" type="number" min="1" max="10" step="1" bind:value={editDialogConfig.concurrency} />
+                        </label>
+                      </div>
+                      <label class="block">
+                        <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">API KEY</span>
+                        <input class="field w-full px-3 py-2 text-sm font-mono" type="password" bind:value={editDialogConfig.apiKey} />
+                      </label>
+                      <div class="grid grid-cols-2 gap-3">
+                        <label class="block">
+                          <div class="mb-1 flex items-center justify-between text-[11px] text-[#6f604f]">
+                            <span class="uppercase tracking-[0.12em]">Temperature</span>
+                            <span>{Number(editDialogConfig.temperature).toFixed(1)}</span>
+                          </div>
+                          <input class="w-full accent-[#b59067]" type="range" min="0" max="1" step="0.1" bind:value={editDialogConfig.temperature} />
+                        </label>
+                        <label class="block">
+                          <div class="mb-1 flex items-center justify-between text-[11px] text-[#6f604f]">
+                            <span class="uppercase tracking-[0.12em]">Top P</span>
+                            <span>{Number(editDialogConfig.topP).toFixed(2)}</span>
+                          </div>
+                          <input class="w-full accent-[#b59067]" type="range" min="0" max="1" step="0.01" bind:value={editDialogConfig.topP} />
+                        </label>
+                      </div>
+                      <div class="grid grid-cols-3 gap-3">
+                        <label class="block">
+                          <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">Top K</span>
+                          <input class="field w-full px-3 py-2 text-sm" type="number" min="1" step="1" bind:value={editDialogConfig.topK} />
+                        </label>
+                        <label class="block">
+                          <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">Max Tokens</span>
+                          <input class="field w-full px-3 py-2 text-sm" type="number" min="1" step="1" bind:value={editDialogConfig.maxTokens} />
+                        </label>
+                        <label class="block">
+                          <div class="mb-1 flex items-center justify-between text-[11px] text-[#6f604f]">
+                            <span class="uppercase tracking-[0.12em]">切片</span>
+                            <span>{editDialogConfig.chunkSize}</span>
+                          </div>
+                          <input class="w-full accent-[#b59067]" type="range" min="1000" max="6000" step="500" bind:value={editDialogConfig.chunkSize} />
+                        </label>
+                      </div>
                     </div>
-                  </label>
-                  <label class="block">
-                    <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">模型</span>
-                    <div class="field flex items-center gap-2 px-4 py-2.5">
-                      <input class="min-w-0 flex-1 bg-transparent text-sm outline-none" bind:value={config.model} />
-                      <button
-                        class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
-                        type="button"
-                        on:click={() => copyValue('模型', config.model)}
-                      >
-                        复制
-                      </button>
-                      {#if config.model}
-                        <button
-                          class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
-                          type="button"
-                          on:click={() => clearTextField('model')}
-                        >
-                          清空
-                        </button>
-                      {/if}
+                    <div class="mt-5 flex justify-end gap-2">
+                      <button class="btn-secondary px-4 py-2 text-sm" on:click={cancelEdit} type="button">取消</button>
+                      <button class="btn-primary px-4 py-2 text-sm" on:click={confirmEdit} type="button">保存</button>
                     </div>
-                  </label>
-                </div>
-
-                <label class="block">
-                  <span class="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">API KEY</span>
-                  <div class="field flex items-center gap-2 px-4 py-2.5">
-                    <input class="min-w-0 flex-1 bg-transparent text-sm outline-none" bind:value={config.apiKey} />
-                    <button
-                      class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
-                      type="button"
-                      on:click={() => copyValue('API Key', config.apiKey)}
-                    >
-                      复制
-                    </button>
-                    {#if config.apiKey}
-                      <button
-                        class="rounded-full px-2 py-0.5 text-[11px] text-[#7f6a55] transition hover:bg-[#efe5d8] hover:text-[#5f5244]"
-                        type="button"
-                        aria-label="清空 API Key"
-                        on:click={clearApiKey}
-                      >
-                        清空
-                      </button>
-                    {/if}
                   </div>
-                </label>
-
-                <div class="grid gap-4 md:grid-cols-3">
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
-                      <span>切片大小</span>
-                      <span>{config.chunkSize} 字</span>
-                    </div>
-                    <input class="w-full accent-[#b59067]" type="range" min="1000" max="6000" step="500" bind:value={config.chunkSize} />
-                  </label>
-
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
-                      <span>并发数</span>
-                      <span>{config.concurrency}</span>
-                    </div>
-                    <input class="w-full accent-[#b59067]" type="range" min="1" max="5" step="1" bind:value={config.concurrency} />
-                  </label>
-
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
-                      <span>Temperature</span>
-                      <span>{config.temperature.toFixed(1)}</span>
-                    </div>
-                    <input
-                      class="w-full accent-[#b59067]"
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      bind:value={config.temperature}
-                    />
-                  </label>
                 </div>
-
-                <div class="grid gap-4 md:grid-cols-3">
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
-                      <span>Top P</span>
-                      <span>{config.topP.toFixed(2)}</span>
-                    </div>
-                    <input
-                      class="w-full accent-[#b59067]"
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      bind:value={config.topP}
-                    />
-                  </label>
-
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
-                      <span>Top K</span>
-                      <span>{config.topK}</span>
-                    </div>
-                    <input
-                      class="field w-full px-3 py-2 text-sm"
-                      type="number"
-                      min="1"
-                      step="1"
-                      bind:value={config.topK}
-                    />
-                  </label>
-
-                  <label class="block">
-                    <div class="mb-1.5 flex items-center justify-between text-[12px] text-[#6f604f]">
-                      <span>Max Tokens</span>
-                      <span>{config.maxTokens}</span>
-                    </div>
-                    <input
-                      class="field w-full px-3 py-2 text-sm"
-                      type="number"
-                      min="1"
-                      step="1"
-                      bind:value={config.maxTokens}
-                    />
-                  </label>
-                </div>
-
-                <label class="block">
-                  <textarea class="field min-h-[260px] resize-none px-4 py-3 text-sm leading-7" bind:value={config.prompt}></textarea>
-                </label>
-              </div>
-            </article>
-
-            <article class="soft-panel overflow-hidden">
-              <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
-                <h2 class="text-[0.98rem] font-medium text-ink">导入 txt 文件</h2>
-              </header>
+              {/if}
 
               <div class="space-y-4 p-4 sm:p-5">
+                <div>
+                  <button
+                    class="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-[#85715d] transition hover:text-[#5f4e3b]"
+                    type="button"
+                    on:click={() => (promptExpanded = !promptExpanded)}
+                  >
+                    <span class="inline-block transition-transform duration-150" class:rotate-90={promptExpanded}>▶</span>
+                    Prompt
+                  </button>
+                  {#if promptExpanded}
+                    <textarea class="field mt-2 min-h-[200px] w-full resize-none px-4 py-3 text-sm leading-7" bind:value={config.prompt}></textarea>
+                  {/if}
+                </div>
+
                 <label class="block">
                   <div class="rounded-[18px] border border-dashed border-[#d4c7b8] bg-[#fffdf8] px-4 py-6 text-center">
                     <p class="text-sm text-[#7a6a58]">拖入或点击选择</p>
@@ -1366,73 +1348,71 @@
                   </div>
                 </label>
 
-                <div class="space-y-2">
-                  {#each selectedFiles as file}
-                    <div class="group relative">
-                      <button
-                        class={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 pr-11 text-left text-sm ${currentBookId === file.id ? 'bg-[#eadfce]' : 'bg-[#f6f2eb]'}`}
-                        type="button"
-                        on:click={async () => {
-                          currentBookId = file.id || '';
-                          if (currentBookId) {
-                            await refreshExtraction(currentBookId);
-                          }
-                        }}
-                      >
-                        <div class="min-w-0">
-                          <p class="truncate text-[#5f5244]">{file.name}</p>
-                          <p class="mt-1 truncate text-xs text-[#867562]">
-                            {file.title}
-                            {#if file.author}
-                              · {file.author}
-                            {/if}
-                            {#if file.year}
-                              · {file.year}
-                            {/if}
-                            {#if file.genre}
-                              · {file.genre}
-                            {/if}
-                          </p>
-                        </div>
-                        <div class="ml-3 flex items-center gap-2 text-xs text-[#8b7a67]">
-                          <span>{file.sizeLabel}</span>
-                        </div>
-                      </button>
-                      <button
-                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-[#dbcbb9] bg-[#fffaf2] text-sm text-[#9c5a55] opacity-100 shadow-sm transition sm:opacity-0 sm:group-hover:opacity-100"
-                        type="button"
-                        aria-label={`删除《${file.title || file.name}》`}
-                        on:click|stopPropagation={() => deleteBook(file.id || '')}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  {/each}
-                </div>
+                {#if selectedFiles.length > 0}
+                  <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {#each selectedFiles as file}
+                      <div class="group relative">
+                        <button
+                          class={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 pr-10 text-left text-sm ${currentBookId === file.id ? 'bg-[#eadfce]' : 'bg-[#f6f2eb]'}`}
+                          type="button"
+                          on:click={async () => {
+                            currentBookId = file.id || '';
+                            if (currentBookId) {
+                              await refreshExtraction(currentBookId);
+                            }
+                          }}
+                        >
+                          <div class="min-w-0 flex-1">
+                            <p class="truncate font-medium text-[#5f5244]">{file.title || file.name}</p>
+                            <p class="mt-0.5 truncate text-xs text-[#867562]">
+                              {#if file.author}{file.author}{/if}{#if file.author && file.year} · {/if}{#if file.year}{file.year}{/if}
+                              {#if file.sizeLabel}<span class="ml-1 text-[#a89880]">{file.sizeLabel}</span>{/if}
+                            </p>
+                          </div>
+                        </button>
+                        <button
+                          class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-[#dbcbb9] bg-[#fffaf2] text-sm text-[#9c5a55] opacity-100 shadow-sm transition sm:opacity-0 sm:group-hover:opacity-100"
+                          type="button"
+                          aria-label={`删除《${file.title || file.name}》`}
+                          on:click|stopPropagation={() => deleteBook(file.id || '')}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
 
                 <div class="space-y-3 rounded-[18px] bg-[#fbf7f0] px-4 py-3">
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0 space-y-1">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <span class="chip border-[#d9c7b1] bg-[#fffaf2] text-[#7a6a58]">{extractStatus}</span>
-                        <span class="text-sm text-[#7b6b59]">{extractNotice}</span>
-                      </div>
-                      <p class="text-xs text-[#8b7a67]">当前批次：{currentRunLabel}</p>
-                    </div>
-                    <div class="shrink-0 text-right text-xs leading-5 text-[#7b7a67]">
-                      <p>进行到 {extractionProgress.chunkLabel}</p>
-                      <p>失败 {extractionProgress.failedChunks} 段 · 并发 {extractionProgress.activeWorkers}</p>
-                    </div>
+                  <div class="flex items-center justify-between gap-3">
+                    {#if extractStatus === 'DONE'}
+                      <span class="chip border-[#a8c4a0] bg-[#eaf3e5] text-[#5a7a4a]">{extractStatus}</span>
+                    {:else if extractStatus === 'RUNNING' || extractStatus === 'QUEUED'}
+                      <span class="chip border-[#d4b896] bg-[#faf3e8] text-[#9c6a38]">{extractStatus}</span>
+                    {:else if extractStatus === 'ERROR'}
+                      <span class="chip border-[#c4a0a0] bg-[#f5eaea] text-[#8a4a4a]">{extractStatus}</span>
+                    {:else if extractStatus === 'STOPPED' || extractStatus === 'PARTIAL'}
+                      <span class="chip border-[#d4c4a0] bg-[#f5f0e0] text-[#8a7a3a]">{extractStatus}</span>
+                    {:else}
+                      <span class="chip border-[#d9c7b1] bg-[#fffaf2] text-[#7a6a58]">{extractStatus}</span>
+                    {/if}
+                    <span class="text-sm font-medium text-[#6a5a48]">
+                      {extractionProgress.processedChunks}<span class="font-normal text-[#a09080]">/{extractionProgress.totalChunks}</span>
+                    </span>
+                    {#if extractionProgress.failedChunks > 0}
+                      <span class="text-sm text-[#a05050]">{extractionProgress.failedChunks} 失败</span>
+                    {/if}
                   </div>
                   <div class="h-2 rounded-full bg-[#ece4da]">
-                    <div
-                      class="h-2 rounded-full bg-[#d7c2a2] transition-all duration-300"
-                      style={`width:${extractionProgress.progressPercent}%`}
-                    ></div>
-                  </div>
-                  <div class="flex items-center justify-between gap-3 text-[12px] text-[#7a6a58]">
-                    <span>{extractionProgress.summaryLabel}</span>
-                    <span>{extractionProgress.progressPercent}%</span>
+                    {#if extractStatus === 'DONE'}
+                      <div class="h-2 rounded-full bg-[#a8c4a0] transition-all duration-500" style={`width:${extractionProgress.progressPercent}%`}></div>
+                    {:else if extractStatus === 'ERROR'}
+                      <div class="h-2 rounded-full bg-[#c09090] transition-all duration-300" style={`width:${extractionProgress.progressPercent}%`}></div>
+                    {:else if extractStatus === 'RUNNING' || extractStatus === 'QUEUED'}
+                      <div class="h-2 rounded-full bg-[#d4a86a] transition-all duration-300" style={`width:${extractionProgress.progressPercent}%`}></div>
+                    {:else}
+                      <div class="h-2 rounded-full bg-[#c4b090] transition-all duration-300" style={`width:${extractionProgress.progressPercent}%`}></div>
+                    {/if}
                   </div>
                 </div>
                 {#if extractionProgress.isRunning}
@@ -1462,27 +1442,12 @@
                 {/if}
               </div>
               <div class="flex items-center gap-3">
-                <span class="chip border-[#b5cca8] bg-[#f2f9ed] text-[#648150]">已提取 {candidates.length} 条</span>
+                <span class="text-sm text-[#6f604f]">待处理 {pendingCount} / {candidates.length + pendingCount}</span>
                 <button class="btn-secondary px-3.5 py-2 text-sm font-medium" type="button" on:click={clearCurrentBookResults}>
                   清空当前书结果
                 </button>
               </div>
             </header>
-
-            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#ded4c7] px-4 py-4 sm:px-5">
-              <div class="flex flex-wrap gap-2">
-                {#each reviewFilters as filter}
-                  <button
-                    class:chip={true}
-                    class:is-active={activeReviewFilter === filter.id}
-                    on:click={() => (activeReviewFilter = filter.id)}
-                  >
-                    {filter.label} {reviewFilterCount(filter.id)}
-                  </button>
-                {/each}
-              </div>
-              <div class="text-sm text-[#6f604f]">待处理 {pendingCount} 条</div>
-            </div>
 
             <div>
               {#if filteredCandidates.length}

@@ -1,3 +1,13 @@
+## 提供商编辑改为双击弹窗，覆盖全量配置字段 · 2026-03-31 · claude-sonnet-4-6
+
+本次把 `+page.svelte` 中提供商的编辑入口从"双击重命名弹窗"改为"双击全量编辑弹窗"。
+
+原来双击只能改名称，其他字段（apiUrl、model、apiKey、并发数、temperature、topP、topK、maxTokens、切片大小）只能通过内联控件操作。现在双击打开一个独立弹窗，把这些字段全收进去，名称也在弹窗里改。保存后若当前激活的就是被编辑的提供商，立即同步到内联 config（保留 prompt 不覆盖）。
+
+内联控件没有删，仍可快速调参。弹窗设计：点击背景或 Escape 取消，Enter 无效防误触（只有"保存"按钮提交）。
+
+---
+
 ## 三层架构全流程文档演进：Local / Supabase / iOS 与 themes 标签终局 · 2026-03-30 · claude-4.6-sonnet
 
 **起点问题：** 原 `docs/architecture.md` 更像「本地服务 + Supabase 存库」两层，缺一整条「app + 服务」链路：宜忌生成归属、Edge Functions、小组件与主 App 交互、端到端数据流。目标改为明确三层：**Layer 1 Local 工作台**（书籍解析、`prompt-oracle` 提取、审核、与 DB 交互）、**Layer 2 Supabase 业务层**（App 请求、`prompt-yi` 宜忌与 LLM）、**Layer 3 iOS 展示层**（多尺寸小组件、预览/配置外观与内容、日期与主题、与 Widget 数据传递）。
