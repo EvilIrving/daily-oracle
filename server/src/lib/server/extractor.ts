@@ -38,14 +38,7 @@ export async function runExtraction(input: {
     promptTemplate: input.config.promptTemplate || loadPromptTemplate()
   };
 
-  logInfo('extractor', 'Starting extraction run.', {
-    bookId: input.bookId,
-    meta: input.meta,
-    rawTextLength: input.rawText.length,
-    chunkSize: config.chunkSize,
-    concurrency: config.concurrency,
-    totalChunks: chunks.length
-  });
+  logInfo('extractor', `Starting run — «${input.meta.title ?? input.bookId}» ${chunks.length} chunks × concurrency=${config.concurrency}, chunkSize=${config.chunkSize}, model=${config.model}`);
 
   const run =
     input.run ??
@@ -106,19 +99,11 @@ export async function runExtraction(input: {
       nextIndex += 1;
       const chunk = chunks[currentIndex];
       activeWorkers += 1;
+      const chunkT0 = Date.now();
       const controller = new AbortController();
       registerRequestController(run.id, controller);
 
-      logInfo('extractor', 'Dispatching chunk to AI worker.', {
-        runId: run.id,
-        bookId: input.bookId,
-        chunkIndex: chunk.index,
-        totalChunks: chunks.length,
-        chunkLength: chunk.text.length,
-        activeWorkers,
-        processedChunks,
-        failedChunks
-      });
+      logInfo('extractor', `[${chunk.index + 1}/${chunks.length}] dispatching (workers=${activeWorkers}, done=${processedChunks}, failed=${failedChunks})`);
 
       updateRunStatus(input.db, run.id, {
         status: 'running',
@@ -139,30 +124,20 @@ export async function runExtraction(input: {
         });
         const candidates = buildQuoteCandidates(extracted, input.meta, chunk.index);
         insertCandidates(input.db, run.id, input.bookId, candidates);
-        logInfo('extractor', 'Chunk processed successfully.', {
-          runId: run.id,
-          bookId: input.bookId,
-          chunkIndex: chunk.index,
-          extractedCount: extracted.length,
-          candidateCount: candidates.length,
-          candidates
-        });
+        const elapsed = ((Date.now() - chunkT0) / 1000).toFixed(1);
+        logInfo('extractor', `[${chunk.index + 1}/${chunks.length}] ✓ ${candidates.length} quotes (${elapsed}s)`);
+        if (candidates.length > 0) {
+          candidates.forEach((c, i) => {
+            logInfo('extractor', `  ${i + 1}. ${c.text.slice(0, 60)}${c.text.length > 60 ? '…' : ''}`);
+          });
+        }
       } catch (error) {
         if (isRunStopRequested(run.id)) {
           lastError = getRunStopMessage();
-          logInfo('extractor', 'Chunk aborted because extraction was stopped.', {
-            runId: run.id,
-            bookId: input.bookId,
-            chunkIndex: chunk.index
-          });
+          logInfo('extractor', `[${chunk.index + 1}/${chunks.length}] ✗ aborted (${lastError})`);
         } else {
-        logError('extractor', 'Chunk extraction failed.', {
-          runId: run.id,
-          bookId: input.bookId,
-          chunkIndex: chunk.index,
-          totalChunks: chunks.length,
-          error
-        });
+        const elapsed = ((Date.now() - chunkT0) / 1000).toFixed(1);
+        logError('extractor', `[${chunk.index + 1}/${chunks.length}] ✗ failed (${elapsed}s): ${error instanceof Error ? error.message : String(error)}`);
         failedChunks += 1;
         lastError = error instanceof Error ? error.message : String(error);
         failures.push(`第 ${chunk.index + 1} 段失败：${lastError}`);
@@ -187,16 +162,7 @@ export async function runExtraction(input: {
 
   const status: TaskStatus = isRunStopRequested(run.id) ? 'stopped' : failures.length ? 'partial' : 'done';
   const finishedAt = new Date().toISOString();
-  logInfo('extractor', 'Extraction run finished.', {
-    runId: run.id,
-    bookId: input.bookId,
-    status,
-    processedChunks,
-    failedChunks,
-    lastError,
-    finishedAt,
-    failures
-  });
+  logInfo('extractor', `Run finished — status=${status}, processed=${processedChunks}/${chunks.length}, failed=${failedChunks}${failures.length ? `, errors=[${failures.join(' | ')}]` : ''}`);
   updateRunStatus(input.db, run.id, {
     status,
     processedChunks,

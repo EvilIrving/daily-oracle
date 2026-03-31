@@ -54,6 +54,7 @@ export function startExtractionJob(input: {
   });
 
   emit(run);
+  logInfo('extraction-jobs', `Job queued — runId=${run.id}, bookId=${input.bookId}, totalChunks=${totalChunks}`);
 
   const task = (async () => {
     let currentRun = run;
@@ -96,17 +97,9 @@ export function startExtractionJob(input: {
         activeWorkers: 0
       });
       emit(failedRun);
-      logError('extraction-jobs', 'Background extraction job failed.', {
-        runId: run.id,
-        bookId: input.bookId,
-        error
-      });
+      logError('extraction-jobs', `Job crashed — runId=${run.id}: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       activeJobs.delete(run.id);
-      logInfo('extraction-jobs', 'Background extraction job completed.', {
-        runId: run.id,
-        bookId: input.bookId
-      });
     }
   })();
 

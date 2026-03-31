@@ -140,6 +140,7 @@
   let promptExpanded = false;
 
   let candidates: Candidate[] = [];
+  let candidatesTotal = 0;
   let libraryQuotes: LibraryQuote[] = [];
   let libraryAuthorOptions: { value: string; label: string; count: number }[] = [];
   let libraryMoodOptions: { value: string; label: string; count: number }[] = [];
@@ -398,6 +399,7 @@
   function syncFromExtractionPayload(payload: any, { preserveNotice = false } = {}) {
     applyRunState(payload.run);
     candidates = (payload.candidates || []).map(mapCandidate);
+    candidatesTotal = candidates.length;
 
     if (preserveNotice) return;
 
@@ -757,6 +759,7 @@
     stopRequestPending = false;
     frozenExtractionProgress = null;
     candidates = [];
+    candidatesTotal = 0;
     extractStatus = 'IDLE';
     closeProgressStream();
     extractNotice = `已清空《${book.title || book.name}》的提取结果`;
@@ -1442,7 +1445,7 @@
                 {/if}
               </div>
               <div class="flex items-center gap-3">
-                <span class="text-sm text-[#6f604f]">待处理 {pendingCount} / {candidates.length + pendingCount}</span>
+                <span class="text-sm text-[#6f604f]">待处理 {pendingCount} / {candidatesTotal}</span>
                 <button class="btn-secondary px-3.5 py-2 text-sm font-medium" type="button" on:click={clearCurrentBookResults}>
                   清空当前书结果
                 </button>

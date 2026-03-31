@@ -40,30 +40,11 @@ export async function extractQuotesForChunk(input: {
       limit: NON_STREAMING_MAX_TOKENS_LIMIT
     });
   }
-  logInfo('ai-client', 'Prepared AI request payload for chunk.', {
-    chunkIndex: input.chunk.index,
-    totalChunks: input.totalChunks,
-    model: input.config.model,
-    apiBaseUrl: input.config.apiBaseUrl,
-    temperature: input.config.temperature,
-    topP: safeTopP,
-    topK: safeTopK,
-    maxTokens: safeMaxTokens,
-    chunkLength: input.chunk.text.length,
-    meta: input.meta,
-    systemPromptLength: systemPrompt.length,
-    prompt: userContent
-  });
+  const chunkTag = `[${input.chunk.index + 1}/${input.totalChunks}]`;
+  logInfo('ai-client', `${chunkTag} → ${input.config.model} (${input.chunk.text.length} chars, maxTokens=${safeMaxTokens}, temp=${input.config.temperature})`);
 
+  const t0 = Date.now();
   const responseText = await requestWithRetry(async () => {
-    logInfo('ai-client', 'Sending AI request for chunk.', {
-      chunkIndex: input.chunk.index,
-      totalChunks: input.totalChunks,
-      model: input.config.model,
-      apiBaseUrl: input.config.apiBaseUrl,
-      requestTimeoutMs: REQUEST_TIMEOUT_MS
-    });
-
     const { signal, clear } = createTimeoutSignal(input.signal, REQUEST_TIMEOUT_MS);
     try {
       const response = await client.messages.create(
@@ -90,19 +71,9 @@ export async function extractQuotesForChunk(input: {
     }
   });
 
-  logInfo('ai-client', 'Received AI response for chunk.', {
-    chunkIndex: input.chunk.index,
-    totalChunks: input.totalChunks,
-    responseText
-  });
-
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
   const parsed = parseAiJsonArray(responseText);
-  logInfo('ai-client', 'Parsed AI response into quote payloads.', {
-    chunkIndex: input.chunk.index,
-    totalChunks: input.totalChunks,
-    parsedCount: parsed.length,
-    parsed
-  });
+  logInfo('ai-client', `${chunkTag} ← ${parsed.length} quotes (${responseText.length} chars, ${elapsed}s)`);
 
   return parsed;
 }

@@ -1,3 +1,17 @@
+## 提取链路日志从 JSON blob 改为紧凑单行格式，加入耗时与引文预览 · 2026-03-31 · claude-sonnet-4-6
+
+ai-client 和 extractor 里每个 chunk 原本会打 4 条多行 JSON 日志（包含完整 prompt 文本、完整 AI 响应、完整候选对象数组），高并发时终端几乎不可读。
+
+改动：
+- `ai-client.ts`：删掉"Prepared AI request payload"（含完整 prompt 文本）和"Received AI response"（含完整响应文本）、"Parsed AI response"（含完整对象数组），合并成 2 条紧凑单行：`[3/12] → model (N chars, maxTokens=…)` 和 `[3/12] ← M quotes (N chars, 3.2s)`
+- `extractor.ts`：dispatch 日志改为 `[3/12] dispatching (workers=2, done=2, failed=0)`；成功日志改为 `[3/12] ✓ 4 quotes (3.4s)`，并逐条预览引文前 60 字；失败日志内联错误信息和耗时；run 完成日志合并为单行 summary
+- `extraction-jobs.ts`：job queued 加一条，job completed 删掉（extractor 自己的 Run finished 已足够）
+- 耗时通过 `Date.now()` 在 chunk 开始时打点，ai-client 内单独计 AI 请求耗时
+
+这些都是纯日志改动，不影响提取逻辑、SSE 数据结构或前端。
+
+---
+
 ## 提供商编辑改为双击弹窗，覆盖全量配置字段 · 2026-03-31 · claude-sonnet-4-6
 
 本次把 `+page.svelte` 中提供商的编辑入口从"双击重命名弹窗"改为"双击全量编辑弹窗"。
