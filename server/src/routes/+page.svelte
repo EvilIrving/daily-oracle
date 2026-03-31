@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { onMount } from 'svelte';
   import QuoteCard from '$lib/components/QuoteCard.svelte';
   import { notifyError, notifySuccess } from '$lib/notifications';
   import { deriveExtractionProgress, type ExtractionProgressSnapshot } from '$lib/extraction-progress';
@@ -103,22 +102,23 @@
     { id: 'pending', label: '待处理' }
   ];
 
-  let activeTab: MainTab = 'extract';
-  let activeReviewFilter: ReviewFilter = 'all';
-  let currentBookId = '';
-  let currentRunId = '';
-  let currentRunLabel = '--';
-  let extractStatus = 'IDLE';
-  let runProcessedChunks = 0;
-  let runTotalChunks = 0;
-  let runFailedChunks = 0;
-  let runActiveWorkers = 0;
-  let runLastError: string | null = null;
-  let stopRequestPending = false;
-  let frozenExtractionProgress: ExtractionProgressSnapshot | null = null;
-  let progressStream: EventSource | null = null;
-  let progressStreamBookId = '';
-  let selectedFiles: {
+  // Reactive state with $state runes
+  let activeTab = $state<MainTab>('extract');
+  let activeReviewFilter = $state<ReviewFilter>('all');
+  let currentBookId = $state('');
+  let currentRunId = $state('');
+  let currentRunLabel = $state('--');
+  let extractStatus = $state('IDLE');
+  let runProcessedChunks = $state(0);
+  let runTotalChunks = $state(0);
+  let runFailedChunks = $state(0);
+  let runActiveWorkers = $state(0);
+  let runLastError: string | null = $state(null);
+  let stopRequestPending = $state(false);
+  let frozenExtractionProgress: ExtractionProgressSnapshot | null = $state(null);
+  let progressStream: EventSource | null = $state(null);
+  let progressStreamBookId = $state('');
+  let selectedFiles = $state<{
     id?: string;
     name: string;
     sizeLabel: string;
@@ -128,40 +128,45 @@
     language?: string | null;
     genre?: string | null;
     bodyLength?: number;
-  }[] = [];
-  let currentBook: (typeof selectedFiles)[number] | null = null;
+    status: string;
+  }[]>([]);
+  let currentBook: (typeof selectedFiles)[number] | null = $state(null);
 
-  let config = createDefaultConfig();
-  let serverConfigFallback = createDefaultConfig();
-  let providerState = createDefaultProviderState();
-  let activeProviderId = providerState.activeProviderId;
-  let activeProvider: ProviderProfile | null = null;
-  let configReady = false;
-  let promptExpanded = false;
+  let config = $state(createDefaultConfig());
+  let serverConfigFallback = $state(createDefaultConfig());
+  let providerState = $state(createDefaultProviderState());
+  let activeProviderId = $state(providerState.activeProviderId);
+  let activeProvider: ProviderProfile | null = $state(null);
+  let configReady = $state(false);
+  let promptExpanded = $state(false);
 
-  let candidates: Candidate[] = [];
-  let candidatesTotal = 0;
-  let libraryQuotes: LibraryQuote[] = [];
-  let libraryAuthorOptions: { value: string; label: string; count: number }[] = [];
-  let libraryMoodOptions: { value: string; label: string; count: number }[] = [];
-  let libraryThemeOptions: { value: string; label: string; count: number }[] = [];
-  let selectedLibraryAuthor = 'all';
-  let selectedLibraryMood = 'all';
-  let selectedLibraryTheme = 'all';
-  let authorFiltersExpanded = false;
-  let moodFiltersExpanded = false;
-  let themeFiltersExpanded = false;
-  let filteredLibraryQuotes: LibraryQuote[] = [];
-  let deletingLibraryQuoteIds = new Set<string>();
-  let almanacToday: AlmanacTodayCard | null = createInitialAlmanacToday();
-  let libraryStats = {
+  let candidates = $state<Candidate[]>([]);
+  let candidatesTotal = $state(0);
+  let libraryQuotes = $state<LibraryQuote[]>([]);
+  let libraryAuthorOptions = $state<{ value: string; label: string; count: number }[]>([]);
+  let libraryMoodOptions = $state<{ value: string; label: string; count: number }[]>([]);
+  let libraryThemeOptions = $state<{ value: string; label: string; count: number }[]>([]);
+  let selectedLibraryAuthor = $state('all');
+  let selectedLibraryMood = $state('all');
+  let selectedLibraryTheme = $state('all');
+  let authorFiltersExpanded = $state(false);
+  let moodFiltersExpanded = $state(false);
+  let themeFiltersExpanded = $state(false);
+  let filteredLibraryQuotes = $state<LibraryQuote[]>([]);
+  let deletingLibraryQuoteIds = $state(new Set<string>());
+  let almanacToday: AlmanacTodayCard | null = $state(createInitialAlmanacToday());
+  let libraryStats = $state({
     totalCommitted: 0,
     pending: 0
-  };
+  });
 
-  let extractNotice = '等待导入 txt 文件';
+  let extractNotice = $state('等待导入 txt 文件');
 
-  let almanacHistory: AlmanacEntry[] = [];
+  let almanacHistory = $state<AlmanacEntry[]>([]);
+
+  let editDialogProvider: ProviderProfile | null = $state(null);
+  let editDialogName = $state('');
+  let editDialogConfig = $state(createDefaultConfig());
 
   function mapBookSummary(book: any) {
     const bodyLength = book.bodyLength ?? book.body_length;
@@ -175,8 +180,30 @@
       year: book.year,
       language: book.language,
       genre: book.genre,
-      bodyLength
+      bodyLength,
+      status: book.status || 'idle'
     };
+  }
+
+  function getStatusDotColor(status: string): string {
+    switch (status) {
+      case 'idle':
+        return '#a89880';
+      case 'queued':
+        return '#c4b090';
+      case 'running':
+        return '#d4a86a';
+      case 'partial':
+        return '#d4a040';
+      case 'done':
+        return '#a8c4a0';
+      case 'error':
+        return '#c09090';
+      case 'stopped':
+        return '#989080';
+      default:
+        return '#a89880';
+    }
   }
 
   function upsertSelectedFile(file: ReturnType<typeof mapBookSummary>) {
@@ -257,10 +284,8 @@
 
     let providers: ProviderProfile[];
     if (providerMap.size > 0) {
-      // Use cached providers
       providers = Array.from(providerMap.values());
     } else {
-      // No cache: create single default provider
       const newId = `provider_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       providers = [{
         id: newId,
@@ -319,7 +344,7 @@
     return selectedFiles.find((file) => file.id === currentBookId) ?? selectedFiles[0] ?? null;
   }
 
-  $: currentBook = getCurrentBook();
+  let currentBookDerived = $derived(getCurrentBook());
 
   function formatFileSize(bytes: number) {
     if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -595,10 +620,6 @@
     activeProviderId = newActive;
     hydrateConfigFromProvider(newActive);
   }
-
-  let editDialogProvider: ProviderProfile | null = null;
-  let editDialogName = '';
-  let editDialogConfig = createDefaultConfig();
 
   function openEditDialog(provider: ProviderProfile) {
     editDialogProvider = provider;
@@ -1083,63 +1104,103 @@
     selectedLibraryTheme = value;
   }
 
-  $: filteredCandidates =
+  let filteredCandidates = $derived(
     activeReviewFilter === 'all'
       ? candidates
-      : candidates.filter((candidate) => candidate.status === activeReviewFilter);
-  $: pendingCount = candidates.filter((candidate) => candidate.status === 'pending').length;
-  $: libraryAuthorOptions = buildLibraryOptions(
-    libraryQuotes.map((quote) => quote.author).filter(Boolean),
-    '全部作者'
+      : candidates.filter((candidate) => candidate.status === activeReviewFilter)
   );
-  $: libraryMoodOptions = buildLibraryOptions(
-    libraryQuotes.flatMap((quote) => quote.moods).filter(Boolean),
-    '全部心情'
+  let pendingCount = $derived(candidates.filter((candidate) => candidate.status === 'pending').length);
+  let approvedCount = $derived(candidates.filter((c) => c.status === 'approved').length);
+  let rejectedCount = $derived(candidates.filter((c) => c.status === 'rejected').length);
+  let acceptanceRate = $derived(
+    approvedCount + rejectedCount > 0
+      ? Math.round((approvedCount / (approvedCount + rejectedCount)) * 100)
+      : null
   );
-  $: libraryThemeOptions = buildLibraryOptions(
-    libraryQuotes.flatMap((quote) => quote.themes).filter(Boolean),
-    '全部主题'
+  let extractionDensity = $derived(
+    currentBook?.bodyLength && currentBook.bodyLength > 0 && candidatesTotal > 0
+      ? (candidatesTotal / (currentBook.bodyLength / 10000)).toFixed(1)
+      : null
   );
-  $: if (selectedLibraryAuthor !== 'all' && !libraryAuthorOptions.some((option) => option.value === selectedLibraryAuthor)) {
-    selectedLibraryAuthor = 'all';
-  }
-  $: if (selectedLibraryMood !== 'all' && !libraryMoodOptions.some((option) => option.value === selectedLibraryMood)) {
-    selectedLibraryMood = 'all';
-  }
-  $: if (selectedLibraryTheme !== 'all' && !libraryThemeOptions.some((option) => option.value === selectedLibraryTheme)) {
-    selectedLibraryTheme = 'all';
-  }
-  $: filteredLibraryQuotes = applyLibraryFilters(
-    libraryQuotes,
-    selectedLibraryAuthor,
-    selectedLibraryMood,
-    selectedLibraryTheme
+  let libraryAuthorOptionsDerived = $derived(
+    buildLibraryOptions(
+      libraryQuotes.map((quote) => quote.author).filter(Boolean),
+      '全部作者'
+    )
   );
-  $: extractionProgress = deriveExtractionProgress({
-    runId: currentRunId,
-    status: extractStatus,
-    processedChunks: runProcessedChunks,
-    failedChunks: runFailedChunks,
-    activeWorkers: runActiveWorkers,
-    totalChunks: runTotalChunks,
-    candidatesCount: candidates.length,
-    stopRequestPending,
-    lastError: runLastError,
-    frozenProgress: frozenExtractionProgress
-  });
-  $: activeProvider = getProviderById(providerState, activeProviderId);
-  $: if (configReady) {
-    const nextState: ProviderConfigState = {
-      ...providerState,
-      activeProviderId,
-      providers: providerState.providers.map((provider) =>
-        provider.id === activeProviderId ? { ...provider, config: normalizeConfig(config) } : provider
-      )
-    };
-    persistLocalProviderState(nextState);
-  }
+  let libraryMoodOptionsDerived = $derived(
+    buildLibraryOptions(
+      libraryQuotes.flatMap((quote) => quote.moods).filter(Boolean),
+      '全部心情'
+    )
+  );
+  let libraryThemeOptionsDerived = $derived(
+    buildLibraryOptions(
+      libraryQuotes.flatMap((quote) => quote.themes).filter(Boolean),
+      '全部主题'
+    )
+  );
 
-  onMount(() => {
+  $effect(() => {
+    if (selectedLibraryAuthor !== 'all' && !libraryAuthorOptionsDerived.some((option) => option.value === selectedLibraryAuthor)) {
+      selectedLibraryAuthor = 'all';
+    }
+  });
+
+  $effect(() => {
+    if (selectedLibraryMood !== 'all' && !libraryMoodOptionsDerived.some((option) => option.value === selectedLibraryMood)) {
+      selectedLibraryMood = 'all';
+    }
+  });
+
+  $effect(() => {
+    if (selectedLibraryTheme !== 'all' && !libraryThemeOptionsDerived.some((option) => option.value === selectedLibraryTheme)) {
+      selectedLibraryTheme = 'all';
+    }
+  });
+
+  let filteredLibraryQuotesDerived = $derived(
+    applyLibraryFilters(
+      libraryQuotes,
+      selectedLibraryAuthor,
+      selectedLibraryMood,
+      selectedLibraryTheme
+    )
+  );
+
+  let extractionProgress = $derived(
+    deriveExtractionProgress({
+      runId: currentRunId,
+      status: extractStatus,
+      processedChunks: runProcessedChunks,
+      failedChunks: runFailedChunks,
+      activeWorkers: runActiveWorkers,
+      totalChunks: runTotalChunks,
+      candidatesCount: candidates.length,
+      stopRequestPending,
+      lastError: runLastError,
+      frozenProgress: frozenExtractionProgress
+    })
+  );
+
+  let activeProviderDerived = $derived(getProviderById(providerState, activeProviderId));
+
+  $effect(() => {
+    if (configReady) {
+      const nextState: ProviderConfigState = {
+        ...providerState,
+        activeProviderId,
+        providers: providerState.providers.map((provider) =>
+          provider.id === activeProviderId ? { ...provider, config: normalizeConfig(config) } : provider
+        )
+      };
+      persistLocalProviderState(nextState);
+    }
+  });
+
+  $effect(() => {
+    let cancelled = false;
+
     void (async () => {
       try {
         const [configResponse, booksResponse] = await Promise.all([
@@ -1211,7 +1272,7 @@
 
         <nav class="mt-6 flex gap-6 border-b border-[#ded4c7] text-sm">
           {#each mainTabs as tab}
-            <button class:tab-trigger={true} class:is-active={activeTab === tab.id} on:click={() => (activeTab = tab.id)}>
+            <button class:tab-trigger={true} class:is-active={activeTab === tab.id} onclick={() => (activeTab = tab.id)}>
               {tab.label}
             </button>
           {/each}
@@ -1230,8 +1291,8 @@
                       <button
                         class="chip cursor-pointer transition-all"
                         class:is-active={provider.id === activeProviderId}
-                        on:click={() => switchProvider(provider.id)}
-                        on:dblclick={() => openEditDialog(provider)}
+                        onclick={() => switchProvider(provider.id)}
+                        ondblclick={() => openEditDialog(provider)}
                         type="button"
                       >
                         {provider.name}
@@ -1239,7 +1300,7 @@
                       <button
                         class="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#c4b0a0] text-[9px] text-white opacity-0 transition-all group-hover:opacity-100 hover:bg-[#a08070]"
                         class:hidden={providerState.providers.length <= 1}
-                        on:click|stopPropagation={() => removeProvider(provider.id)}
+                        onclick={() => removeProvider(provider.id)}
                         type="button"
                       >
                         ×
@@ -1248,7 +1309,7 @@
                   {/each}
                   <button
                     class="chip cursor-pointer border-dashed transition-all hover:border-[#c4b0a0] hover:bg-[#faf5ee]"
-                    on:click={addProvider}
+                    onclick={addProvider}
                     type="button"
                   >
                     + 新增
@@ -1257,13 +1318,13 @@
               </header>
 
               {#if editDialogProvider}
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]" on:click|self={cancelEdit} on:keydown={(e) => e.key === 'Escape' && cancelEdit()} role="dialog" aria-modal="true" tabindex="-1">
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]" onclick={() => cancelEdit()} onkeydown={(e) => e.key === 'Escape' && cancelEdit()} role="dialog" aria-modal="true" tabindex="-1">
                   <div class="soft-panel w-[420px] max-h-[90vh] overflow-y-auto p-5">
                     <p class="mb-4 text-sm font-medium text-ink">编辑提供商</p>
                     <div class="space-y-3">
                       <label class="block">
                         <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">名称</span>
-                        <input class="field w-full px-3 py-2 text-sm" bind:value={editDialogName} on:keydown={(e) => { if (e.key === 'Escape') cancelEdit(); }} />
+                        <input class="field w-full px-3 py-2 text-sm" bind:value={editDialogName} onkeydown={(e) => { if (e.key === 'Escape') cancelEdit(); }} />
                       </label>
                       <label class="block">
                         <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">API URL</span>
@@ -1318,8 +1379,8 @@
                       </div>
                     </div>
                     <div class="mt-5 flex justify-end gap-2">
-                      <button class="btn-secondary px-4 py-2 text-sm" on:click={cancelEdit} type="button">取消</button>
-                      <button class="btn-primary px-4 py-2 text-sm" on:click={confirmEdit} type="button">保存</button>
+                      <button class="btn-secondary px-4 py-2 text-sm" onclick={cancelEdit} type="button">取消</button>
+                      <button class="btn-primary px-4 py-2 text-sm" onclick={confirmEdit} type="button">保存</button>
                     </div>
                   </div>
                 </div>
@@ -1330,7 +1391,7 @@
                   <button
                     class="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-[#85715d] transition hover:text-[#5f4e3b]"
                     type="button"
-                    on:click={() => (promptExpanded = !promptExpanded)}
+                    onclick={() => (promptExpanded = !promptExpanded)}
                   >
                     <span class="inline-block transition-transform duration-150" class:rotate-90={promptExpanded}>▶</span>
                     Prompt
@@ -1346,7 +1407,7 @@
                     <p class="mt-1.5 text-xs text-[#8b7a67]">仅在当前设备解析，不上传到服务器</p>
                     <span class="btn-secondary mt-3 inline-flex cursor-pointer px-5 py-2 text-base font-medium">
                       选择 txt 文件
-                      <input class="hidden" type="file" multiple accept=".txt,text/plain" on:change={handleFileChange} />
+                      <input class="hidden" type="file" multiple accept=".txt,text/plain" onchange={handleFileChange} />
                     </span>
                   </div>
                 </label>
@@ -1358,7 +1419,7 @@
                         <button
                           class={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 pr-10 text-left text-sm ${currentBookId === file.id ? 'bg-[#eadfce]' : 'bg-[#f6f2eb]'}`}
                           type="button"
-                          on:click={async () => {
+                          onclick={async () => {
                             currentBookId = file.id || '';
                             if (currentBookId) {
                               await refreshExtraction(currentBookId);
@@ -1366,7 +1427,14 @@
                           }}
                         >
                           <div class="min-w-0 flex-1">
-                            <p class="truncate font-medium text-[#5f5244]">{file.title || file.name}</p>
+                            <div class="flex items-center gap-2">
+                              <span
+                                class="inline-block h-2.5 w-2.5 flex-none rounded-full"
+                                style={`background-color: ${getStatusDotColor(file.status)}`}
+                                title={`状态：${file.status}`}
+                              ></span>
+                              <p class="truncate font-medium text-[#5f5244]">{file.title || file.name}</p>
+                            </div>
                             <p class="mt-0.5 truncate text-xs text-[#867562]">
                               {#if file.author}{file.author}{/if}{#if file.author && file.year} · {/if}{#if file.year}{file.year}{/if}
                               {#if file.sizeLabel}<span class="ml-1 text-[#a89880]">{file.sizeLabel}</span>{/if}
@@ -1377,7 +1445,7 @@
                           class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-[#dbcbb9] bg-[#fffaf2] text-sm text-[#9c5a55] opacity-100 shadow-sm transition sm:opacity-0 sm:group-hover:opacity-100"
                           type="button"
                           aria-label={`删除《${file.title || file.name}》`}
-                          on:click|stopPropagation={() => deleteBook(file.id || '')}
+                          onclick={() => deleteBook(file.id || '')}
                         >
                           ×
                         </button>
@@ -1423,12 +1491,12 @@
                     class="btn-secondary w-full py-3 text-base font-medium text-[#9c5a55] disabled:cursor-not-allowed disabled:opacity-50"
                     type="button"
                     disabled={stopRequestPending}
-                    on:click={stopExtraction}
+                    onclick={stopExtraction}
                   >
                     {extractionProgress.actionLabel}
                   </button>
                 {:else}
-                  <button class="btn-primary w-full py-3 text-base font-medium" type="button" on:click={startExtraction}>
+                  <button class="btn-primary w-full py-3 text-base font-medium" type="button" onclick={startExtraction}>
                     {extractionProgress.actionLabel}
                   </button>
                 {/if}
@@ -1441,12 +1509,12 @@
               <div>
                 <h2 class="text-[0.98rem] font-medium text-ink">待审清单</h2>
                 {#if currentBook}
-                  <p class="mt-1 text-sm text-[#7b6b59]">当前书籍：{currentBook.title || currentBook.name}</p>
+                  <p class="mt-1 text-sm text-[#7b6b59]">当前书籍：{currentBookDerived?.title || currentBookDerived?.name}</p>
                 {/if}
               </div>
               <div class="flex items-center gap-3">
                 <span class="text-sm text-[#6f604f]">待处理 {pendingCount} / {candidatesTotal}</span>
-                <button class="btn-secondary px-3.5 py-2 text-sm font-medium" type="button" on:click={clearCurrentBookResults}>
+                <button class="btn-secondary px-3.5 py-2 text-sm font-medium" type="button" onclick={clearCurrentBookResults}>
                   清空当前书结果
                 </button>
               </div>
@@ -1484,9 +1552,15 @@
             </div>
 
             <footer class="flex flex-wrap gap-x-6 gap-y-2 bg-[#f5f1ea] px-4 py-3 text-[0.82rem] text-[#6f604f] sm:px-5">
-              <span>本批 {candidates.length} 条</span>
-              <span>待审 {pendingCount} 条</span>
-              <span>收/弃后即从当前清单移除</span>
+              <span>本批 {candidatesTotal} 条</span>
+              {#if extractionDensity !== null}
+                <span>提取密度 {extractionDensity} 条/万字</span>
+              {/if}
+              {#if acceptanceRate !== null}
+                <span>采纳率 {acceptanceRate}%</span>
+              {:else}
+                <span class="text-[#a89880]">收/弃后统计采纳率</span>
+              {/if}
             </footer>
           </section>
         </div>
@@ -1498,25 +1572,25 @@
                 <div class="flex items-start gap-3 text-sm text-[#6f604f]">
                   <span class="w-12 shrink-0 pt-1">作者</span>
                   <div class="min-w-0 flex-1 flex flex-wrap items-center gap-2">
-                    {#each visibleLibraryOptions(libraryAuthorOptions, authorFiltersExpanded) as option}
+                    {#each visibleLibraryOptions(libraryAuthorOptionsDerived, authorFiltersExpanded) as option}
                       <button
                         type="button"
                         class:chip={true}
                         class:is-active={selectedLibraryAuthor === option.value}
                         aria-pressed={selectedLibraryAuthor === option.value}
-                        on:click={() => selectLibraryAuthor(option.value)}
+                        onclick={() => selectLibraryAuthor(option.value)}
                       >
                         {option.label} {option.count}
                       </button>
                     {/each}
-                    {#if libraryAuthorOptions.length > 8}
+                    {#if libraryAuthorOptionsDerived.length > 8}
                       <button
                         type="button"
                         class="chip"
                         aria-expanded={authorFiltersExpanded}
-                        on:click={() => (authorFiltersExpanded = !authorFiltersExpanded)}
+                        onclick={() => (authorFiltersExpanded = !authorFiltersExpanded)}
                       >
-                        {authorFiltersExpanded ? '收起' : `... ${libraryAuthorOptions.length - 8}`}
+                        {authorFiltersExpanded ? '收起' : `... ${libraryAuthorOptionsDerived.length - 8}`}
                       </button>
                     {/if}
                   </div>
@@ -1524,25 +1598,25 @@
                 <div class="flex items-start gap-3 text-sm text-[#6f604f]">
                   <span class="w-12 shrink-0 pt-1">心情</span>
                   <div class="min-w-0 flex-1 flex flex-wrap items-center gap-2">
-                    {#each visibleLibraryOptions(libraryMoodOptions, moodFiltersExpanded) as option}
+                    {#each visibleLibraryOptions(libraryMoodOptionsDerived, moodFiltersExpanded) as option}
                       <button
                         type="button"
                         class:chip={true}
                         class:is-active={selectedLibraryMood === option.value}
                         aria-pressed={selectedLibraryMood === option.value}
-                        on:click={() => selectLibraryMood(option.value)}
+                        onclick={() => selectLibraryMood(option.value)}
                       >
                         {option.label} {option.count}
                       </button>
                     {/each}
-                    {#if libraryMoodOptions.length > 8}
+                    {#if libraryMoodOptionsDerived.length > 8}
                       <button
                         type="button"
                         class="chip"
                         aria-expanded={moodFiltersExpanded}
-                        on:click={() => (moodFiltersExpanded = !moodFiltersExpanded)}
+                        onclick={() => (moodFiltersExpanded = !moodFiltersExpanded)}
                       >
-                        {moodFiltersExpanded ? '收起' : `... ${libraryMoodOptions.length - 8}`}
+                        {moodFiltersExpanded ? '收起' : `... ${libraryMoodOptionsDerived.length - 8}`}
                       </button>
                     {/if}
                   </div>
@@ -1550,36 +1624,36 @@
                 <div class="flex items-start gap-3 text-sm text-[#6f604f]">
                   <span class="w-12 shrink-0 pt-1">主题</span>
                   <div class="min-w-0 flex-1 flex flex-wrap items-center gap-2">
-                    {#each visibleLibraryOptions(libraryThemeOptions, themeFiltersExpanded) as option}
+                    {#each visibleLibraryOptions(libraryThemeOptionsDerived, themeFiltersExpanded) as option}
                       <button
                         type="button"
                         class:chip={true}
                         class:is-active={selectedLibraryTheme === option.value}
                         aria-pressed={selectedLibraryTheme === option.value}
-                        on:click={() => selectLibraryTheme(option.value)}
+                        onclick={() => selectLibraryTheme(option.value)}
                       >
                         {option.label} {option.count}
                       </button>
                     {/each}
-                    {#if libraryThemeOptions.length > 8}
+                    {#if libraryThemeOptionsDerived.length > 8}
                       <button
                         type="button"
                         class="chip"
                         aria-expanded={themeFiltersExpanded}
-                        on:click={() => (themeFiltersExpanded = !themeFiltersExpanded)}
+                        onclick={() => (themeFiltersExpanded = !themeFiltersExpanded)}
                       >
-                        {themeFiltersExpanded ? '收起' : `... ${libraryThemeOptions.length - 8}`}
+                        {themeFiltersExpanded ? '收起' : `... ${libraryThemeOptionsDerived.length - 8}`}
                       </button>
                     {/if}
                   </div>
                 </div>
               </div>
-              <div class="text-sm text-[#6f604f]">筛选结果 {filteredLibraryQuotes.length} 条</div>
+              <div class="text-sm text-[#6f604f]">筛选结果 {filteredLibraryQuotesDerived.length} 条</div>
             </div>
 
             <div>
-              {#if filteredLibraryQuotes.length}
-                {#each filteredLibraryQuotes as quote}
+              {#if filteredLibraryQuotesDerived.length}
+                {#each filteredLibraryQuotesDerived as quote}
                   <QuoteCard
                     text={quote.text}
                     author={quote.author}

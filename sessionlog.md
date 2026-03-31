@@ -1,3 +1,25 @@
+## 管理台主页面从 Svelte 4 迁移到 Svelte 5 Runes 语法 · 2026-03-31 · claude-haiku-4-5
+
+用户指出 `server/src/routes/+page.svelte` 使用了错误的 Svelte 4 语法，要求转换为 Svelte 5。
+
+**问题：** 文件使用了 Svelte 4 的 `let` 声明响应式变量、`$:` 响应式语句、`onMount` 生命周期和 `on:click` 事件指令。
+
+**改动：**
+- 所有 `let` 状态变量改为 `$state()` runes（约 40+ 处）
+- `$:` 响应式语句改为 `$derived()`（如 `filteredCandidates`、`pendingCount` 等）和 `$effect()`（如配置持久化、过滤器重置）
+- `onMount(() => { ... })` 改为 `$effect(() => { ... })`，带 cleanup 返回
+- 所有事件指令从 `on:click`、`on:change`、`on:keydown`、`on:dblclick` 改为小写 `onclick`、`onchange`、`onkeydown`、`ondblclick`
+- 移除 `import { onMount } from 'svelte'`，`$effect` 是内置 rune
+
+**注意事项：**
+- 原 `$: currentBook = getCurrentBook()` 改为 `currentBookDerived = $derived(...)`，模板中引用需改为 `currentBookDerived`
+- 部分 `$: if (...)` 侧效果必须用 `$effect()` 而不是 `$derived()`
+- `libraryAuthorOptions` 等三个过滤器选项变量改为派生变量，模板中引用需加 `Derived` 后缀
+
+用 svelte-autofixer 验证后无语法问题。
+
+---
+
 ## 提取链路日志从 JSON blob 改为紧凑单行格式，加入耗时与引文预览 · 2026-03-31 · claude-sonnet-4-6
 
 ai-client 和 extractor 里每个 chunk 原本会打 4 条多行 JSON 日志（包含完整 prompt 文本、完整 AI 响应、完整候选对象数组），高并发时终端几乎不可读。

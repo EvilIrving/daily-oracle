@@ -1,23 +1,34 @@
 import crypto from 'node:crypto';
 import { json } from '@sveltejs/kit';
-import { clearExtractionDataByBookId, createDb, deleteBookById, getBookById, listBooks, upsertBook } from '$lib/server/db';
+import { clearExtractionDataByBookId, createDb, deleteBookById, getBookById, getLatestRunByBookId, listBooks, upsertBook } from '$lib/server/db';
 import { logError, logInfo } from '$lib/server/logger';
 import { parseTxtWithMeta } from '$lib/server/parser';
+import type { TaskStatus } from '$lib/types';
+
+function getBookStatus(db: ReturnType<typeof createDb>, bookId: string): TaskStatus {
+  const run = getLatestRunByBookId(db, bookId) as any;
+  if (!run) return 'idle';
+  return run.status as TaskStatus;
+}
 
 export async function GET() {
   const db = createDb();
-  const books = listBooks(db).map((book) => ({
-    id: book.id,
-    file_name: book.fileName,
-    title: book.meta.title,
-    author: book.meta.author,
-    year: book.meta.year,
-    language: book.meta.language,
-    genre: book.meta.genre,
-    body_length: book.rawText.length,
-    created_at: book.createdAt,
-    updated_at: book.updatedAt
-  }));
+  const books = listBooks(db).map((book) => {
+    const status = getBookStatus(db, book.id);
+    return {
+      id: book.id,
+      file_name: book.fileName,
+      title: book.meta.title,
+      author: book.meta.author,
+      year: book.meta.year,
+      language: book.meta.language,
+      genre: book.meta.genre,
+      body_length: book.rawText.length,
+      created_at: book.createdAt,
+      updated_at: book.updatedAt,
+      status
+    };
+  });
 
   return json({ books });
 }
