@@ -1529,84 +1529,78 @@
               <div class="min-w-0 flex-1 space-y-3">
                 <div class="flex items-start gap-3 text-sm text-[#6f604f]">
                   <span class="w-12 shrink-0 pt-1">作者</span>
-                  <div class="min-w-0 flex-1 flex items-start gap-2">
-                    <div class="flex flex-wrap gap-2">
-                      {#each visibleLibraryOptions(libraryAuthorOptions, authorFiltersExpanded) as option}
-                        <button
-                          type="button"
-                          class:chip={true}
-                          class:is-active={selectedLibraryAuthor === option.value}
-                          aria-pressed={selectedLibraryAuthor === option.value}
-                          on:click={() => selectLibraryAuthor(option.value)}
-                        >
-                          {option.label} {option.count}
-                        </button>
-                      {/each}
-                    </div>
+                  <div class="min-w-0 flex-1 flex flex-wrap items-center gap-2">
+                    {#each visibleLibraryOptions(libraryAuthorOptions, authorFiltersExpanded) as option}
+                      <button
+                        type="button"
+                        class:chip={true}
+                        class:is-active={selectedLibraryAuthor === option.value}
+                        aria-pressed={selectedLibraryAuthor === option.value}
+                        on:click={() => selectLibraryAuthor(option.value)}
+                      >
+                        {option.label} {option.count}
+                      </button>
+                    {/each}
                     {#if libraryAuthorOptions.length > 8}
                       <button
                         type="button"
-                        class="chip shrink-0"
+                        class="chip"
                         aria-expanded={authorFiltersExpanded}
                         on:click={() => (authorFiltersExpanded = !authorFiltersExpanded)}
                       >
-                        {authorFiltersExpanded ? '▲' : '▼'}
+                        {authorFiltersExpanded ? '收起' : `... ${libraryAuthorOptions.length - 8}`}
                       </button>
                     {/if}
                   </div>
                 </div>
                 <div class="flex items-start gap-3 text-sm text-[#6f604f]">
                   <span class="w-12 shrink-0 pt-1">心情</span>
-                  <div class="min-w-0 flex-1 flex items-start gap-2">
-                    <div class="flex flex-wrap gap-2">
-                      {#each visibleLibraryOptions(libraryMoodOptions, moodFiltersExpanded) as option}
-                        <button
-                          type="button"
-                          class:chip={true}
-                          class:is-active={selectedLibraryMood === option.value}
-                          aria-pressed={selectedLibraryMood === option.value}
-                          on:click={() => selectLibraryMood(option.value)}
-                        >
-                          {option.label} {option.count}
-                        </button>
-                      {/each}
-                    </div>
+                  <div class="min-w-0 flex-1 flex flex-wrap items-center gap-2">
+                    {#each visibleLibraryOptions(libraryMoodOptions, moodFiltersExpanded) as option}
+                      <button
+                        type="button"
+                        class:chip={true}
+                        class:is-active={selectedLibraryMood === option.value}
+                        aria-pressed={selectedLibraryMood === option.value}
+                        on:click={() => selectLibraryMood(option.value)}
+                      >
+                        {option.label} {option.count}
+                      </button>
+                    {/each}
                     {#if libraryMoodOptions.length > 8}
                       <button
                         type="button"
-                        class="chip shrink-0"
+                        class="chip"
                         aria-expanded={moodFiltersExpanded}
                         on:click={() => (moodFiltersExpanded = !moodFiltersExpanded)}
                       >
-                        {moodFiltersExpanded ? '▲' : '▼'}
+                        {moodFiltersExpanded ? '收起' : `... ${libraryMoodOptions.length - 8}`}
                       </button>
                     {/if}
                   </div>
                 </div>
                 <div class="flex items-start gap-3 text-sm text-[#6f604f]">
                   <span class="w-12 shrink-0 pt-1">主题</span>
-                  <div class="min-w-0 flex-1 flex items-start gap-2">
-                    <div class="flex flex-wrap gap-2">
-                      {#each visibleLibraryOptions(libraryThemeOptions, themeFiltersExpanded) as option}
-                        <button
-                          type="button"
-                          class:chip={true}
-                          class:is-active={selectedLibraryTheme === option.value}
-                          aria-pressed={selectedLibraryTheme === option.value}
-                          on:click={() => selectLibraryTheme(option.value)}
-                        >
-                          {option.label} {option.count}
-                        </button>
-                      {/each}
-                    </div>
+                  <div class="min-w-0 flex-1 flex flex-wrap items-center gap-2">
+                    {#each visibleLibraryOptions(libraryThemeOptions, themeFiltersExpanded) as option}
+                      <button
+                        type="button"
+                        class:chip={true}
+                        class:is-active={selectedLibraryTheme === option.value}
+                        aria-pressed={selectedLibraryTheme === option.value}
+                        on:click={() => selectLibraryTheme(option.value)}
+                      >
+                        {option.label} {option.count}
+                      </button>
+                    {/each}
                     {#if libraryThemeOptions.length > 8}
                       <button
                         type="button"
-                        class="chip shrink-0"
+                        class="chip"
                         aria-expanded={themeFiltersExpanded}
                         on:click={() => (themeFiltersExpanded = !themeFiltersExpanded)}
                       >
-                        {themeFiltersExpanded ? '▲' : '▼'}
+                        {themeFiltersExpanded ? '收起' : `... ${libraryThemeOptions.length - 8}`}
                       </button>
                     {/if}
                   </div>
