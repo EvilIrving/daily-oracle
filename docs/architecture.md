@@ -97,27 +97,43 @@
 server/
 ├── src/
 │   ├── routes/
-│   │   ├── +page.svelte              # 提取工作台
-│   │   ├── api/
-│   │   │   ├── extract/+server.ts    # POST: 启动后台提取 / GET: 查询或 SSE 进度 / PATCH: 停止提取
-│   │   │   ├── review/+server.ts     # PATCH: 单条终态审核（收即入库，弃即删除）
-│   │   │   ├── commit/+server.ts     # POST: 兼容旧的批量入库流程
-│   │   │   └── config/+server.ts     # GET/POST: AI 配置
-│   │   └── +layout.svelte
+│   │   ├── +page.svelte              # 提取工作台 + 名句库 + 宜忌历史
+│   │   ├── +layout.svelte
+│   │   └── api/
+│   │       ├── extract/+server.ts    # POST: 启动后台提取 / GET: SSE 进度 / PATCH: 停止
+│   │       ├── review/+server.ts     # PATCH: 单条终态审核（收即入库，弃即删除）
+│   │       ├── books/+server.ts      # GET/POST: 书籍列表管理
+│   │       ├── library/+server.ts    # GET/DELETE: 已入库名句库
+│   │       ├── almanac/+server.ts    # GET: 宜忌历史列表
+│   │       └── config/+server.ts     # GET/POST: AI 配置持久化
 │   ├── lib/
 │   │   ├── server/
-│   │   │   ├── ai-client.ts          # Anthropic SDK 封装
-│   │   │   ├── chunker.ts            # 文本切片
-│   │   │   ├── parser.ts             # AI 输出解析 + txt 元数据解析
-│   │   │   ├── db.ts                 # SQLite 操作
-│   │   │   └── supabase.ts           # Supabase service_role client
-│   │   └── types.ts
+│   │   │   ├── ai-client.ts          # Anthropic SDK 封装，支持 baseURL 兼容
+│   │   │   ├── chunker.ts            # 文本按段落切片
+│   │   │   ├── parser.ts             # txt 元数据解析 + AI JSON 输出解析 + mood 过滤
+│   │   │   ├── db.ts                 # SQLite 操作（books/runs/candidates/config）
+│   │   │   ├── supabase.ts           # Supabase service_role 写入客户端
+│   │   │   ├── extractor.ts          # 后台并发提取执行器
+│   │   │   ├── extraction-jobs.ts    # 任务调度 + 进度订阅发布
+│   │   │   ├── extraction-control.ts # 运行中任务的中止控制（AbortController）
+│   │   │   ├── quote-verifier.ts     # 收录前原文存在性校验（防 AI 编造）
+│   │   │   ├── config.ts             # 配置管理（env + SQLite 持久化）
+│   │   │   ├── logger.ts             # 结构化日志（info/error）
+│   │   │   └── env.ts                # 环境变量读取封装
+│   │   ├── components/
+│   │   │   ├── QuoteCard.svelte      # 名句卡片组件
+│   │   │   └── NotificationViewport.svelte  # 通知提示组件
+│   │   ├── types.ts                  # TypeScript 类型定义
+│   │   ├── notifications.ts          # 前端通知工具
+│   │   └── extraction-progress.ts    # 进度条计算工具
 │   └── app.html
 ├── data/
-│   └── queue.db                      # SQLite 待审数据
+│   └── queue.db                      # SQLite 待审数据（WAL 模式）
 ├── package.json
 ├── svelte.config.js
 ├── tailwind.config.js
+├── postcss.config.cjs
+├── tsconfig.json
 └── vite.config.ts
 ```
 
@@ -136,31 +152,44 @@ server/
 POST /api/extract 立即创建批次并启动后台任务
   - 前端不等待整本书同步返回
   - 当前书目若已有 queued/running 批次，则拒绝重复启动
+  - 后台任务通过 extraction-jobs.ts 调度，支持多 worker 并发
     │
     ▼
 后台并发调用 AI
-  - 每片独立请求
-  - 失败自动重试 1 次
+  - 每片独立请求（worker 池 = concurrency 配置）
+  - 失败不重试（记录到 failedChunks）
   - GET /api/extract?stream=1 通过 SSE 推送真实进度到前端
-  - PATCH /api/extract 可中止运行中的批次
-  - 服务端控制台打印上传解析结果、分片调度、模型输入输出与错误日志，便于本地排查
+  - PATCH /api/extract 可中止运行中的批次（AbortController）
+  - 服务端控制台打印：分片调度、模型输入输出、错误日志
     │
     ▼
 解析 AI 返回的 JSON 数组
   - 过滤 <think> 标签
-  - 保留提取出的名句正文；`moods` / `themes` 仅作为补充标签，缺失时不应导致候选被丢弃
-  - `moods` 只允许保留 `docs/schema.sql` 中 `quote_mood` 枚举支持的值；非法标签在入 SQLite 和 Supabase 前都必须过滤，避免人工点击 `收` 时因枚举不匹配失败
-  - `lang`/作者/作品/年份等元数据不信任 AI，统一从 txt 元数据头派生或回填
+  - 保留提取出的名句正文；moods/themes 仅作为补充标签，缺失时不丢弃候选
+  - moods 只允许保留 docs/schema.sql 中 quote_mood 枚举支持的值
+  - lang/author/work/year/genre 等元数据，统一从 txt 元数据头回填
     │
     ▼
 写入 SQLite queue.db（待审状态）
+  - 使用 unique index (book_id, normalized_text) 去重
     │
     ▼
 待审清单展示 → 人工逐条审核（收/弃）
-  - 收录前服务端必须用候选句的归一化文本去原始正文做一次存在性校验；正文中不存在则直接报错拦截，不允许把 AI 编造或改写过度的句子写入 Supabase
+  - 收录前服务端必须用候选句的归一化文本去原始正文做一次存在性校验
   - 收：立即写入 Supabase quotes 表，并从本地待审清单移除
   - 弃：立即从本地待审清单删除
 ```
+
+### 后台任务调度
+
+- `extraction-jobs.ts` 维护活跃任务 Map，支持：
+  - 任务状态订阅（发布/订阅模式）
+  - SSE 流推送进度到前端
+  - 页面刷新后恢复进度订阅
+- `extraction-control.ts` 管理任务中止：
+  - 每个任务维护 AbortController 集合
+  - 停止时批量 abort 所有进行中请求
+  - 进度冻结在停止时的 chunk 位置
 
 ### AI 客户端配置
 
@@ -207,30 +236,40 @@ MAX_TOKENS=4096
 
 ### UI 页面
 
-**提取工作台**：
+**提取工作台**（`+page.svelte`）：
 
-- 左栏：支持 4 个可切换的模型提供商（每个提供商独立保存 API URL / 模型 / API Key / 采样参数 / Prompt）；切换提供商不会丢失各自配置，刷新后仍会恢复
-- 输入框支持快捷复制与清空（API URL、模型、API Key）
-- 参数支持：切片大小、并发数、Temperature、Top P、Top K、Max Tokens、Prompt 编辑器
-- 右栏：本地读取按钮（选择 txt）、已选书籍卡片、清空当前书结果、删除当前书、真实提取进度条、chunk 总数 / 当前 chunk / 进度百分比、单一开始/停止按钮
-- 状态：IDLE / QUEUED / RUNNING / DONE / PARTIAL / STOPPED / ERROR
-- 刷新页面后，如当前书目仍有 queued/running 批次，页面会重新订阅该批次的 SSE 进度
-- 书籍列表持久化在本地 SQLite，页面刷新后恢复；删除书籍时连同其提取批次和候选一起删除，清空结果仅清除当前书的提取批次与候选，不删除书籍正文
-- 当用户停止提取时，进度展示会冻结在停止请求时的 chunk 位置，避免在中止阶段出现进度回跳或误增
+- 三 Tab 结构：提取 / 名句库 / 宜忌
+- 提取 Tab：
+  - 左栏：支持多模型提供商切换（每个独立保存 API URL / 模型 / API Key / 采样参数 / Prompt）
+  - 快捷复制按钮（API URL、模型、API Key）
+  - 参数配置：切片大小、并发数、Temperature、Top P、Top K、Max Tokens、Prompt 编辑器
+  - 右栏：txt 上传、已选书籍卡片、清空结果、删除书籍、提取进度条、开始/停止按钮
+  - 状态机：IDLE / QUEUED / RUNNING / DONE / PARTIAL / STOPPED / ERROR
+  - SSE 进度订阅：刷新页面后自动恢复运行中任务的进度推送
+  - 停止时进度冻结，避免中止阶段进度回跳
+- 名句库 Tab：
+  - 已入库名句列表（分页）
+  - 筛选器：作者、心情、主题
+  - 手动删除（软删除 `is_active = false`）
+- 宜忌 Tab：
+  - 今日宜忌卡片（天气、温度、生成信号）
+  - 历史宜忌列表
 
-**待审清单**：
+**待审清单**（集成在提取 Tab）：
 
-- 顶部 tab：全部 / 待处理
-- 每条：名句全文、作者·作品·体裁、mood tags、themes tags
-- 操作：收 / 弃
-- `收` 后立即入库并从清单消失；`弃` 后立即删除并从清单消失
-- 不保留“收了再弃 / 弃了再收”的中间状态
+- 顶部 filter：全部 / 待处理
+- 每条展示：名句全文、作者·作品·年份·体裁、mood tags、themes tags
+- 操作：收（入库）/ 弃（删除）
+- 终态设计：收即入库并移除，弃即删除并移除
 
-**语料管理**：
+**数据库结构**：
 
-- 名句库 tab：已入库名句列表
-- 支持在工作台中手动删除已入库名句；删除动作走 Supabase 软删除（`is_active = false`）
-- 宜忌 tab：宜忌历史记录
+| 表 | 用途 |
+|----|------|
+| `books` | 已上传的书籍（含 rawText 和元数据） |
+| `extraction_runs` | 提取批次记录（状态、进度、配置快照） |
+| `quote_candidates` | 待审名句候选（含归一化文本去重） |
+| `app_config` | AI 配置持久化（多提供商配置） |
 
 ---
 
@@ -367,9 +406,9 @@ let response = try await QWeather.instance.weatherNow(parameter)
 
 | 尺寸 | 内容 |
 |------|------|
-| 小 2×2 | 仅名句全文，字号最大，无出处无宜忌 |
+| 小 2×2 | 仅名句全文，无出处无宜忌 |
 | 长条 2×4 | 名句 + 出处，底部显示宜或忌其中一条（交替） |
-| 大 4×4 | 完整版：名句、出处、宜忌各一条、心情选择条（5格）、日期 |
+| 大 4×4 | 完整版：名句、出处、宜忌各一条、心情选择条（5格）|
 
 ### 小组件每日自动更新
 
