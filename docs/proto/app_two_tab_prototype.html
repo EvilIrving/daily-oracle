@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Quote App — Two Tab Prototype</title>
+<style>
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-serif: Georgia, "Times New Roman", serif;
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f4f0;
+    --color-background-tertiary: #eeece7;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #4a4a46;
+    --color-text-tertiary: #9a9890;
+    --color-border-tertiary: rgba(0,0,0,0.1);
+    --color-border-secondary: rgba(0,0,0,0.18);
+    --color-border-primary: rgba(0,0,0,0.3);
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-primary: #1c1c1a;
+      --color-background-secondary: #252522;
+      --color-background-tertiary: #2e2e2b;
+      --color-text-primary: #f0ede6;
+      --color-text-secondary: #b0ada6;
+      --color-text-tertiary: #6a6860;
+      --color-border-tertiary: rgba(255,255,255,0.08);
+      --color-border-secondary: rgba(255,255,255,0.15);
+      --color-border-primary: rgba(255,255,255,0.25);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-background-tertiary);
+    min-height: 100vh;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .scene {
+    display: flex; gap: 32px; justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .phone {
+    width: 300px;
+    background: var(--color-background-secondary);
+    border-radius: 44px;
+    border: 0.5px solid var(--color-border-secondary);
+    padding: 16px 12px 12px;
+    display: flex; flex-direction: column;
+  }
+
+  .notch {
+    width: 72px; height: 18px;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: 9px;
+    margin: 0 auto 12px;
+  }
+
+  .screen {
+    background: var(--color-background-primary);
+    border-radius: 32px;
+    flex: 1;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    min-height: 560px;
+  }
+
+  .nav {
+    padding: 16px 20px 10px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .nav-title { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+  .nav-sub { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+  .content { flex: 1; overflow: hidden; }
+
+  .cal-month-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px 8px;
+  }
+  .cal-month { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .cal-nav { font-size: 16px; color: var(--color-text-tertiary); cursor: pointer; padding: 0 4px; }
+
+  .cal-dow {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    padding: 0 16px; margin-bottom: 4px;
+  }
+  .cal-dow span { font-size: 10px; color: var(--color-text-tertiary); text-align: center; padding: 2px 0; }
+
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    padding: 0 16px; gap: 2px;
+  }
+
+  .cal-cell {
+    aspect-ratio: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .cal-cell:hover { background: var(--color-background-secondary); }
+  .cal-cell.today { background: var(--color-background-secondary); }
+  .cal-cell.selected { background: var(--color-border-tertiary); }
+
+  .cal-num { font-size: 11px; color: var(--color-text-secondary); line-height: 1; }
+  .cal-num.dim { color: var(--color-text-tertiary); }
+  .cal-num.today-num { color: var(--color-text-primary); font-weight: 500; }
+
+  .mi { width: 7px; height: 7px; border-radius: 50%; margin-top: 2px; }
+
+  .detail-card {
+    margin: 10px 16px 0;
+    background: var(--color-background-secondary);
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+  .detail-date { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 8px; }
+  .detail-quote {
+    font-family: var(--font-serif);
+    font-size: 12px; line-height: 1.7;
+    color: var(--color-text-primary);
+    margin-bottom: 6px;
+  }
+  .detail-author { font-size: 10px; color: var(--color-text-tertiary); text-align: right; margin-bottom: 8px; }
+  .detail-rule { height: 0.5px; background: var(--color-border-tertiary); margin-bottom: 8px; }
+  .detail-alm { font-size: 11px; color: var(--color-text-secondary); line-height: 1.6; }
+  .alm-k { font-size: 10px; font-weight: 500; margin-right: 5px; }
+  .yi-k { color: #3B6D11; }
+  .ji-k { color: #854F0B; }
+
+  .tabbar {
+    display: flex;
+    border-top: 0.5px solid var(--color-border-tertiary);
+    padding: 8px 0 4px;
+  }
+  .tb-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 3px; cursor: pointer;
+    padding: 4px 0;
+  }
+  .tb-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+  .tb-icon svg { width: 18px; height: 18px; }
+  .tb-label { font-size: 10px; color: var(--color-text-tertiary); }
+  .tb-label.active { color: var(--color-text-primary); }
+
+  /* Setting tab */
+  .setting-scroll { flex: 1; overflow: hidden; }
+
+  .widget-preview-area {
+    padding: 14px 20px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .size-toggle { display: flex; gap: 6px; margin-bottom: 12px; }
+  .size-btn {
+    font-size: 10px; padding: 3px 10px; border-radius: 5px;
+    border: 0.5px solid var(--color-border-tertiary);
+    color: var(--color-text-tertiary); cursor: pointer;
+    transition: all 0.12s; user-select: none;
+  }
+  .size-btn.on { border-color: var(--color-border-primary); color: var(--color-text-primary); }
+
+  .widget-preview {
+    background: var(--color-background-secondary);
+    border-radius: 16px;
+    border: 0.5px solid var(--color-border-tertiary);
+    padding: 14px;
+    transition: all 0.2s;
+  }
+
+  .wp-date { font-size: 9px; color: var(--color-text-tertiary); letter-spacing: 0.05em; margin-bottom: 10px; }
+  .wp-quote {
+    font-family: var(--font-serif);
+    font-size: 11px; line-height: 1.75;
+    color: var(--color-text-primary);
+    margin-bottom: 6px;
+  }
+  .wp-author { font-size: 9px; color: var(--color-text-tertiary); text-align: right; margin-bottom: 8px; }
+  .wp-rule { height: 0.5px; background: var(--color-border-tertiary); margin-bottom: 7px; }
+  .wp-alm-row { display: flex; gap: 5px; margin-bottom: 4px; font-size: 9px; }
+  .wp-alm-key { font-weight: 500; }
+  .wp-alm-val { color: var(--color-text-secondary); }
+  .wp-moods { display: flex; gap: 3px; margin-top: 8px; }
+  .wp-mood-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-primary);
+  }
+
+  .s-section { border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .s-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 20px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    cursor: pointer;
+  }
+  .s-row:last-child { border-bottom: none; }
+  .s-label { font-size: 13px; color: var(--color-text-primary); }
+  .s-value { font-size: 12px; color: var(--color-text-tertiary); }
+  .s-arrow { font-size: 12px; color: var(--color-text-tertiary); margin-left: 6px; }
+  .s-section-label {
+    font-size: 10px; color: var(--color-text-tertiary);
+    padding: 10px 20px 4px;
+    letter-spacing: 0.04em;
+  }
+
+  .color-swatches { display: flex; gap: 5px; }
+  .swatch { width: 14px; height: 14px; border-radius: 50%; cursor: pointer; }
+  .swatch.selected { outline: 2px solid var(--color-border-primary); outline-offset: 1px; }
+
+  .toggle {
+    width: 30px; height: 17px;
+    border-radius: 9px;
+    background: var(--color-border-secondary);
+    position: relative; cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: #3B6D11; }
+  .toggle-thumb {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--color-background-primary);
+    position: absolute; top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+  .toggle.on .toggle-thumb { left: 15px; }
+
+  .phone-label {
+    font-size: 11px; color: var(--color-text-tertiary);
+    text-align: center; margin-bottom: 10px; letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+
+  <!-- PHONE 1: History -->
+  <div>
+    <div class="phone-label">History</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="nav-title">历史</div>
+          <div class="nav-sub">记录你的每一天</div>
+        </div>
+
+        <div class="content">
+          <div class="cal-month-row">
+            <span class="cal-nav">‹</span>
+            <span class="cal-month">2026年 3月</span>
+            <span class="cal-nav">›</span>
+          </div>
+          <div class="cal-dow">
+            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+
+          <div class="detail-card">
+            <div class="detail-date">3月 18日 · 星期二</div>
+            <div class="detail-quote">此情可待成追忆，只是当时已惘然。</div>
+            <div class="detail-author">— 李商隐《锦瑟》</div>
+            <div class="detail-rule"></div>
+            <div class="detail-alm">
+              <span class="alm-k yi-k">宜</span>在自然光下读几页纸质书<br>
+              <span class="alm-k ji-k">忌</span>把休息当成需要被证明的东西
+            </div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tb-item">
+            <div class="tb-icon">
+              <svg viewBox="0 0 18 18" fill="none">
+                <rect x="2" y="2" width="14" height="14" rx="3" stroke="var(--color-text-primary)" stroke-width="1"/>
+                <line x1="2" y1="6" x2="16" y2="6" stroke="var(--color-text-primary)" stroke-width="1"/>
+                <line x1="6" y1="2" x2="6" y2="6" stroke="var(--color-text-primary)" stroke-width="1"/>
+                <line x1="12" y1="2" x2="12" y2="6" stroke="var(--color-text-primary)" stroke-width="1"/>
+              </svg>
+            </div>
+            <span class="tb-label active">历史</span>
+          </div>
+          <div class="tb-item">
+            <div class="tb-icon">
+              <svg viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="7" stroke="var(--color-text-tertiary)" stroke-width="1"/>
+                <line x1="9" y1="5" x2="9" y2="9" stroke="var(--color-text-tertiary)" stroke-width="1" stroke-linecap="round"/>
+                <line x1="9" y1="9" x2="12" y2="12" stroke="var(--color-text-tertiary)" stroke-width="1" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tb-label">设置</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHONE 2: Setting -->
+  <div>
+    <div class="phone-label">Setting</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="nav-title">设置</div>
+        </div>
+
+        <div class="setting-scroll">
+          <div class="widget-preview-area">
+            <div class="size-toggle">
+              <div class="size-btn on" onclick="setSize(this,'lg')">4 × 4</div>
+              <div class="size-btn" onclick="setSize(this,'sm')">4 × 2</div>
+              <div class="size-btn" onclick="setSize(this,'xs')">2 × 2</div>
+            </div>
+            <div class="widget-preview" id="widgetPreview">
+              <div class="wp-date">2026 · 3月30日 · 星期一</div>
+              <div class="wp-quote">此情可待成追忆，只是当时已惘然。</div>
+              <div class="wp-author">— 李商隐《锦瑟》</div>
+              <div class="wp-rule"></div>
+              <div class="wp-alm-row">
+                <span class="wp-alm-key yi-k">宜</span>
+                <span class="wp-alm-val">在自然光下读几页纸质书</span>
+              </div>
+              <div class="wp-alm-row">
+                <span class="wp-alm-key ji-k">忌</span>
+                <span class="wp-alm-val">把休息当成需要被证明的东西</span>
+              </div>
+              <div class="wp-moods" id="wpMoods">
+                <div class="wp-mood-dot"></div>
+                <div class="wp-mood-dot"></div>
+                <div class="wp-mood-dot"></div>
+                <div class="wp-mood-dot"></div>
+                <div class="wp-mood-dot"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="s-section-label">外观</div>
+          <div class="s-section">
+            <div class="s-row">
+              <span class="s-label">主题色</span>
+              <div class="color-swatches">
+                <div class="swatch selected" style="background:#2C2C2A" onclick="selectSwatch(this)"></div>
+                <div class="swatch" style="background:#534AB7" onclick="selectSwatch(this)"></div>
+                <div class="swatch" style="background:#0F6E56" onclick="selectSwatch(this)"></div>
+                <div class="swatch" style="background:#993C1D" onclick="selectSwatch(this)"></div>
+                <div class="swatch" style="background:#993556" onclick="selectSwatch(this)"></div>
+              </div>
+            </div>
+            <div class="s-row">
+              <span class="s-label">字体</span>
+              <span class="s-value">衬线体 <span class="s-arrow">›</span></span>
+            </div>
+          </div>
+
+          <div class="s-section-label">语料偏好</div>
+          <div class="s-section">
+            <div class="s-row">
+              <span class="s-label">文学类型</span>
+              <span class="s-value">全部 <span class="s-arrow">›</span></span>
+            </div>
+            <div class="s-row">
+              <span class="s-label">语言</span>
+              <span class="s-value">中文 + 英文 <span class="s-arrow">›</span></span>
+            </div>
+          </div>
+
+          <div class="s-section-label">纪念日</div>
+          <div class="s-section">
+            <div class="s-row">
+              <span class="s-label">节假日 · 生日 · 自定义</span>
+              <span class="s-value">4个 <span class="s-arrow">›</span></span>
+            </div>
+          </div>
+
+          <div class="s-section-label">健康</div>
+          <div class="s-section">
+            <div class="s-row">
+              <span class="s-label">接入 Apple Health</span>
+              <div class="toggle on" onclick="this.classList.toggle('on')">
+                <div class="toggle-thumb"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tb-item">
+            <div class="tb-icon">
+              <svg viewBox="0 0 18 18" fill="none">
+                <rect x="2" y="2" width="14" height="14" rx="3" stroke="var(--color-text-tertiary)" stroke-width="1"/>
+                <line x1="2" y1="6" x2="16" y2="6" stroke="var(--color-text-tertiary)" stroke-width="1"/>
+                <line x1="6" y1="2" x2="6" y2="6" stroke="var(--color-text-tertiary)" stroke-width="1"/>
+                <line x1="12" y1="2" x2="12" y2="6" stroke="var(--color-text-tertiary)" stroke-width="1"/>
+              </svg>
+            </div>
+            <span class="tb-label">历史</span>
+          </div>
+          <div class="tb-item">
+            <div class="tb-icon">
+              <svg viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="7" stroke="var(--color-text-primary)" stroke-width="1"/>
+                <line x1="9" y1="5" x2="9" y2="9" stroke="var(--color-text-primary)" stroke-width="1" stroke-linecap="round"/>
+                <line x1="9" y1="9" x2="12" y2="12" stroke="var(--color-text-primary)" stroke-width="1" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tb-label active">设置</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const moodColors = {
+  calm:'#9F8FD4', happy:'#EFA827', sad:'#6DBFA0', anxious:'#D4537E', angry:'#E24B4A'
+};
+const moodData = {
+  1:'calm',2:'happy',3:'sad',5:'calm',6:'anxious',8:'sad',9:'sad',10:'calm',
+  11:'happy',13:'calm',14:'sad',15:'happy',17:'calm',18:'sad',20:'happy',
+  21:'calm',22:'anxious',24:'sad',25:'happy',26:'calm',28:'happy',29:'sad',30:'calm'
+};
+
+function buildCalendar() {
+  const grid = document.getElementById('calGrid');
+  let html = '';
+  for (let i = 0; i < 0; i++) {
+    html += `<div class="cal-cell"><span class="cal-num dim">${28+i+1}</span></div>`;
+  }
+  for (let d = 1; d <= 31; d++) {
+    const mood = moodData[d];
+    const color = mood ? moodColors[mood] : 'transparent';
+    const isToday = d === 30;
+    const isSelected = d === 18;
+    html += `<div class="cal-cell${isToday?' today':''}${isSelected?' selected':''}" onclick="selectDay(this)">
+      <span class="cal-num${isToday?' today-num':''}">${d}</span>
+      <div class="mi" style="background:${color}"></div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function selectDay(el) {
+  document.querySelectorAll('.cal-cell').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function setSize(btn, size) {
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const p = document.getElementById('widgetPreview');
+  const moods = document.getElementById('wpMoods');
+  const rule = p.querySelector('.wp-rule');
+  const alms = p.querySelectorAll('.wp-alm-row');
+  const author = p.querySelector('.wp-author');
+  if (size === 'lg') {
+    rule.style.display = ''; alms[0].style.display = 'flex'; alms[1].style.display = 'flex';
+    moods.style.display = 'flex'; author.style.display = '';
+  } else if (size === 'sm') {
+    rule.style.display = ''; alms[0].style.display = 'flex'; alms[1].style.display = 'none';
+    moods.style.display = 'none'; author.style.display = '';
+  } else {
+    rule.style.display = 'none'; alms[0].style.display = 'none'; alms[1].style.display = 'none';
+    moods.style.display = 'none'; author.style.display = 'none';
+  }
+}
+
+function selectSwatch(el) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+buildCalendar();
+</script>
+</body>
+</html>
