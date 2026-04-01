@@ -187,7 +187,29 @@ create trigger anniversaries_updated_at
   for each row execute function update_updated_at();
 
 -- ============================================================
--- 6. Row Level Security
+-- 6. 用户资料（用户名/头像）
+-- ============================================================
+
+create table user_profiles (
+  user_id       uuid primary key references auth.users(id) on delete cascade,
+
+  -- 展示信息
+  display_name  text not null default '',
+
+  -- Avatar 不直接存图片，先存一个可复现的样式（便于跨端渲染）
+  avatar_seed   int not null default 0,
+  avatar_emoji  text,
+
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create trigger profiles_updated_at
+  before update on user_profiles
+  for each row execute function update_updated_at();
+
+-- ============================================================
+-- 7. Row Level Security
 -- ============================================================
 
 alter table quotes             enable row level security;
@@ -195,6 +217,7 @@ alter table extraction_batches enable row level security;
 alter table almanac_entries    enable row level security;
 alter table user_daily_logs    enable row level security;
 alter table anniversaries      enable row level security;
+alter table user_profiles      enable row level security;
 
 -- quotes: 公开只读
 create policy "quotes_public_read"
@@ -230,8 +253,13 @@ create policy "anniversaries_own"
   on anniversaries for all
   using (user_id = auth.uid());
 
+-- user_profiles: 用户只能访问自己的资料
+create policy "profiles_own"
+  on user_profiles for all
+  using (user_id = auth.uid());
+
 -- ============================================================
--- 7. 便捷视图
+-- 8. 便捷视图
 -- ============================================================
 
 -- 按心情随机取一条

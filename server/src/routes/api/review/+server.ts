@@ -5,6 +5,7 @@ import {
   deleteCandidateById,
   getBookById,
   getCandidateById,
+  insertReviewLog,
   markCandidatesCommitted,
   updateCandidateReviewStatus
 } from '$lib/server/db';
@@ -34,7 +35,10 @@ export async function PATCH({ request }) {
     return json({ error: '未找到候选。' }, { status: 404 });
   }
 
+  const book = getBookById(db, candidate.bookId);
+
   if (status === 'rejected') {
+    insertReviewLog(db, candidate, 'rejected', book?.meta.title ?? null);
     updateCandidateReviewStatus(db, candidateId, 'rejected');
     deleteCandidateById(db, candidateId);
 
@@ -43,8 +47,6 @@ export async function PATCH({ request }) {
       action: 'rejected'
     });
   }
-
-  const book = getBookById(db, candidate.bookId);
   if (!book) {
     return json({ error: '未找到候选所属书目。' }, { status: 404 });
   }
@@ -81,6 +83,7 @@ export async function PATCH({ request }) {
       sourceLang: book.meta.language
     });
 
+    insertReviewLog(db, candidate, 'accepted', book.meta.title);
     markCandidatesCommitted(db, [candidateId]);
 
     return json({

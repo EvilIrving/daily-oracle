@@ -82,6 +82,29 @@ export function initializeDbSchema(db: Database.Database) {
     create unique index if not exists idx_quote_candidates_unique
       on quote_candidates (book_id, normalized_text);
 
+    create table if not exists review_log (
+      id text primary key,
+      candidate_id text not null,
+      book_id text not null,
+      book_title text,
+      run_id text,
+      text text not null,
+      lang text,
+      author text,
+      work text,
+      year integer,
+      genre text,
+      moods_json text,
+      themes_json text,
+      chunk_index integer,
+      decision text not null,
+      decided_at text not null,
+      created_at text not null
+    );
+
+    create index if not exists idx_review_log_book_id
+      on review_log (book_id);
+
     create table if not exists app_config (
       key text primary key,
       value text not null
@@ -459,6 +482,89 @@ export function resetInterruptedRuns(db: Database.Database) {
     set status = 'stopped', active_workers = 0, last_error = '页面刷新或服务重启后，未完成任务已停止。'
     where status in ('queued', 'running')
   `).run();
+}
+
+export function insertReviewLog(
+  db: Database.Database,
+  candidate: QuoteCandidateRecord,
+  decision: 'accepted' | 'rejected',
+  bookTitle: string | null
+) {
+  db.prepare(`
+    insert into review_log (
+      id, candidate_id, book_id, book_title, run_id, text, lang, author, work, year, genre,
+      moods_json, themes_json, chunk_index, decision, decided_at, created_at
+    ) values (
+      @id, @candidateId, @bookId, @bookTitle, @runId, @text, @lang, @author, @work, @year, @genre,
+      @moodsJson, @themesJson, @chunkIndex, @decision, @decidedAt, @createdAt
+    )
+  `).run({
+    id: crypto.randomUUID(),
+    candidateId: candidate.id,
+    bookId: candidate.bookId,
+    bookTitle,
+    runId: candidate.runId,
+    text: candidate.text,
+    lang: candidate.lang,
+    author: candidate.author,
+    work: candidate.work,
+    year: candidate.year,
+    genre: candidate.genre,
+    moodsJson: JSON.stringify(candidate.moods),
+    themesJson: JSON.stringify(candidate.themes),
+    chunkIndex: candidate.chunkIndex,
+    decision,
+    decidedAt: new Date().toISOString(),
+    createdAt: candidate.createdAt
+  });
+}
+
+export function listReviewLogBooks(db: Database.Database) {
+  return db.prepare(`
+    select
+      book_id,
+      book_title,
+      count(*) as total,
+      sum(case when decision = 'accepted' then 1 else 0 end) as accepted,
+      sum(case when decision = 'rejected' then 1 else 0 end) as rejected,
+      max(decided_at) as last_decided_at
+    from review_log
+    group by book_id
+    order by last_decided_at desc
+  `).all() as Array<{
+    book_id: string;
+    book_title: string | null;
+    total: number;
+    accepted: number;
+    rejected: number;
+    last_decided_at: string;
+  }>;
+}
+
+export function getReviewLogByBookId(db: Database.Database, bookId: string) {
+  return db.prepare(`
+    select * from review_log
+    where book_id = ?
+    order by decided_at desc
+  `).all(bookId) as Array<{
+    id: string;
+    candidate_id: string;
+    book_id: string;
+    book_title: string | null;
+    run_id: string | null;
+    text: string;
+    lang: string | null;
+    author: string | null;
+    work: string | null;
+    year: number | null;
+    genre: string | null;
+    moods_json: string | null;
+    themes_json: string | null;
+    chunk_index: number | null;
+    decision: string;
+    decided_at: string;
+    created_at: string;
+  }>;
 }
 
 function mapCandidateRow(row: any): QuoteCandidateRecord {

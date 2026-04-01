@@ -2,7 +2,7 @@
 
 ## 总览
 
-系统分三层：**Local 工作台**负责语料生产（书籍解析、AI 提取、人工审核）；**Supabase 业务层**提供数据持久化、业务逻辑和天气查询；**iOS App**纯展示 + 用户交互，仅传坐标，不直接调用天气 API。
+系统分三层：**Local 工作台**负责语料生产（书籍解析、AI 提取、人工审核）；**Supabase 业务层**提供数据持久化、业务逻辑和天气查询；**iOS App**纯展示 + 用户交互，仅传坐标，不直接调用天气 API。App 需要用户体系用于同步个人历史/状态：使用 Supabase Auth（Email+Password），并通过 RLS 按 `auth.uid()` 隔离用户数据。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -33,7 +33,7 @@
 │                    └─────────────────────────┘                       │
 │                              ▲ pg_cron 每日触发                      │
 └─────────────────────────────┬───────────────────────────────────────┘
-                              │ anon key 只读
+                              │ anon key + 用户 token（RLS）
                               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    Layer 3: iOS App 展示层                           │
@@ -294,13 +294,13 @@ MAX_TOKENS=4096
 
 ### 用户身份
 
-使用 **Supabase Anonymous Auth**：
+使用 **Supabase Auth（Email+Password）**：
 
-- App 启动时调用 `supabase.auth.signInAnonymously()`
-- 自动获得 `auth.uid()`，无需登录 UI
+- App 提供注册/登录 UI（邮箱 + 密码）
+- 登录后使用 access token 访问 REST 和 Edge Functions
 - 所有用户相关表用 `user_id uuid references auth.users(id)`
 - RLS 用 `auth.uid()` 限制访问
-- 将来可升级为 Apple Sign In / 邮箱账号，数据不丢失
+- 可选：首次启动可先创建 guest（anonymous）session 以便立即使用，再在“用户页”里升级为正式账号（升级策略需要在实现中明确，避免丢失 guest 数据）
 
 ### Edge Functions
 
@@ -535,8 +535,8 @@ sequenceDiagram
     participant Supa as Supabase
     participant QW as QWeather API
 
-    App->>Supa: signInAnonymously()
-    Supa-->>App: auth.uid()
+    App->>Supa: signIn / signUp (Email+Password)
+    Supa-->>App: session(access token)
     App->>CL: 请求位置
     CL-->>App: 经纬度
     App->>Supa: daily-quote(mood, lat, lon)

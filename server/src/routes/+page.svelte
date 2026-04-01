@@ -4,7 +4,7 @@
   import { notifyError, notifySuccess } from '$lib/notifications';
   import { deriveExtractionProgress, type ExtractionProgressSnapshot } from '$lib/extraction-progress';
 
-  type MainTab = 'extract' | 'library' | 'almanac';
+  type MainTab = 'extract' | 'library' | 'almanac' | 'review-log';
   type ReviewFilter = 'all' | 'pending';
   type CandidateStatus = 'pending' | 'approved' | 'rejected';
 
@@ -94,7 +94,8 @@
   const mainTabs: { id: MainTab; label: string }[] = [
     { id: 'extract', label: '提取' },
     { id: 'library', label: '名句库' },
-    { id: 'almanac', label: '宜忌' }
+    { id: 'almanac', label: '宜忌' },
+    { id: 'review-log', label: '审核日志' }
   ];
 
   const reviewFilters: { id: ReviewFilter; label: string }[] = [
@@ -163,6 +164,31 @@
   let extractNotice = $state('等待导入 txt 文件');
 
   let almanacHistory = $state<AlmanacEntry[]>([]);
+
+  type ReviewLogBook = {
+    bookId: string;
+    bookTitle: string | null;
+    total: number;
+    accepted: number;
+    rejected: number;
+    lastDecidedAt: string;
+  };
+  let reviewLogBooks = $state<ReviewLogBook[]>([]);
+  let reviewLogLoading = $state(false);
+
+  async function refreshReviewLog() {
+    reviewLogLoading = true;
+    try {
+      const res = await fetch('/api/review-log');
+      if (res.ok) reviewLogBooks = await res.json();
+    } finally {
+      reviewLogLoading = false;
+    }
+  }
+
+  function exportReviewLog(bookId: string) {
+    window.open(`/api/review-log?bookId=${encodeURIComponent(bookId)}`, '_blank');
+  }
 
   let editDialogProvider: ProviderProfile | null = $state(null);
   let editDialogName = $state('');
@@ -1242,7 +1268,7 @@
           }
         }
 
-        await Promise.all([refreshLibrary(), refreshAlmanac()]);
+        await Promise.all([refreshLibrary(), refreshAlmanac(), refreshReviewLog()]);
       } catch {
         notifyError('初始化本地工作台失败。');
       }
@@ -1731,6 +1757,43 @@
               {:else}
                 <div class="px-4 py-12 text-center text-sm text-[#7b6b59] sm:px-5">
                   还没有宜忌记录。
+                </div>
+              {/if}
+            </div>
+          </section>
+        </div>
+      {:else if activeTab === 'review-log'}
+        <div class="px-4 py-4 sm:px-6 sm:py-5">
+          <section class="soft-panel overflow-hidden">
+            <header class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
+              <h2 class="text-[0.98rem] font-medium text-ink">审核日志</h2>
+              <button class="btn btn-ghost text-xs" onclick={() => refreshReviewLog()}>
+                刷新
+              </button>
+            </header>
+            <div>
+              {#if reviewLogLoading}
+                <div class="px-4 py-12 text-center text-sm text-[#7b6b59] sm:px-5">加载中...</div>
+              {:else if reviewLogBooks.length}
+                {#each reviewLogBooks as book}
+                  <div class="flex items-center justify-between border-b border-[#ded4c7] px-4 py-3.5 sm:px-5">
+                    <div class="min-w-0 flex-1">
+                      <div class="text-sm font-medium text-ink">{book.bookTitle || book.bookId}</div>
+                      <div class="mt-1 flex gap-3 text-xs text-[#7b6b59]">
+                        <span>共 {book.total} 条</span>
+                        <span class="text-green-700">收 {book.accepted}</span>
+                        <span class="text-red-700">弃 {book.rejected}</span>
+                        <span>采纳率 {book.total ? Math.round((book.accepted / book.total) * 100) : 0}%</span>
+                      </div>
+                    </div>
+                    <button class="btn btn-outline text-xs" onclick={() => exportReviewLog(book.bookId)}>
+                      导出 JSON
+                    </button>
+                  </div>
+                {/each}
+              {:else}
+                <div class="px-4 py-12 text-center text-sm text-[#7b6b59] sm:px-5">
+                  还没有审核记录。
                 </div>
               {/if}
             </div>
