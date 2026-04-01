@@ -1,23 +1,17 @@
-//
-//  daily_oracleApp.swift
-//  daily-oracle
-//
-//  Created by Cain on 2026/3/31.
-//
-
 import SwiftUI
 import SwiftData
 
 @main
 struct daily_oracleApp: App {
-    var sharedModelContainer: ModelContainer = {
+    private let sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            CachedDayRecord.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+
+        let configuration = makeModelConfiguration(schema: schema)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -29,4 +23,17 @@ struct daily_oracleApp: App {
         }
         .modelContainer(sharedModelContainer)
     }
+}
+
+private func makeModelConfiguration(schema: Schema) -> ModelConfiguration {
+    guard
+        let configuration = OracleConfiguration.load(),
+        let appGroupID = configuration.appGroupID,
+        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
+    else {
+        return ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    }
+
+    let storeURL = containerURL.appendingPathComponent("oracle.store")
+    return ModelConfiguration(schema: schema, url: storeURL)
 }
