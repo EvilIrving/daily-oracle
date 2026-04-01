@@ -75,26 +75,26 @@
     border: 0.5px solid var(--color-border-secondary);
     display: flex;
     flex-direction: column;
-    padding: 14px 13px;
+    padding: 6px;
     overflow: hidden;
   }
 
   .w-sm  { width: 80px;  height: 80px;  }
-  .w-md  { width: 80px;  height: 170px; }
-  .w-lg  { width: 170px; height: 170px; }
+  .w-md  { width: 160px; height: 80px;  }
+  .w-lg  { width: 160px; height: 160px; }
 
   .dot {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--color-text-tertiary);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
-  .line-full  { height: 1.5px; border-radius: 1px; background: var(--color-border-secondary); margin-bottom: 5px; }
-  .line-half  { height: 1.5px; border-radius: 1px; background: var(--color-border-tertiary); margin-bottom: 5px; width: 65%; }
-  .line-third { height: 1.5px; border-radius: 1px; background: var(--color-border-tertiary); margin-bottom: 5px; width: 40%; }
+  .line-full  { height: 1.5px; border-radius: 1px; background: var(--color-border-secondary); margin-bottom: 4px; }
+  .line-half  { height: 1.5px; border-radius: 1px; background: var(--color-border-tertiary); margin-bottom: 4px; width: 70%; }
+  .line-third { height: 1.5px; border-radius: 1px; background: var(--color-border-tertiary); margin-bottom: 4px; width: 45%; }
   .spacer     { flex: 1; }
-  .line-xs    { height: 1px; background: var(--color-border-tertiary); margin-bottom: 4px; }
-  .rule       { height: 0.5px; background: var(--color-border-tertiary); margin: 6px 0; }
+  .line-xs    { height: 1px; background: var(--color-border-tertiary); margin-bottom: 3px; }
+  .rule       { height: 0.5px; background: var(--color-border-tertiary); margin: 4px 0; }
 
   .spec {
     background: var(--color-background-secondary);
@@ -133,47 +133,56 @@
   <div class="section row">
     <div class="col">
       <div class="w w-sm">
-        <div class="dot">今日</div>
         <div class="line-full"></div>
         <div class="line-half"></div>
+        <div class="line-full"></div>
         <div class="spacer"></div>
-        <div class="line-third"></div>
       </div>
       <div class="label">小 · 2×2</div>
     </div>
     <div class="spec">
       <div class="spec-title">小组件</div>
-      只显示名句本身，不显示出处和宜忌。字号最大，留白最多。适合放在主屏最显眼位置，一眼扫过去就够。
+      只显示名句本身，不显示出处、日期和宜忌。正方形，最精简。
       <br><br>
       <span class="tag">名句全文</span>
       <span class="tag">无出处</span>
+      <span class="tag">无日期</span>
       <span class="tag">无宜忌</span>
+      <span class="tag">无心情</span>
     </div>
   </div>
 
   <!-- 长条 4×2 -->
   <div class="section row">
     <div class="col">
-      <div class="w w-md">
-        <div class="dot">今日</div>
-        <div class="line-full"></div>
-        <div class="line-half"></div>
-        <div class="line-full"></div>
-        <div class="line-third"></div>
-        <div class="spacer"></div>
-        <div class="rule"></div>
-        <div class="line-half"></div>
-        <div class="line-full"></div>
+      <div class="w w-md" style="flex-direction:row;align-items:center;gap:5px;padding:8px;">
+        <div style="flex:1;display:flex;flex-direction:column;gap:3px;">
+          <div class="line-full"></div>
+          <div class="line-half"></div>
+          <div class="line-full"></div>
+        </div>
+        <div style="width:1px;align-self:stretch;background:var(--color-border-tertiary);"></div>
+        <div style="width:40px;display:flex;flex-direction:column;gap:5px;">
+          <div style="display:flex;align-items:center;gap:3px;">
+            <div style="width:10px;height:5px;border-radius:2px;background:#3B6D11;flex-shrink:0;"></div>
+            <div style="flex:1;"><div class="line-xs"></div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:3px;">
+            <div style="width:10px;height:5px;border-radius:2px;background:#854F0B;flex-shrink:0;"></div>
+            <div style="flex:1;"><div class="line-xs"></div></div>
+          </div>
+        </div>
       </div>
       <div class="label">长条 · 4×2</div>
     </div>
     <div class="spec">
       <div class="spec-title">长条组件</div>
-      名句 + 出处，下方加宜忌一条（只显示「宜」或「忌」其中一条，交替出现）。竖向空间够用，横向克制。
+      名句 + 宜忌各一条，横向排列，无作者、无心情。
       <br><br>
       <span class="tag">名句全文</span>
-      <span class="tag">作者 · 作品</span>
-      <span class="tag">宜或忌 · 一条</span>
+      <span class="tag">宜 + 忌 各一条</span>
+      <span class="tag">无作者</span>
+      <span class="tag">无心情</span>
     </div>
   </div>
 
@@ -181,42 +190,40 @@
   <div class="section row">
     <div class="col">
       <div class="w w-lg">
-        <div class="dot">3月30日 · 星期一</div>
-        <div style="height:6px"></div>
+        <div class="dot">3月18日</div>
         <div class="line-full"></div>
         <div class="line-half"></div>
         <div class="line-full"></div>
         <div class="line-third"></div>
         <div class="spacer"></div>
         <div class="rule"></div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;">
-          <div style="width:16px;height:8px;border-radius:2px;background:var(--color-border-secondary);flex-shrink:0;margin-top:2px;"></div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;">
+          <div style="width:12px;height:6px;border-radius:2px;background:#3B6D11;flex-shrink:0;"></div>
           <div style="flex:1;"><div class="line-xs"></div><div class="line-xs" style="width:80%"></div></div>
         </div>
-        <div style="display:flex;gap:6px;">
-          <div style="width:16px;height:8px;border-radius:2px;background:var(--color-border-tertiary);flex-shrink:0;margin-top:2px;"></div>
+        <div style="display:flex;gap:5px;margin-bottom:6px;">
+          <div style="width:12px;height:6px;border-radius:2px;background:#854F0B;flex-shrink:0;"></div>
           <div style="flex:1;"><div class="line-xs"></div><div class="line-xs" style="width:60%"></div></div>
         </div>
-        <div style="height:8px;"></div>
-        <div style="display:flex;gap:4px;">
-          <div style="flex:1;height:16px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
-          <div style="flex:1;height:16px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
-          <div style="flex:1;height:16px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
-          <div style="flex:1;height:16px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
-          <div style="flex:1;height:16px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
+        <div style="display:flex;gap:3px;">
+          <div style="flex:1;height:14px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
+          <div style="flex:1;height:14px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
+          <div style="flex:1;height:14px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
+          <div style="flex:1;height:14px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
+          <div style="flex:1;height:14px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);"></div>
         </div>
       </div>
       <div class="label">大 · 4×4</div>
     </div>
     <div class="spec">
       <div class="spec-title">大组件</div>
-      完整版：名句、出处、宜忌两条全显示，底部有心情选择条（五个小格子），可直接在桌面交互选心情触发刷新。
+      完整版：日期、名句、作者、宜忌两条全显示，底部有心情选择条（五个小圆点）。
       <br><br>
+      <span class="tag">日期</span>
       <span class="tag">名句全文</span>
-      <span class="tag">作者 · 作品</span>
+      <span class="tag">作者</span>
       <span class="tag">宜 + 忌 各一条</span>
       <span class="tag">心情选择</span>
-      <span class="tag">日期</span>
     </div>
   </div>
 

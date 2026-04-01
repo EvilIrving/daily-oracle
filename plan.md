@@ -18,18 +18,12 @@ Based on `docs/architecture.md` and `docs/product_roadmap.svg`.
 
 ### 0.2 主界面
 
-- [ ] 每日名句展示视图（名句全文 + 出处 + mood 标签）
-- [ ] 心情选择条（8 种：calm, happy, sad, anxious, angry, resilient, romantic, philosophical）
-- [ ] 选择心情后触发换句
-- [ ] 宜忌卡片（宜/忌各一条）
-- [ ] 天气占位展示（Mock 数据，后续由 Edge Function 返回）
-- [ ] 日期显示
+@app_two_tab_prototype.html
 
 ### 0.3 Widget 三尺寸
 
-- [ ] 小 2x2：仅名句全文
-- [ ] 长条 2x4：名句 + 出处 + 宜或忌一条（交替）
-- [ ] 大 4x4：名句 + 出处 + 宜忌各一条 + 心情选择条（8 格）
+@widget_sizes_spec.html
+
 - [ ] TimelineProvider 骨架（Mock entry，次日 05:00 刷新策略）
 - [ ] App Group UserDefaults 读写（todayQuote / todayAlmanac / lastFetchDate / userMood）
 
@@ -38,12 +32,7 @@ Based on `docs/architecture.md` and `docs/product_roadmap.svg`.
 - [ ] 按月展示，每天显示当日 mood 图标
 - [ ] 点击某天展开：名句 + 心情 + 宜忌
 - [ ] 从 SwiftData 读取 DailyLog
-
-### 0.5 主题切换
-
-- [ ] 至少 2 套主题（浅色 / 深色 or 自定义配色）
-- [ ] 主题偏好持久化到 UserDefaults
-
+ 
 ---
 
 ## Phase 1: Supabase 业务层部署
