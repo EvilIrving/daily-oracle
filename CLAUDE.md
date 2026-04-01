@@ -65,15 +65,21 @@ Every time something breaks -> you add a guardrail
 ## iOS 开发约束
 
 - iOS App 目录为 `daily-oracle/`，使用 SwiftUI + SwiftData + WidgetKit。
-- Deployment Target: iOS 17.0。
+- 项目架构直接支持 `iOS + iPadOS` 两个平台，无须支持 `macOS`。
+- Deployment Target: iOS 17.6。
+- 最低系统版本要求统一为 `iOS 17.6`；不要引入高于该版本才可用的 API，除非先同步调整项目最低版本和相关文档。
+- `iPadOS` 与 `iOS` 共用同一个 App 架构与业务层；优先通过通用 SwiftUI 布局和尺寸适配支持 iPad，不为 iPad 额外拆分独立业务实现。
 - 测试框架使用 Swift Testing（`import Testing`），不使用 XCTest。
 - 本地存储使用 SwiftData；SwiftData store URL 指向 App Group container 以实现主 App 与 Widget 数据共享。
 - 轻量级标志位（如 `lastFetchDate`）可使用 App Group UserDefaults，业务数据统一走 SwiftData。
 - Widget 只能使用 SwiftUI，不可引入 UIKit。
-- 一期不接后端，使用 mock 数据开发；后续接入 Supabase Swift SDK 和 QWeatherSDK。
+- Widget 能力只要求覆盖 `iOS/iPadOS`；不要新增 `macOS` Widget、Catalyst Widget 或超出当前平台边界的扩展实现。
+- iOS 主线直接接真实 Supabase 数据与 Edge Functions，不再以 mock 数据作为默认前提。
+- App 不直接调用天气 API；只上传坐标，天气查询必须在 Edge Function 内通过 QWeather 完成。
 
 ## macOS 开发约束
 
+- 当前项目无须支持 `macOS`；不要新增 `macOS` target、Catalyst 适配或仅 `macOS` 生效的实现。
 - 开发过程中避免使用 `xcode build` 作为频繁验证手段。
 - 仅在开发完成、需要最终打包或做收尾验证时再执行 `xcode build`。
 - 涉及 Widget、App Group、天气服务或本地存储共享时，要同时检查主 App 和 Widget 扩展的数据契约。
@@ -105,3 +111,5 @@ Every time something breaks -> you add a guardrail
 - 不要把未校验的 AI `moods` 标签直接写入 SQLite 或 Supabase；必须先按 `docs/schema.sql` 的 `quote_mood` 枚举过滤，非法值直接丢弃，并在人工审核提交失败时打印服务端错误日志。
 - 不要把未核实的句子、出处、作者、时间、数量或业务数据当成事实输出；拿不准就明确说不确定，先核对代码、文档或用户提供的原文，再回答。
 - 不要在人工点击 `收` 时跳过原始正文校验；候选句必须先按归一化文本在该书正文中命中，未命中就直接报错拦截，不能把 AI 编造或改写过度的句子写入 Supabase。
+- 不要在 `iOS 17.6` 主线中直接引入仅 `iOS 18+` 可用的 WidgetKit、AppIntents 或 Control Widget API；新增相关能力前必须先核对最低版本兼容性。
+- 不要保留 Xcode 新建 target 自带但当前项目未使用的示例代码或模板文件，尤其是 Widget / AppIntents / Live Activity 模板；接入后先清理无关样板，避免把高版本 API 或无效 target 配置混入主线。

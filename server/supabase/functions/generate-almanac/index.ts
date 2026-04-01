@@ -27,7 +27,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { weather, temperature, moodHistory, anniversaries } = await req.json()
+    const { lat, lon } = await req.json()
+    const latitude = parseCoordinate(lat, 'lat')
+    const longitude = parseCoordinate(lon, 'lon')
 
     // Fetch user's recent mood history (last 7 days)
     const { data: recentLogs } = await supabase
@@ -43,12 +45,15 @@ Deno.serve(async (req: Request) => {
       .select('name, date')
       .eq('user_id', user.id)
 
+    // Fetch weather on the server side so the app only passes coordinates.
+    const weather = await fetchCurrentWeather(latitude, longitude)
+
     // Build prompt for LLM
     const today = new Date().toISOString().split('T')[0]
     const prompt = buildAlmanacPrompt({
       date: today,
-      weather,
-      temperature,
+      weather: weather.text,
+      temperature: weather.temp,
       moodHistory: recentLogs || [],
       anniversaries: userAnniversaries || [],
     })
@@ -85,8 +90,14 @@ Deno.serve(async (req: Request) => {
         yi,
         ji,
         signals: {
-          weather,
-          temperature,
+          weather: weather.text,
+          temperature: weather.temp,
+          weather_icon: weather.icon,
+          weather_raw: weather.raw,
+          location: {
+            lat: latitude,
+            lon: longitude,
+          },
           mood_count: recentLogs?.length || 0,
           anniversary_count: userAnniversaries?.length || 0,
         },
@@ -112,12 +123,12 @@ Deno.serve(async (req: Request) => {
       throw saveError
     }
 
-    return new Response(JSON.stringify({ almanac: entry }), {
+    return new Response(JSON.stringify({ almanac: entry, weather }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('generate-almanac error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: getErrorMessage(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -180,4 +191,138 @@ function parseYiJi(content: string): { yi?: string; ji?: string } {
     yi: yiMatch?.[1]?.trim(),
     ji: jiMatch?.[1]?.trim(),
   }
+}
+
+function parseCoordinate(value: unknown, field: 'lat' | 'lon'): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Missing or invalid ${field}`)
+  }
+
+  if (field === 'lat' && (parsed < -90 || parsed > 90)) {
+    throw new Error('lat must be between -90 and 90')
+  }
+
+  if (field === 'lon' && (parsed < -180 || parsed > 180)) {
+    throw new Error('lon must be between -180 and 180')
+  }
+
+  return parsed
+}
+
+type CurrentWeather = {
+  text: string
+  temp: string
+  icon: string
+  raw: Record<string, unknown>
+}
+
+async function fetchCurrentWeather(lat: number, lon: number): Promise<CurrentWeather> {
+  const apiHost = Deno.env.get('QWEATHER_API_HOST')
+  const projectId = Deno.env.get('QWEATHER_PROJECT_ID')
+  const keyId = Deno.env.get('QWEATHER_KEY_ID')
+  const privateKey = Deno.env.get('QWEATHER_PRIVATE_KEY')
+
+  if (!apiHost || !projectId || !keyId || !privateKey) {
+    throw new Error('Missing QWeather configuration')
+  }
+
+  const jwt = await signQWeatherJWT({
+    projectId,
+    keyId,
+    privateKeyPem: privateKey,
+  })
+
+  const weatherRes = await fetch(
+    `https://${apiHost}/v7/weather/now?location=${lon},${lat}`,
+    {
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+      },
+    },
+  )
+
+  if (!weatherRes.ok) {
+    const errorText = await weatherRes.text()
+    throw new Error(`QWeather request failed: ${weatherRes.status} ${errorText}`)
+  }
+
+  const weatherJson = await weatherRes.json()
+  const now = weatherJson?.now
+
+  if (!now?.text || !now?.temp || !now?.icon) {
+    throw new Error('QWeather response missing required fields')
+  }
+
+  return {
+    text: String(now.text),
+    temp: String(now.temp),
+    icon: String(now.icon),
+    raw: weatherJson,
+  }
+}
+
+async function signQWeatherJWT(config: {
+  projectId: string
+  keyId: string
+  privateKeyPem: string
+}): Promise<string> {
+  const encoder = new TextEncoder()
+  const iat = Math.floor(Date.now() / 1000) - 30
+  const exp = iat + 900
+
+  const header = {
+    alg: 'EdDSA',
+    kid: config.keyId,
+  }
+
+  const payload = {
+    sub: config.projectId,
+    iat,
+    exp,
+  }
+
+  const encodedHeader = base64UrlEncode(encoder.encode(JSON.stringify(header)))
+  const encodedPayload = base64UrlEncode(encoder.encode(JSON.stringify(payload)))
+  const signingInput = `${encodedHeader}.${encodedPayload}`
+
+  const cryptoKey = await importPKCS8Ed25519Key(config.privateKeyPem)
+  const signature = await crypto.subtle.sign(
+    'Ed25519',
+    cryptoKey,
+    encoder.encode(signingInput),
+  )
+
+  return `${signingInput}.${base64UrlEncode(new Uint8Array(signature))}`
+}
+
+async function importPKCS8Ed25519Key(privateKeyPem: string): Promise<CryptoKey> {
+  const pemBody = privateKeyPem
+    .replace('-----BEGIN PRIVATE KEY-----', '')
+    .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\s+/g, '')
+
+  const binary = Uint8Array.from(atob(pemBody), char => char.charCodeAt(0))
+
+  return crypto.subtle.importKey(
+    'pkcs8',
+    binary,
+    'Ed25519',
+    false,
+    ['sign'],
+  )
+}
+
+function base64UrlEncode(input: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...input))
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return String(error)
 }
