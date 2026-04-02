@@ -121,5 +121,6 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 ## 实施规则
 
 - 文档同步：更新协作规则时，同时修改 AGENTS.md 和 CLAUDE.md。
-- 事实核对：以 `docs/architecture.md`、相关代码和用户提供的原文为准。 
+- 事实核对：以 `docs/architecture.md`、相关代码和用户提供的原文为准。
+- 元数据来源：`lang`、`author`、`work`、`year`、`genre` 等字段统一来自 txt 元数据头，不由 AI 生成。
 - 环境安全：敏感密钥只放安全配置，不进入仓库；SvelteKit 服务端配置通过 `$env/dynamic/private` 访问。

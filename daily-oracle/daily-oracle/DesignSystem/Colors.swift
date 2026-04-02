@@ -1,34 +1,9 @@
 import SwiftUI
 
-// MARK: - Semantic Colors (from prototype CSS variables)
-
 extension Color {
-
-    // MARK: Background
-
-    static let backgroundPrimary = Color("backgroundPrimary")
-    static let backgroundSecondary = Color("backgroundSecondary")
-    static let backgroundTertiary = Color("backgroundTertiary")
-
-    // MARK: Text
-
-    static let textPrimary = Color("textPrimary")
-    static let textSecondary = Color("textSecondary")
-    static let textTertiary = Color("textTertiary")
-
-    // MARK: Border
-
-    static let borderPrimary = Color("borderPrimary")
-    static let borderSecondary = Color("borderSecondary")
-    static let borderTertiary = Color("borderTertiary")
-
-    // MARK: Functional (Yi / Ji)
-
     static let yi = Color(hex: 0x3B6D11)
     static let ji = Color(hex: 0x854F0B)
 }
-
-// MARK: - Mood Colors
 
 enum Mood: String, CaseIterable, Identifiable {
     case calm, happy, sad, anxious, angry, resilient, romantic, philosophical
@@ -61,8 +36,6 @@ enum Mood: String, CaseIterable, Identifiable {
         }
     }
 }
-
-// MARK: - Hex Initializer
 
 extension Color {
     init(hex: UInt, opacity: Double = 1.0) {

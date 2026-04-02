@@ -51,7 +51,7 @@ Every time something breaks -> you add a guardrail
 1. 先读 `docs/architecture.md`，确认目标和边界。
 2. 改动完成后，同步更新受影响的架构文档、schema 文档和本文件。
 
-## 开发约束
+## 工作台开发约束
 
 - pnpm 管理 JS 依赖
 - SvelteKit + TailwindCSS v3（Local 工作台）
@@ -60,7 +60,7 @@ Every time something breaks -> you add a guardrail
 ## Apple App 开发约束
 
 - App 目录为 `daily-oracle/`，SwiftUI + SwiftData + WidgetKit，支持 iOS / iPadOS / macOS。
-- Deployment Target：iOS/iPadOS 17.6、macOS 14.0；引入更高版本 API 前先调整最低版本。
+- Deployment Target：iOS/iPadOS 17.6、macOS 14.0；引入更高版本 API 前需要确认。
 - 三端共用同一 App target；平台差异集中在视图层最外层用 `#if os()` 处理。
 - 测试框架使用 Swift Testing（`import Testing`）。
 - 本地存储使用 SwiftData，store URL 指向 App Group container，供主 App 与 Widget 共享。
@@ -85,7 +85,7 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 
 ### Phase 2 — 数据层（纯本地，可离线验证）
 
-- 清理模板代码（删 Item.swift，重写 App 入口）
+- 清理模板代码（删 Item.swift，重写 App 入口）（[DONE]）
 - SwiftData Models：DailyRecord、Anniversary、UserConfig
 - App Group container 配置
 - CloudKit container 配置
@@ -102,7 +102,7 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 
 - 两 Tab 结构：历史 / 设置（对照 prototype）
 - 历史 Tab：日历 + 选中日期详情卡片（名句 + 宜忌）
-- 设置 Tab：Widget 预览 + 外观 + 语料偏好 + 纪念日入口
+- 设置 Tab：Widget 预览（fake data, no need to call Edge Function, just show to user） + 外观 + 语料偏好 + 纪念日入口
 - 心情选择交互
 
 ### Phase 5 — Widget

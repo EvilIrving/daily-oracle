@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct daily_oracleApp: App {
@@ -13,5 +14,6 @@ struct daily_oracleApp: App {
         WindowGroup {
             RootView()
         }
+        .modelContainer(OracleModelContainer.shared)
     }
 }

@@ -7,7 +7,7 @@ extension Font {
 
     static let navTitle = Font.system(size: 20, weight: .medium)
     static let calMonth = Font.system(size: 13, weight: .medium)
-    static let sectionLabel = Font.system(size: 10, weight: .regular).tracking(0.4)
+    static let sectionLabel = Font.system(size: 10, weight: .regular)
 
     static let settingLabel = Font.system(size: 13, weight: .regular)
     static let settingValue = Font.system(size: 12, weight: .regular)
@@ -18,4 +18,8 @@ extension Font {
 
     static let tabLabel = Font.system(size: 10, weight: .regular)
     static let tagLabel = Font.system(size: 11, weight: .regular)
+}
+
+enum TypographyTracking {
+    static let sectionLabel: CGFloat = 0.4
 }
