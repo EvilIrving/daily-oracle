@@ -1,6 +1,7 @@
 -- ============================================================
 -- Daily Quote App — Supabase Schema
 -- 仅存储已通过人工审核的数据
+-- 无用户体系：用户数据全部存本地 SwiftData + CloudKit
 -- ============================================================
 
 -- Extensions
@@ -103,7 +104,7 @@ create table extraction_batches (
 create index idx_batches_created on extraction_batches (created_at desc);
 
 -- ============================================================
--- 3. 宜忌记录（生成式，每日一条）
+-- 3. 宜忌记录（生成式，按日期缓存）
 -- ============================================================
 
 create table almanac_entries (
@@ -129,95 +130,12 @@ create table almanac_entries (
 create index idx_almanac_date on almanac_entries (date desc);
 
 -- ============================================================
--- 4. 用户每日记录（使用 Supabase Anonymous Auth）
--- ============================================================
-
-create table user_daily_logs (
-  id          uuid primary key default uuid_generate_v4(),
-
-  -- 关联 Supabase Auth 用户
-  user_id     uuid not null references auth.users(id) on delete cascade,
-
-  date        date not null,
-
-  -- 当天选择的心情
-  mood        quote_mood,
-
-  -- 当天看的名句
-  quote_id    uuid references quotes(id) on delete set null,
-
-  -- 当天宜忌
-  almanac_id  uuid references almanac_entries(id) on delete set null,
-
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-
-  unique (user_id, date)
-);
-
-create index idx_logs_user_date on user_daily_logs (user_id, date desc);
-
-create trigger logs_updated_at
-  before update on user_daily_logs
-  for each row execute function update_updated_at();
-
--- ============================================================
--- 5. 用户纪念日
--- ============================================================
-
-create table anniversaries (
-  id            uuid primary key default uuid_generate_v4(),
-
-  -- 关联 Supabase Auth 用户
-  user_id       uuid not null references auth.users(id) on delete cascade,
-
-  name          text not null,
-  date          date not null,
-  repeat_yearly boolean not null default true,
-  notify        boolean not null default false,
-
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
-);
-
-create index idx_anniversaries_user on anniversaries (user_id);
-
-create trigger anniversaries_updated_at
-  before update on anniversaries
-  for each row execute function update_updated_at();
-
--- ============================================================
--- 6. 用户资料（用户名/头像）
--- ============================================================
-
-create table user_profiles (
-  user_id       uuid primary key references auth.users(id) on delete cascade,
-
-  -- 展示信息
-  display_name  text not null default '',
-
-  -- Avatar 不直接存图片，先存一个可复现的样式（便于跨端渲染）
-  avatar_seed   int not null default 0,
-  avatar_emoji  text,
-
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
-);
-
-create trigger profiles_updated_at
-  before update on user_profiles
-  for each row execute function update_updated_at();
-
--- ============================================================
--- 7. Row Level Security
+-- 4. Row Level Security
 -- ============================================================
 
 alter table quotes             enable row level security;
 alter table extraction_batches enable row level security;
 alter table almanac_entries    enable row level security;
-alter table user_daily_logs    enable row level security;
-alter table anniversaries      enable row level security;
-alter table user_profiles      enable row level security;
 
 -- quotes: 公开只读
 create policy "quotes_public_read"
@@ -234,6 +152,7 @@ create policy "almanac_public_read"
   on almanac_entries for select
   using (true);
 
+-- almanac: Edge Function 可写（service_role）
 create policy "almanac_service_write"
   on almanac_entries for all
   using (auth.role() = 'service_role');
@@ -243,23 +162,8 @@ create policy "batches_service_only"
   on extraction_batches for all
   using (auth.role() = 'service_role');
 
--- user_daily_logs: 用户只能访问自己的数据
-create policy "logs_own"
-  on user_daily_logs for all
-  using (user_id = auth.uid());
-
--- anniversaries: 用户只能访问自己的数据
-create policy "anniversaries_own"
-  on anniversaries for all
-  using (user_id = auth.uid());
-
--- user_profiles: 用户只能访问自己的资料
-create policy "profiles_own"
-  on user_profiles for all
-  using (user_id = auth.uid());
-
 -- ============================================================
--- 8. 便捷视图
+-- 5. 便捷视图
 -- ============================================================
 
 -- 按心情随机取一条

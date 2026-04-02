@@ -42,7 +42,7 @@ Every time something breaks -> you add a guardrail
 
 - 名句或宜忌内容必须先经过本地人工审核，审核通过后才能写入 Supabase。
 - 待审名句的审核动作是终态：`收` 即立即写入 Supabase 并从本地待审清单移除，`弃` 即立即删除本地待审项，不保留可反复切换的中间状态。
-- App 侧使用匿名登录和 anon/publishable key，只读或按 RLS 约束访问；`service_role` 仅用于本地工作台或受控服务端。
+- App 侧使用 anon key 调用 Edge Function 和公开只读数据，无用户 token；`service_role` 仅用于本地工作台和 Edge Function。
 - txt 文件顶部元数据头的解析规则属于稳定契约，修改前必须同步检查解析器、prompt、入库字段和审核界面。
 - 涉及字段命名、状态枚举、表结构的改动，必须同时检查本地工作台、Supabase 和 iOS App 三层是否一致。
 
@@ -74,8 +74,10 @@ Every time something breaks -> you add a guardrail
 - 轻量级标志位（如 `lastFetchDate`）可使用 App Group UserDefaults，业务数据统一走 SwiftData。
 - Widget 只能使用 SwiftUI，不可引入 UIKit。
 - Widget 能力只要求覆盖 `iOS/iPadOS`；不要新增 `macOS` Widget、Catalyst Widget 或超出当前平台边界的扩展实现。
-- iOS 主线直接接真实 Supabase 数据与 Edge Functions，不再以 mock 数据作为默认前提。
-- App 不直接调用天气 API；只上传坐标，天气查询必须在 Edge Function 内通过 QWeather 完成。
+- iOS 主线直接接真实 Supabase 数据与 Edge Function，不再以 mock 数据作为默认前提。
+- App 使用 WeatherKit 在客户端获取天气，通过请求参数传给 Edge Function，服务端不再调用 QWeather。
+- 无用户体系：不使用 Supabase Auth，用户数据全部存本地 SwiftData + CloudKit 同步。
+- 内购使用 StoreKit 2 纯客户端验证，付费功能全部是客户端体验层。
 
 ## macOS 开发约束
 

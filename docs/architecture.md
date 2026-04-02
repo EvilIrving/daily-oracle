@@ -2,7 +2,13 @@
 
 ## 总览
 
-系统分三层：**Local 工作台**负责语料生产（书籍解析、AI 提取、人工审核）；**Supabase 业务层**提供数据持久化、业务逻辑和天气查询；**iOS App**纯展示 + 用户交互，仅传坐标，不直接调用天气 API。App 需要用户体系用于同步个人历史/状态：使用 Supabase Auth（Email+Password），并通过 RLS 按 `auth.uid()` 隔离用户数据。
+系统分三层，**完全解耦**，唯一契约是数据库 schema 和 Edge Function 的请求/响应格式。
+
+- **Local 工作台**：语料生产（书籍解析、AI 提取、人工审核），通过 `service_role` 写入 Supabase。
+- **Supabase 业务层**：数据持久化 + 单一 Edge Function（接收客户端配置，组装每日数据包返回）。
+- **iOS App**：展示 + 用户交互，所有用户数据存本地（SwiftData + CloudKit 同步），通过 WeatherKit 获取天气，StoreKit 2 管理内购。
+
+**无用户体系**：不使用 Supabase Auth。App 使用 anon key 直连 Supabase SDK / Edge Function。用户数据（历史、配置、纪念日）全部存本地 SwiftData，通过 CloudKit 实现跨设备同步。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -19,23 +25,16 @@
 │                   Layer 2: Supabase 业务层                           │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │                    PostgreSQL 数据库                          │   │
-│  │  quotes │ extraction_batches │ almanac_entries │ user_daily_logs │
-│  │  anniversaries                                                │   │
+│  │  quotes │ extraction_batches │ almanac_entries                │   │
 │  └──────────────────────────────────────────────────────────────┘   │
-│  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐    │
-│  │ Edge Function   │   │ Edge Function   │   │ Edge Function   │    │
-│  │ daily-quote     │   │ generate-almanac│   │ log-mood        │    │
-│  └─────────────────┘   └────────┬────────┘   └─────────────────┘    │
-│                                 │                                    │
-│                    ┌────────────▼────────────┐                       │
-│                    │ QWeather REST API 调用  │                       │
-│                    │ JWT Ed25519 签名        │                       │
-│                    └─────────────────────────┘                       │
-│                              ▲ pg_cron 每日触发                      │
-└─────────────────────────────┬───────────────────────────────────────┘
-                              │ anon key + 用户 token（RLS）
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │              Edge Function: daily-oracle                     │    │
+│  │  接收客户端配置 → 选句 + 生成宜忌 → 返回每日数据包           │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+                              ▲ anon key（无用户 token）
+                              │
+┌─────────────────────────────┴───────────────────────────────────────┐
 │                    Layer 3: iOS App 展示层                           │
 │  ┌────────────┐   ┌────────────┐   ┌────────────┐                   │
 │  │ 小组件 2×2 │   │ 长条 2×4   │   │ 大组件 4×4 │                   │
@@ -43,9 +42,13 @@
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │ 主界面：预览 / 配置 / 日历历史 / 主题切换                      │   │
 │  └──────────────────────────────────────────────────────────────┘   │
+│  ┌────────────────┐   ┌────────────────┐   ┌────────────────┐       │
+│  │ WeatherKit     │   │ SwiftData      │   │ CloudKit       │       │
+│  │ 客户端取天气    │   │ + App Group    │   │ 跨设备同步     │       │
+│  └────────────────┘   └────────────────┘   └────────────────┘       │
 │  ┌────────────────┐   ┌────────────────┐                            │
-│  │ CoreLocation   │   │ App Group      │                            │
-│  │ 仅获取坐标     │   │ Widget 数据共享 │                            │
+│  │ StoreKit 2     │   │ CoreLocation   │                            │
+│  │ 内购管理       │   │ 获取坐标       │                            │
 │  └────────────────┘   └────────────────┘                            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -288,63 +291,68 @@ MAX_TOKENS=4096
 |----|------|
 | `quotes` | 已审核名句库 |
 | `extraction_batches` | 提取批次元数据 |
-| `almanac_entries` | 每日宜忌 |
-| `user_daily_logs` | 用户每日记录（心情、名句、宜忌） |
-| `anniversaries` | 纪念日/生日（作为选句和宜忌的信号源，非独立管理功能） |
+| `almanac_entries` | 每日宜忌（按日期缓存，作为生成记录） |
 
-### 用户身份
+### Edge Function: daily-oracle
 
-使用 **Supabase Auth（Email+Password）**：
+**单一入口**，合并原来的 daily-quote、generate-almanac、log-mood 三个函数。
 
-- App 提供注册/登录 UI（邮箱 + 密码）
-- 登录后使用 access token 访问 REST 和 Edge Functions
-- 所有用户相关表用 `user_id uuid references auth.users(id)`
-- RLS 用 `auth.uid()` 限制访问
-- 可选：首次启动可先创建 guest（anonymous）session 以便立即使用，再在“用户页”里升级为正式账号（升级策略需要在实现中明确，避免丢失 guest 数据）
+**请求格式**：
 
-### Edge Functions
-
-**daily-quote**：
-
-- App 请求今日名句
-- 按心情 + themes 加权评分查询（见下方策略）
-- 节假日/纪念日作为信号源加权匹配，不单独生成卡片
-- 支持按 `genre` 字段筛选用户偏好体裁
-- 避免连续重复
-
-**generate-almanac**：
-
-- 调用 LLM 生成宜忌（使用 `docs/prompt-yi.md`）
-- **服务端调用 QWeather REST API**：接收 App 传来的经纬度坐标，Edge Function 内部查询天气
-- 输入信号：日期、天气描述（来自 QWeather）、近7天心情/阅读偏好、临近纪念日
-- 通过 auth token 获取 user_id 查询用户数据
-
-**log-mood**：
-
-- 记录用户每日心情选择
-- 更新 `user_daily_logs`
-
-### 和风天气集成（服务端）
-
-天气查询在 Edge Function 中完成，App 端不直接调用天气 API。
-
-参考 `docs/qwd和风/`：
-
-- Edge Function 使用 QWeather REST API（非 Swift SDK）
-- JWT 认证（Ed25519 私钥签名），密钥存储在 Supabase Secrets 中
-- 调用实时天气接口获取天气数据
-- 天气数据用途：1) 返回给 App 展示 2) 作为宜忌生成信号 3) 作为 themes 加权评分的输入
-
-```typescript
-// Edge Function 中的天气查询示例
-const jwt = await signQWeatherJWT(privateKey);
-const weatherRes = await fetch(
-  `https://devapi.qweather.com/v7/weather/now?location=${lon},${lat}`,
-  { headers: { Authorization: `Bearer ${jwt}` } }
-);
-const weather = await weatherRes.json();
-// weather.now.text → "小雨", weather.now.temp → "17"
+```json
+{
+  "geo": { "lng": 113.26, "lat": 23.13 },
+  "weather": { "temperature": 28, "condition": "sunny", "wind": 3 },
+  "profile": { "lang": "zh", "region": "CN", "pro": true },
+  "preferences": {
+    "mood": "calm",
+    "mood_history": ["calm", "sad", "sad", "anxious", "calm", "happy", "calm"],
+    "genre_history": ["哲学", "古典", "小说", "诗歌", "小说", "散文", "哲学"]
+  }
+}
 ```
+
+| 字段 | 说明 |
+|------|------|
+| `geo` | 经纬度坐标（CoreLocation） |
+| `weather` | 天气数据（WeatherKit，客户端获取） |
+| `profile` | 用户基础信息（语言、地区、是否付费） |
+| `preferences` | 扩展配置（心情、历史偏好等，未来新增字段放这里） |
+
+**处理逻辑**：
+
+1. 解析请求参数
+2. 根据 mood + themes + weather + 日期信号加权评分，从 `quotes` 表选句
+3. 调用 LLM 生成宜忌（使用 `docs/prompt-yi.md`，prompt 硬编码在函数内）
+4. 将宜忌按日期写入 `almanac_entries`（缓存记录）
+5. 组装数据包返回
+
+**响应格式**：
+
+```json
+{
+  "quote": {
+    "id": "uuid",
+    "text": "原文",
+    "author": "作者",
+    "work": "作品",
+    "year": 1984,
+    "mood": ["calm", "philosophical"],
+    "themes": ["孤独", "自由"]
+  },
+  "almanac": {
+    "yi": "宜：在自然光下读几页纸质书",
+    "ji": "忌：把休息当成需要被证明才能拥有的东西"
+  },
+  "date": "2026-04-02"
+}
+```
+
+**关键设计**：
+
+- 天气数据仅用于服务端判断（选句加权 + 宜忌生成信号），不回传给客户端
+- Edge Function 对 `preferences` 中未知字段直接忽略，保证向后兼容
+- App 对响应中缺失字段给默认值，保证向前兼容
 
 ### themes 加权评分查询策略
 
@@ -352,14 +360,13 @@ const weather = await weatherRes.json();
 
 **核心逻辑**：
 
-1. 天气描述 → 主题词：从 QWeather 返回的天气文本解析关键词
-   - "小雨 17℃" → `["雨"]`
-   - "大雪 -5℃" → `["雪", "冬"]`
+1. 天气描述 → 主题词：从客户端传来的天气数据解析关键词
+   - "sunny 28℃" → `["晴", "夏"]`
+   - "snow -5℃" → `["雪", "冬"]`
 
 2. 节日/纪念日 → 主题词：维护映射表
    - 父亲节 → `["父子", "亲情"]`
    - 中秋 → `["月", "团圆", "思乡"]`
-   - 用户纪念日"结婚纪念日" → `["爱情", "婚姻"]`
 
 3. 评分 SQL 示例：
 
@@ -390,8 +397,6 @@ limit 5;
 | quotes | anon 公开只读（is_active = true） |
 | almanac_entries | anon 公开只读 |
 | extraction_batches | 仅 service_role |
-| user_daily_logs | `user_id = auth.uid()` |
-| anniversaries | `user_id = auth.uid()` |
 
 ### 视图
 
@@ -410,12 +415,38 @@ limit 5;
 - 日历历史视图
 - 主题切换
 - 小组件数据同步
+- 纪念日管理（本地 SwiftData）
+
+### 用户数据存储
+
+**无服务端用户体系**。所有用户数据存本地：
+
+| 存储方式 | 数据 |
+|---------|------|
+| SwiftData | 每日记录（心情、名句、宜忌）、纪念日、App 配置、历史数据 |
+| App Group UserDefaults | 轻量标志位（lastFetchDate、当日缓存） |
+| CloudKit | SwiftData 自动同步，跨设备共享 |
+
+### 内购（StoreKit 2）
+
+纯客户端验证，使用 `Transaction.currentEntitlements` 检查购买状态。
+
+付费功能全部是客户端体验层，不涉及服务端数据权限差异：
+
+- 个性组件和 App Icon
+- 纪念日管理
+- 日历主题（粤语歌、电影、作家等）
+- 自定义字体
+
+### 天气（WeatherKit）
+
+客户端直接使用 Apple WeatherKit 获取天气数据，传给 Edge Function 作为选句和宜忌生成的信号。不再依赖服务端 QWeather。
 
 ### 权限
 
-- **CoreLocation**：请求位置权限（`whenInUse`），获取经纬度坐标传给 Supabase
+- **CoreLocation**：请求位置权限（`whenInUse`），获取经纬度坐标
+- **WeatherKit**：基于位置获取天气
 - 首次启动引导授权，拒绝后降级为手动选择城市
-- App 不直接调用天气 API，坐标传给 Edge Function 由服务端查询天气
 
 ### 小组件三尺寸
 
@@ -440,7 +471,7 @@ struct QuoteTimelineProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<QuoteEntry>) -> Void) {
         Task {
             // 1. 从 App Group UserDefaults 读取缓存数据
-            // 2. 如果缓存过期或不存在，调用 Supabase daily-quote
+            // 2. 如果缓存过期或不存在，调用 Edge Function daily-oracle
             // 3. 计算下次刷新时间（次日 05:00）
             let nextUpdate = Calendar.current.startOfDay(for: Date()).addingTimeInterval(86400)
             let entry = QuoteEntry(date: Date(), quote: quote, almanac: almanac)
@@ -457,14 +488,13 @@ struct QuoteTimelineProvider: TimelineProvider {
 App Group UserDefaults
     ├── todayQuote: 当日名句 JSON
     ├── todayAlmanac: 当日宜忌 JSON
-    ├── todayWeather: 当日天气 JSON（由 Edge Function 返回）
     ├── lastFetchDate: 上次拉取日期
     └── userMood: 用户当前心情
 
 App 启动 / 后台刷新
     │
     ├── 检查 lastFetchDate != 今天？
-    │       ├── 是 → 获取坐标 → 调用 generate-almanac(lat, lon) + daily-quote(mood) → 更新 UserDefaults
+    │       ├── 是 → WeatherKit 取天气 → 获取坐标 → 调用 daily-oracle(geo, weather, profile, preferences) → 更新缓存
     │       └── 否 → 使用缓存
     │
     └── WidgetCenter.shared.reloadAllTimelines()
@@ -483,16 +513,20 @@ Widget Timeline Provider
 
 - 预览当前小组件外观（实时效果）
 - 配置显示内容（心情筛选、刷新名句）
-- 日期显示 / 天气展示（数据来自 Edge Function 返回）/ 主题切换
-- 心情选择 → 触发换匹配名句 + 记录到 Supabase
+- 日期显示 / 天气展示（WeatherKit 数据）/ 主题切换
+- 心情选择 → 触发换匹配名句
 - **日历视图**：按月查看历史，每天显示当日名句/心情/宜忌
 
 ### 数据架构
 
 | 组件 | 用途 |
 |------|------|
-| Supabase Swift SDK | 与后端通信（含匿名登录） |
-| CoreLocation | 获取经纬度坐标，传给 Edge Function |
+| Supabase Swift SDK | 调用 Edge Function（anon key，无用户 token） |
+| WeatherKit | 获取天气数据，传给 Edge Function |
+| CoreLocation | 获取经纬度坐标 |
+| SwiftData | 本地持久化（历史、配置、纪念日），App Group container 共享 |
+| CloudKit | SwiftData 自动同步，跨设备 |
+| StoreKit 2 | 内购验证（客户端本地） |
 | App Group | 共享 UserDefaults，App ↔ Widget 数据传递 |
 | WidgetKit | timeline provider 定时刷新 + `WidgetCenter.shared.reloadTimelines` |
 
@@ -532,44 +566,34 @@ sequenceDiagram
 sequenceDiagram
     participant App as iOS App
     participant CL as CoreLocation
-    participant Supa as Supabase
-    participant QW as QWeather API
+    participant WK as WeatherKit
+    participant Edge as Edge Function
 
-    App->>Supa: signIn / signUp (Email+Password)
-    Supa-->>App: session(access token)
     App->>CL: 请求位置
     CL-->>App: 经纬度
-    App->>Supa: daily-quote(mood, lat, lon)
-    Supa->>QW: weatherNow(lat, lon)
-    QW-->>Supa: 天气数据
-    Supa-->>App: 名句 + 天气
-    App->>Supa: generate-almanac(lat, lon, mood_history)
-    Supa->>QW: 复用缓存天气
-    Supa-->>App: 宜忌
-    App->>App: 渲染 + 同步 Widget
+    App->>WK: 请求天气(经纬度)
+    WK-->>App: 天气数据
+    App->>Edge: daily-oracle(geo, weather, profile, preferences)
+    Edge->>Edge: 选句 + 生成宜忌
+    Edge-->>App: { quote, almanac, date }
+    App->>App: 存入 SwiftData + 更新 Widget
 ```
 
-### 宜忌生成流程
+### 宜忌生成流程（Edge Function 内部）
 
 ```mermaid
 sequenceDiagram
-    participant App as iOS App
-    participant Edge as Edge Function
-    participant QW as QWeather API
-    participant LLM as LLM Provider
+    participant Edge as daily-oracle
     participant DB as PostgreSQL
+    participant LLM as LLM Provider
 
-    App->>Edge: generate-almanac(lat, lon)
-    Edge->>QW: weatherNow(lat, lon)
-    QW-->>Edge: 天气数据
-    Edge->>DB: 查询近7天心情/阅读偏好
-    DB-->>Edge: 用户数据
-    Edge->>DB: 查询临近纪念日
-    DB-->>Edge: 纪念日列表
-    Edge->>LLM: 调用 LLM 生成宜忌
+    Edge->>Edge: 解析请求（geo, weather, profile, preferences）
+    Edge->>DB: 按 mood + themes + weather 加权选句
+    DB-->>Edge: 候选名句
+    Edge->>LLM: 生成宜忌（日期 + 天气 + 心情历史 + 阅读偏好）
     LLM-->>Edge: 宜/忌文本
-    Edge->>DB: INSERT almanac_entries
-    Edge-->>App: 返回宜忌 + 天气
+    Edge->>DB: INSERT almanac_entries（按日期缓存）
+    Edge-->>Edge: 组装响应 { quote, almanac, date }
 ```
 
 ---
@@ -581,6 +605,7 @@ sequenceDiagram
 - Swift/SwiftUI for iOS
 - 避免 `pnpm dev` 启动服务器
 - 避免 xcode build（仅打包时用）
+- 三层完全解耦，通过数据库 schema 和接口格式联调
 
 ---
 

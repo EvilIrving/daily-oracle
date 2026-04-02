@@ -74,7 +74,7 @@
     <text x="230" y="740" text-anchor="middle" style="font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700; fill: #FFF8F1;">06</text>
     <rect x="96" y="700" width="540" height="72" rx="20" fill="#FFFDF9" stroke="#D8B49F"/>
     <text x="124" y="729" style="font-family: Georgia, 'Times New Roman', serif; font-size: 24px; font-weight: 700; fill: #5A2B1D;">天气 + 位置</text>
-    <text x="124" y="753" style="font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; fill: #6B5348;">在已有宜忌和日期信号之上，再接入当天环境上下文。</text>
+    <text x="124" y="753" style="font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; fill: #6B5348;">WeatherKit 客户端取天气，传给 Edge Function 作为选句和宜忌信号。</text>
   </g>
 
   <g filter="url(#cardShadow)">
