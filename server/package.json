@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "deploy:all": "pnpm exec supabase functions deploy daily-quote && pnpm exec supabase functions deploy generate-almanac && pnpm exec supabase functions deploy log-mood"
+    "deploy:all": "pnpm exec supabase functions deploy daily-oracle"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.50.1",

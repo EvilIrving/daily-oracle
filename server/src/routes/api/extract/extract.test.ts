@@ -5,7 +5,6 @@ const getBookById = vi.fn();
 const getCandidateStats = vi.fn();
 const getLatestRunByBookId = vi.fn();
 const listCandidatesByRun = vi.fn();
-const getStoredConfig = vi.fn();
 const updateRunStatus = vi.fn();
 const requestRunStop = vi.fn();
 const getRunStopMessage = vi.fn(() => '提取已停止。');
@@ -18,10 +17,6 @@ vi.mock('$lib/server/db', () => ({
   getLatestRunByBookId,
   listCandidatesByRun,
   updateRunStatus
-}));
-
-vi.mock('$lib/server/config', () => ({
-  getStoredConfig
 }));
 
 vi.mock('$lib/server/extraction-control', () => ({
@@ -64,7 +59,6 @@ describe('/api/extract', () => {
       rawText: '正文',
       meta: { title: '示例书', author: '作者', year: 2024, language: '中文', genre: '小说' }
     });
-    getStoredConfig.mockReturnValue({ model: 'glm' });
     getLatestRunByBookId.mockReturnValue(null);
     startExtractionJob.mockReturnValue({
       id: 'run-1',
@@ -91,7 +85,14 @@ describe('/api/extract', () => {
       request: new Request('http://localhost/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId: 'book-1' })
+        body: JSON.stringify({
+          bookId: 'book-1',
+          config: {
+            apiBaseUrl: 'https://example.com',
+            apiKey: 'key',
+            model: 'glm'
+          }
+        })
       })
     } as Parameters<typeof POST>[0]);
 

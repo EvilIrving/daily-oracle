@@ -1,5 +1,4 @@
 import { json } from '@sveltejs/kit';
-import { getStoredConfig } from '$lib/server/config';
 import {
   createDb,
   getCandidateStats,
@@ -11,6 +10,44 @@ import {
 import { getRunStopMessage, requestRunStop } from '$lib/server/extraction-control';
 import { startExtractionJob, subscribeToExtraction } from '$lib/server/extraction-jobs';
 import { logError, logInfo } from '$lib/server/logger';
+import type { ExtractionConfig } from '$lib/types';
+
+function normalizeRequestConfig(input: Partial<ExtractionConfig> | null | undefined): ExtractionConfig {
+  const fallback: ExtractionConfig = {
+    apiBaseUrl: '',
+    apiKey: '',
+    model: '',
+    chunkSize: 3000,
+    concurrency: 1,
+    temperature: 0.2,
+    topP: 0.9,
+    topK: 50,
+    maxTokens: 4096,
+    promptTemplate: ''
+  };
+  const next = input || {};
+  const toFiniteInt = (value: unknown, defaultValue: number) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.floor(parsed) : defaultValue;
+  };
+  const toFiniteNumber = (value: unknown, defaultValue: number) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : defaultValue;
+  };
+
+  return {
+    apiBaseUrl: String(next.apiBaseUrl ?? fallback.apiBaseUrl),
+    apiKey: String(next.apiKey ?? fallback.apiKey),
+    model: String(next.model ?? fallback.model),
+    chunkSize: toFiniteInt(next.chunkSize, fallback.chunkSize),
+    concurrency: toFiniteInt(next.concurrency, fallback.concurrency),
+    temperature: toFiniteNumber(next.temperature, fallback.temperature),
+    topP: toFiniteNumber(next.topP, fallback.topP),
+    topK: toFiniteInt(next.topK, fallback.topK),
+    maxTokens: toFiniteInt(next.maxTokens, fallback.maxTokens),
+    promptTemplate: String(next.promptTemplate ?? fallback.promptTemplate)
+  };
+}
 
 function normalizeRun(run: any) {
   if (!run) return null;
@@ -143,12 +180,19 @@ export async function GET({ url }) {
 
 export async function POST({ request }) {
   try {
-    const requestPayload = (await request.json()) as { bookId?: string };
+    const requestPayload = (await request.json()) as {
+      bookId?: string;
+      config?: Partial<ExtractionConfig>;
+    };
     const bookId = String(requestPayload.bookId || '').trim();
     logInfo('api/extract', 'Received extraction request.', { bookId });
     if (!bookId) {
       logError('api/extract', 'Rejected extraction request because bookId is missing.');
       return json({ error: 'bookId 必填。' }, { status: 400 });
+    }
+    const config = normalizeRequestConfig(requestPayload.config);
+    if (!config.apiBaseUrl.trim() || !config.apiKey.trim() || !config.model.trim()) {
+      return json({ error: '缺少提取配置，请先在当前浏览器配置提供商。' }, { status: 400 });
     }
 
     const db = createDb();
@@ -169,7 +213,6 @@ export async function POST({ request }) {
       );
     }
 
-    const config = getStoredConfig();
     logInfo('api/extract', 'Loaded extraction config for run.', {
       bookId: book.id,
       model: config.model,

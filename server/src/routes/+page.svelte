@@ -133,9 +133,8 @@
   }[]>([]);
   let currentBook: (typeof selectedFiles)[number] | null = $state(null);
 
-  let config = $state(createDefaultConfig());
-  let serverConfigFallback = $state(createDefaultConfig());
-  let providerState = $state(createDefaultProviderState());
+  let config = $state(createEmptyConfig());
+  let providerState = $state(createEmptyProviderState());
   let activeProviderId = $state(providerState.activeProviderId);
   let activeProvider: ProviderProfile | null = $state(null);
   let configReady = $state(false);
@@ -192,7 +191,7 @@
 
   let editDialogProvider: ProviderProfile | null = $state(null);
   let editDialogName = $state('');
-  let editDialogConfig = $state(createDefaultConfig());
+  let editDialogConfig = $state(createEmptyConfig());
 
   function mapBookSummary(book: any) {
     const bodyLength = book.bodyLength ?? book.body_length;
@@ -240,14 +239,14 @@
     return null;
   }
 
-  function createDefaultConfig(): ExtractConfig {
+  function createEmptyConfig(): ExtractConfig {
     return {
-      apiUrl: 'https://open.bigmodel.cn/api/anthropic',
-      model: 'glm-5.1',
+      apiUrl: '',
+      model: '',
       apiKey: '',
       chunkSize: 3000,
-      concurrency: 3,
-      temperature: 0.3,
+      concurrency: 1,
+      temperature: 0.2,
       topP: 0.9,
       topK: 50,
       maxTokens: 4096,
@@ -255,7 +254,7 @@
     };
   }
 
-  function createDefaultProviderState(baseConfig: ExtractConfig = createDefaultConfig()): ProviderConfigState {
+  function createProviderState(baseConfig: ExtractConfig): ProviderConfigState {
     const newId = `provider_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     return {
       activeProviderId: newId,
@@ -267,8 +266,15 @@
     };
   }
 
+  function createEmptyProviderState(): ProviderConfigState {
+    return {
+      activeProviderId: '',
+      providers: []
+    };
+  }
+
   function normalizeConfig(input: Partial<ExtractConfig> | null | undefined): ExtractConfig {
-    const fallback = createDefaultConfig();
+    const fallback = createEmptyConfig();
     const next = input || {};
     const toFiniteNumber = (value: unknown, defaultValue: number) => {
       const parsed = Number(value);
@@ -293,7 +299,7 @@
     input: Partial<ProviderConfigState> | null | undefined,
     baseConfig: ExtractConfig
   ): ProviderConfigState {
-    const fallback = createDefaultProviderState(baseConfig);
+    const fallback = createProviderState(baseConfig);
     const rawProviders = Array.isArray(input?.providers) ? input?.providers : [];
     const providerMap = new Map<string, ProviderProfile>();
 
@@ -348,7 +354,7 @@
       if (!legacyRaw) return null;
 
       const legacyConfig = normalizeConfig(JSON.parse(legacyRaw));
-      return createDefaultProviderState(legacyConfig);
+      return createProviderState(legacyConfig);
     } catch {
       return null;
     }
@@ -565,32 +571,6 @@
       notifyError(error instanceof Error ? error.message : 'TXT 解析失败。');
     } finally {
       input.value = '';
-    }
-  }
-
-  async function saveConfig() {
-    const response = await fetch('/api/config', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        apiBaseUrl: config.apiUrl,
-        apiKey: config.apiKey,
-        model: config.model,
-        chunkSize: Number(config.chunkSize),
-        concurrency: Number(config.concurrency),
-        temperature: Number(config.temperature),
-        topP: Number(config.topP),
-        topK: Number(config.topK),
-        maxTokens: Number(config.maxTokens),
-        promptTemplate: config.prompt
-      })
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.error || '配置保存失败。');
     }
   }
 
@@ -899,9 +879,12 @@
       notifyError('请先读取 txt。');
       return;
     }
+    if (!config.apiUrl.trim() || !config.model.trim() || !config.apiKey.trim()) {
+      notifyError('当前浏览器没有可用的提供商配置。');
+      return;
+    }
 
     try {
-      await saveConfig();
       stopRequestPending = false;
       frozenExtractionProgress = null;
       extractStatus = 'RUNNING';
@@ -913,7 +896,21 @@
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ bookId: book.id })
+        body: JSON.stringify({
+          bookId: book.id,
+          config: {
+            apiBaseUrl: config.apiUrl,
+            apiKey: config.apiKey,
+            model: config.model,
+            chunkSize: Number(config.chunkSize),
+            concurrency: Number(config.concurrency),
+            temperature: Number(config.temperature),
+            topP: Number(config.topP),
+            topK: Number(config.topK),
+            maxTokens: Number(config.maxTokens),
+            promptTemplate: config.prompt
+          }
+        })
       });
 
       const payload = await response.json().catch(() => ({}));
@@ -1229,31 +1226,10 @@
 
     void (async () => {
       try {
-        const [configResponse, booksResponse] = await Promise.all([
-          fetch('/api/config'),
-          fetch('/api/books')
-        ]);
-        if (configResponse.ok) {
-          const configPayload = await configResponse.json();
-          const nextConfig = configPayload.config;
-          serverConfigFallback = normalizeConfig({
-            apiUrl: nextConfig.apiBaseUrl || config.apiUrl,
-            model: nextConfig.model || config.model,
-            apiKey: nextConfig.apiKey || '',
-            chunkSize: nextConfig.chunkSize || config.chunkSize,
-            concurrency: nextConfig.concurrency || config.concurrency,
-            temperature: nextConfig.temperature ?? config.temperature,
-            topP: nextConfig.topP ?? config.topP,
-            topK: nextConfig.topK ?? config.topK,
-            maxTokens: nextConfig.maxTokens ?? config.maxTokens,
-            prompt: nextConfig.promptTemplate || config.prompt
-          });
-          providerState = loadLocalProviderState(serverConfigFallback) ?? createDefaultProviderState(serverConfigFallback);
-        } else {
-          providerState = loadLocalProviderState(createDefaultConfig()) ?? createDefaultProviderState(createDefaultConfig());
-        }
+        const booksResponse = await fetch('/api/books');
+        providerState = loadLocalProviderState(createEmptyConfig()) ?? createEmptyProviderState();
         activeProviderId = providerState.activeProviderId;
-        hydrateConfigFromProvider(activeProviderId);
+        if (activeProviderId) hydrateConfigFromProvider(activeProviderId);
         configReady = true;
 
         if (booksResponse.ok) {

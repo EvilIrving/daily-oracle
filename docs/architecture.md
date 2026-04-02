@@ -4,28 +4,28 @@
 
 系统分三层，**完全解耦**，唯一契约是数据库 schema 和 Edge Function 的请求/响应格式。
 
-- **Local 工作台**：语料生产（书籍解析、AI 提取、人工审核），通过 `service_role` 写入 Supabase。
+- **Local 工作台**：语料生产（书籍解析、AI 提取、人工审核），通过 `service_role` 写入 Supabase 正式数据。
 - **Supabase 业务层**：数据持久化 + 单一 Edge Function（接收客户端配置，组装每日数据包返回）。
-- **iOS App**：展示 + 用户交互，所有用户数据存本地（SwiftData + CloudKit 同步），通过 WeatherKit 获取天气，StoreKit 2 管理内购。
+- **Apple App（iOS / iPadOS）**：展示 + 用户交互，所有用户数据存本地（SwiftData + CloudKit 同步），通过 WeatherKit 获取天气，StoreKit 2 管理内购。
 
 **无用户体系**：不使用 Supabase Auth。App 使用 anon key 直连 Supabase SDK / Edge Function。用户数据（历史、配置、纪念日）全部存本地 SwiftData，通过 CloudKit 实现跨设备同步。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     Layer 1: Local 工作台                            │
-│  ┌──────────┐   ┌─────────────┐   ┌─────────────┐   ┌────────────┐  │
-│  │ txt 解析  │──▶│  AI 提取    │──▶│ SQLite 队列 │──▶│ 审核管理 UI │  │
-│  │ 元数据头  │   │ Anthropic   │   │ 待审数据    │   │ SvelteKit  │  │
-│  └──────────┘   └─────────────┘   └─────────────┘   └─────┬──────┘  │
+│  ┌──────────┐   ┌─────────────┐   ┌────────────────┐   ┌──────────┐ │
+│  │ txt 解析  │──▶│ Supabase书目 │──▶│ SQLite 工作台缓存 │──▶│ 审核 UI │ │
+│  │ 元数据头  │   │ books 写入   │   │ 任务/候选/日志     │   │ SvelteKit│ │
+│  └──────────┘   └─────────────┘   └────────────────┘   └────┬─────┘ │
 └───────────────────────────────────────────────────────────┼─────────┘
                                                             │
-                                      service_role 写入已审核数据
+                                  service_role 写入正式书目与已审核数据
                                                             ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                   Layer 2: Supabase 业务层                           │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │                    PostgreSQL 数据库                          │   │
-│  │  quotes │ extraction_batches │ almanac_entries                │   │
+│  │  books │ quotes │ almanac                                     │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │              Edge Function: daily-oracle                     │    │
@@ -35,7 +35,7 @@
                               ▲ anon key（无用户 token）
                               │
 ┌─────────────────────────────┴───────────────────────────────────────┐
-│                    Layer 3: iOS App 展示层                           │
+│                Layer 3: Apple App（iOS / iPadOS）                   │
 │  ┌────────────┐   ┌────────────┐   ┌────────────┐                   │
 │  │ 小组件 2×2 │   │ 长条 2×4   │   │ 大组件 4×4 │                   │
 │  └────────────┘   └────────────┘   └────────────┘                   │
@@ -62,7 +62,12 @@
 - 解析带元数据头的 txt 文件
 - 调用 AI 提取名句（使用 `docs/prompt-oracle.md`）
 - 人工逐条审核（收/弃）
-- `收` 时通过 `service_role` key 立即写入 Supabase，`弃` 时立即删除本地待审项
+- 上传书时先将解析出的书籍元数据写入 Supabase `books`，拿到正式 `book_id`
+- AI 提取配置只存在当前浏览器 `localStorage`；没有本地配置就不能发起提取
+- SQLite 只保存本地工作台缓存：原文、提取任务、待审候选、审核日志，以及本地书到 Supabase `book_id` 的映射
+- `收` 时通过 `service_role` key 立即写入 Supabase `quotes`，使用正式 `book_id` 关联；`弃` 时立即删除本地待审项
+- 删除书时先删除 Supabase `books`，成功后再删除本地缓存书；若该书已有关联 quotes，则删除应被拒绝
+- 收或者弃都存入审核日志，用于后续分析
 
 ### 技术栈
 
@@ -96,7 +101,7 @@
 - 逐行读取直到遇到 `---` 或连续 `-` 分隔符
 - 按 JSON 风格的 `key: value` 行提取元数据（`title`、`author`、`year`、`language`、`genre`）
 - 分隔符之后的全部内容作为正文，进入切片流程
-- 元数据自动填充到 AI prompt 的来源信息，并作为最终入库的 `lang`/`source_book`/`author`/`year`/`genre` 字段事实源
+- 元数据自动填充到 AI prompt 的来源信息，并作为 Supabase `books` 表与本地审核上下文的事实源
 - 缺少某个字段不报错，视为空值
 
 ### 目录结构
@@ -105,7 +110,7 @@
 server/
 ├── src/
 │   ├── routes/
-│   │   ├── +page.svelte              # 提取工作台 + 名句库 + 宜忌历史
+│   │   ├── +page.svelte              # 提取工作台 + 名句库 + 宜忌历史 + 审核日志
 │   │   ├── +layout.svelte
 │   │   └── api/
 │   │       ├── extract/+server.ts    # POST: 启动后台提取 / GET: SSE 进度 / PATCH: 停止
@@ -113,19 +118,18 @@ server/
 │   │       ├── books/+server.ts      # GET/POST: 书籍列表管理
 │   │       ├── library/+server.ts    # GET/DELETE: 已入库名句库
 │   │       ├── almanac/+server.ts    # GET: 宜忌历史列表
-│   │       └── config/+server.ts     # GET/POST: AI 配置持久化
+│   │       ├── review-log/+server.ts # GET: 审核日志书目汇总 / 导出单书审核记录
 │   ├── lib/
 │   │   ├── server/
 │   │   │   ├── ai-client.ts          # Anthropic SDK 封装，支持 baseURL 兼容
 │   │   │   ├── chunker.ts            # 文本按段落切片
 │   │   │   ├── parser.ts             # txt 元数据解析 + AI JSON 输出解析 + mood 过滤
-│   │   │   ├── db.ts                 # SQLite 操作（books/runs/candidates/config）
+│   │   │   ├── db.ts                 # SQLite 操作（local_books/runs/candidates/review_log）
 │   │   │   ├── supabase.ts           # Supabase service_role 写入客户端
 │   │   │   ├── extractor.ts          # 后台并发提取执行器
 │   │   │   ├── extraction-jobs.ts    # 任务调度 + 进度订阅发布
 │   │   │   ├── extraction-control.ts # 运行中任务的中止控制（AbortController）
 │   │   │   ├── quote-verifier.ts     # 收录前原文存在性校验（防 AI 编造）
-│   │   │   ├── config.ts             # 配置管理（env + SQLite 持久化）
 │   │   │   ├── logger.ts             # 结构化日志（info/error）
 │   │   │   └── env.ts                # 环境变量读取封装
 │   │   ├── components/
@@ -136,7 +140,7 @@ server/
 │   │   └── extraction-progress.ts    # 进度条计算工具
 │   └── app.html
 ├── data/
-│   └── queue.db                      # SQLite 待审数据（WAL 模式）
+│   └── queue.db                      # SQLite 工作台缓存（WAL 模式）
 ├── package.json
 ├── svelte.config.js
 ├── tailwind.config.js
@@ -159,6 +163,8 @@ server/
     ▼
 POST /api/extract 立即创建批次并启动后台任务
   - 前端不等待整本书同步返回
+  - 上传阶段先将书籍元数据写入 Supabase `books`，拿到正式 `book_id`
+  - 本地 SQLite `local_books` 保存 `supabase_book_id` 映射与原始正文
   - 当前书目若已有 queued/running 批次，则拒绝重复启动
   - 后台任务通过 extraction-jobs.ts 调度，支持多 worker 并发
     │
@@ -175,16 +181,18 @@ POST /api/extract 立即创建批次并启动后台任务
   - 过滤 <think> 标签
   - 保留提取出的名句正文；moods/themes 仅作为补充标签，缺失时不丢弃候选
   - moods 只允许保留 docs/schema.sql 中 quote_mood 枚举支持的值
-  - lang/author/work/year/genre 等元数据，统一从 txt 元数据头回填
+  - 句子候选写入本地 SQLite `quote_candidates`
+  - 候选关联本地 `local_books.id`；审核通过时再通过 `local_books.supabase_book_id` 关联 Supabase `books`
     │
     ▼
-写入 SQLite queue.db（待审状态）
-  - 使用 unique index (book_id, normalized_text) 去重
+写入 SQLite queue.db（工作台缓存）
+  - `local_books` 保存原文与 `supabase_book_id`
+  - `quote_candidates` 使用 unique index (`book_id`, `normalized_text`) 去重
     │
     ▼
 待审清单展示 → 人工逐条审核（收/弃）
   - 收录前服务端必须用候选句的归一化文本去原始正文做一次存在性校验
-  - 收：立即写入 Supabase quotes 表，并从本地待审清单移除
+  - 收：通过 `candidate.book_id -> local_books.supabase_book_id` 找到正式 `book_id`，写入 Supabase `quotes`
   - 弃：立即从本地待审清单删除
 ```
 
@@ -201,7 +209,7 @@ POST /api/extract 立即创建批次并启动后台任务
 
 ### AI 客户端配置
 
-使用 `@anthropic-ai/sdk`，通过 `baseURL` 兼容任何 Anthropic Messages API 兼容端点：
+使用 `@anthropic-ai/sdk`，通过 `baseURL` 兼容任何 Anthropic Messages API 兼容端点。当前实现将提示词模板作为 `system` prompt，下发给模型；分片正文和来源信息作为单条 `user` message：
 
 ```typescript
 import Anthropic from '@anthropic-ai/sdk';
@@ -217,9 +225,8 @@ const response = await client.messages.create({
   temperature: config.temperature,
   top_p: config.topP,
   top_k: config.topK,
-  messages: [
-    { role: 'user', content: `${prompt}\n\n## 待处理文本\n${chunk}` }
-  ],
+  system: prompt,
+  messages: [{ role: 'user', content: userContent }],
 });
 ```
 
@@ -228,7 +235,7 @@ const response = await client.messages.create({
 ```
 API_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 API_KEY=your-key
-MODEL=glm-4.7
+MODEL=glm-5.1
 CHUNK_SIZE=4000
 CONCURRENCY=3
 TEMPERATURE=0.3
@@ -246,7 +253,7 @@ MAX_TOKENS=4096
 
 **提取工作台**（`+page.svelte`）：
 
-- 三 Tab 结构：提取 / 名句库 / 宜忌
+- 四 Tab 结构：提取 / 名句库 / 宜忌 / 审核日志
 - 提取 Tab：
   - 左栏：支持多模型提供商切换（每个独立保存 API URL / 模型 / API Key / 采样参数 / Prompt）
   - 快捷复制按钮（API URL、模型、API Key）
@@ -262,6 +269,9 @@ MAX_TOKENS=4096
 - 宜忌 Tab：
   - 今日宜忌卡片（天气、温度、生成信号）
   - 历史宜忌列表
+- 审核日志 Tab：
+  - 按书展示审核汇总：总数、收录数、丢弃数、最后决策时间
+  - 支持导出单本书的审核日志 JSON
 
 **待审清单**（集成在提取 Tab）：
 
@@ -274,10 +284,10 @@ MAX_TOKENS=4096
 
 | 表 | 用途 |
 |----|------|
-| `books` | 已上传的书籍（含 rawText 和元数据） |
+| `local_books` | 本地工作台书缓存（含 rawText、元数据、`supabase_book_id` 映射） |
 | `extraction_runs` | 提取批次记录（状态、进度、配置快照） |
-| `quote_candidates` | 待审名句候选（含归一化文本去重） |
-| `app_config` | AI 配置持久化（多提供商配置） |
+| `quote_candidates` | 待审名句候选（关联 `local_books`，含归一化文本去重） |
+| `review_log` | 审核终态日志（收/弃决策明细与导出） |
 
 ---
 
@@ -285,17 +295,21 @@ MAX_TOKENS=4096
 
 ### 数据库
 
-完整 schema 见 `docs/schema.sql`，核心表：
+完整 schema 见 `server/supabase/schema.sql`，核心表：
 
 | 表 | 用途 |
 |----|------|
-| `quotes` | 已审核名句库 |
-| `extraction_batches` | 提取批次元数据 |
-| `almanac_entries` | 每日宜忌（按日期缓存，作为生成记录） |
+| `books` | 正式书目元数据；上传 txt 解析成功后即写入 |
+| `quotes` | 已审核名句库；通过 `book_id` 关联书目 |
+| `almanac` | 每日宜忌（按日期缓存，作为生成记录） |
+
+说明：
+
+- Supabase 不再保存提取过程批次表；提取任务状态、候选队列、审核日志属于本地工作台职责
+- `books` 属于正式语料目录，即使句子尚未审核入库，也可以先作为书目事实源存在 Supabase
+- `quotes` 不重复保存书级事实字段；展示时通过 `book_id` join `books`
 
 ### Edge Function: daily-oracle
-
-**单一入口**，合并原来的 daily-quote、generate-almanac、log-mood 三个函数。
 
 **请求格式**：
 
@@ -324,7 +338,7 @@ MAX_TOKENS=4096
 1. 解析请求参数
 2. 根据 mood + themes + weather + 日期信号加权评分，从 `quotes` 表选句
 3. 调用 LLM 生成宜忌（使用 `docs/prompt-yi.md`，prompt 硬编码在函数内）
-4. 将宜忌按日期写入 `almanac_entries`（缓存记录）
+4. 将宜忌按日期写入 `almanac`（缓存记录）
 5. 组装数据包返回
 
 **响应格式**：
@@ -394,19 +408,37 @@ limit 5;
 
 | 表 | 策略 |
 |----|------|
+| books | anon 公开只读 |
 | quotes | anon 公开只读（is_active = true） |
-| almanac_entries | anon 公开只读 |
-| extraction_batches | 仅 service_role |
+| almanac | anon 公开只读 |
+| books / quotes / almanac | 仅 service_role 可写 |
 
 ### 视图
 
-**v_quote_by_mood**：按心情随机取一条，包含 `id, text, lang, author, work, year, genre, mood, themes`
+**v_quote_by_mood**：按心情随机取一条，包含句子字段与关联书目信息 `book_id, title, author, year, genre, lang`
 
 **v_corpus_stats**：库存统计（总数、按语言）
 
 ---
 
-## Layer 3: iOS App 展示层
+## Layer 3: Apple App 展示层（iOS / iPadOS）
+
+### 多平台策略
+
+一个 Xcode 项目、一个 App target，同时支持 iOS 与 iPadOS，通过通用 SwiftUI 布局适配不同尺寸。
+
+**开发节奏**：先完成 iPhone 主线，再适配 iPad 布局，不扩展到 macOS 或 Catalyst。
+
+**共享层（两端通用）**：
+- 业务逻辑、数据层（SwiftData + CloudKit）、网络层（Supabase SDK + WeatherKit）、StoreKit 2
+- 大部分 SwiftUI 视图代码
+
+**平台差异层（`#if os()` 条件编译）**：
+- iPadOS：多栏布局优化、键盘快捷键、拖拽支持
+- Widget：同一份 Widget 代码覆盖 iPhone / iPad，按尺寸族适配布局
+
+**最低版本**：
+- iOS / iPadOS：17.6
 
 ### 职责
 
@@ -440,7 +472,7 @@ limit 5;
 
 ### 天气（WeatherKit）
 
-客户端直接使用 Apple WeatherKit 获取天气数据，传给 Edge Function 作为选句和宜忌生成的信号。不再依赖服务端 QWeather。
+客户端直接使用 Apple WeatherKit 获取天气数据，传给 Edge Function 作为选句和宜忌生成的信号。
 
 ### 权限
 
@@ -452,9 +484,9 @@ limit 5;
 
 | 尺寸 | 内容 |
 |------|------|
-| 小 2×2 | 仅名句全文，无出处无宜忌 |
-| 横条 4×2 | 名句 + 出处，底部显示宜或忌其中一条（交替） |
-| 大 4×4 | 完整版：名句、出处、宜忌各一条、心情选择条（8格）|
+| 小 2×2 | 名句 + 出处 |
+| 横条 4×2 | 名句 + 出处，底部显示宜忌| 如果文字太长，则仅显示一条宜/忌
+| 大 4×4 |  名句、出处、宜忌各一条、心情选择条（8格）|
 
 ### 小组件每日自动更新
 
@@ -543,20 +575,24 @@ sequenceDiagram
     participant User as 用户
     participant UI as Local UI
     participant AI as AI Provider
-    participant SQLite as SQLite
+    participant SQLite as SQLite Cache
     participant Supabase as Supabase
 
     User->>UI: 本地选择 txt 文件
     UI->>UI: 读取文件内容并解析元数据头
+    UI->>Supabase: service_role UPSERT books
+    Supabase-->>UI: 返回正式 book_id
+    UI->>SQLite: 写入 local_books(raw_text, meta, supabase_book_id)
     UI->>UI: 切片正文
     loop 每个切片
         UI->>AI: 调用 AI 提取
         AI-->>UI: 返回 JSON
     end
-    UI->>SQLite: 写入待审数据
+    UI->>SQLite: 写入 quote_candidates
     User->>UI: 逐条审核（收/弃）
     User->>UI: 点击入库
-    UI->>Supabase: service_role INSERT quotes
+    UI->>SQLite: 读取 candidate.book_id 对应的 local_books.supabase_book_id
+    UI->>Supabase: service_role INSERT quotes(book_id, text, mood, themes)
     Supabase-->>UI: 成功
 ```
 
@@ -592,7 +628,7 @@ sequenceDiagram
     DB-->>Edge: 候选名句
     Edge->>LLM: 生成宜忌（日期 + 天气 + 心情历史 + 阅读偏好）
     LLM-->>Edge: 宜/忌文本
-    Edge->>DB: INSERT almanac_entries（按日期缓存）
+    Edge->>DB: INSERT almanac（按日期缓存）
     Edge-->>Edge: 组装响应 { quote, almanac, date }
 ```
 
@@ -602,20 +638,17 @@ sequenceDiagram
 
 - pnpm 管理 JS 依赖
 - SvelteKit + TailwindCSS v3（Local 工作台）
-- Swift/SwiftUI for iOS
+- Swift/SwiftUI（iOS / iPadOS）
 - 避免 `pnpm dev` 启动服务器
-- 避免 xcode build（仅打包时用）
+- 避免 xcodebuild（仅打包时用）
 - 三层完全解耦，通过数据库 schema 和接口格式联调
+- 代码需要测试覆盖
 
 ---
 
-## 扩展接入其他模型
+## 模型接入
 
 只需修改环境变量，无需改代码：
-
 | 模型 | baseURL | model |
-|------|---------|-------|
-| Anthropic Claude | （留空） | claude-opus-4-6 |
-| GLM / 智谱 | <https://open.bigmodel.cn/api/paas/v4> | glm-4.7 |
-| DeepSeek | <https://api.deepseek.com> | deepseek-chat |
-| 本地 Ollama | <http://localhost:11434/v1> | llama3 |
+| kimi | <https://api.moonshot.cn/anthropic> | kimi-2.5 |
+| GLM / 智谱 | <https://open.bigmodel.cn/api/paas/v4> | glm-5.1 |

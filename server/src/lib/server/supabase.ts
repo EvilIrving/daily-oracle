@@ -59,7 +59,7 @@ export async function deactivateSupabaseQuote(quoteId: string) {
 export async function listSupabaseAlmanac(limit = 30) {
   const client = createSupabaseReadClient();
   const { data, error } = await client
-    .from('almanac_entries')
+    .from('almanac')
     .select('id, date, yi, ji, signals, created_at')
     .order('date', { ascending: false })
     .limit(limit);

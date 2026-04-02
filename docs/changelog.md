@@ -4,6 +4,35 @@
 
 ---
 
+## v0.2.2 — 2026-04-02
+
+**工作台配置与数据边界继续收紧**
+
+- AI 提取配置不再落本地 SQLite，也不再通过 `/api/config` 做服务端持久化
+- 提供商配置只存在当前浏览器 `localStorage`；浏览器里没有配置就不能发起提取
+- 开始提取时，前端把当前激活配置直接随 `/api/extract` 请求传给服务端
+- Local 工作台的 SQLite 职责明确为“工作台缓存”，只保存原文、提取任务、待审候选、审核日志，以及本地书到 Supabase `book_id` 的映射
+- 上传 txt 后先写 Supabase `books` 拿正式 `book_id`，审核通过后再写 Supabase `quotes`
+- 删除书的职责边界明确：先删 Supabase `books`，成功后再删本地缓存；如果该书已有关联 quotes，应拒绝删除
+
+**原因**：之前同一套 AI 配置同时存在浏览器缓存和 SQLite，职责重复且容易混淆。收紧后，配置只属于当前浏览器会话；SQLite 只承担本地工作台缓存；Supabase 只承担正式数据。
+
+---
+
+## v0.2.1 — 2026-04-02
+
+**正式库改为 books + quotes 关联模型**
+
+- Supabase 正式数据模型从 `quotes + extraction_batches + almanac` 调整为 `books + quotes + almanac`
+- 新增 `books` 表保存正式书目元数据，包含书名、作者、年份、体裁、语言等字段
+- `quotes` 表改为只保存句子正文、`mood`、`themes` 和审核信息，通过 `book_id` 关联 `books`
+- 删除 `extraction_batches` 作为正式库表的设计，提取过程批次、待审候选、审核日志继续留在本地工作台 SQLite
+- 工作台上传 txt 后，解析出的书籍元数据即写入 Supabase `books`，审核通过的句子再写入 `quotes`
+
+**原因**：Supabase 的职责应聚焦正式内容，而不是提取过程状态。书级信息放进 `books`，句级信息放进 `quotes`，可以减少重复字段，明确正式库与本地工作台的职责边界。
+
+---
+
 ## v0.2.0 — 2026-04-02
 
 **去掉用户体系，简化为三层解耦架构**

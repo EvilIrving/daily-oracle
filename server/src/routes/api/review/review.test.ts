@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const getStoredConfig = vi.fn();
 const createDb = vi.fn();
 const deleteCandidateById = vi.fn();
 const getBookById = vi.fn();
@@ -9,10 +8,6 @@ const markCandidatesCommitted = vi.fn();
 const updateCandidateReviewStatus = vi.fn();
 const commitApprovedCandidates = vi.fn();
 const verifyQuoteExistsInBook = vi.fn();
-
-vi.mock('$lib/server/config', () => ({
-  getStoredConfig
-}));
 
 vi.mock('$lib/server/db', () => ({
   createDb,
@@ -108,7 +103,6 @@ describe('/api/review', () => {
       createdAt: '2026-03-30T00:00:00.000Z',
       updatedAt: '2026-03-30T00:00:00.000Z'
     });
-    getStoredConfig.mockReturnValue({ model: 'glm-5.1' });
     commitApprovedCandidates.mockResolvedValue({ batchId: 'batch-1', insertedCount: 1 });
 
     const { PATCH } = await import('./+server');
@@ -125,7 +119,7 @@ describe('/api/review', () => {
     expect(commitApprovedCandidates).toHaveBeenCalledWith({
       runId: 'r-1',
       candidates: [expect.objectContaining({ id: 'c-1', reviewStatus: 'approved' })],
-      modelConfig: { model: 'glm-5.1' },
+      modelConfig: {},
       bookTitle: '作品',
       bookAuthor: '作者',
       bookYear: 2024,

@@ -1,5 +1,4 @@
 import { json } from '@sveltejs/kit';
-import { getStoredConfig } from '$lib/server/config';
 import {
   createDb,
   getBookById,
@@ -38,7 +37,7 @@ export async function POST({ request }) {
     const result = await commitApprovedCandidates({
       runId,
       candidates: approvedCandidates,
-      modelConfig: getStoredConfig(),
+      modelConfig: {},
       bookTitle: book.meta.title,
       bookAuthor: book.meta.author,
       bookYear: book.meta.year,

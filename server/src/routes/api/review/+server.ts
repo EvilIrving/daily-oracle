@@ -1,5 +1,4 @@
 import { json } from '@sveltejs/kit';
-import { getStoredConfig } from '$lib/server/config';
 import {
   createDb,
   deleteCandidateById,
@@ -75,7 +74,7 @@ export async function PATCH({ request }) {
     const result = await commitApprovedCandidates({
       runId: candidate.runId,
       candidates: [{ ...candidate, reviewStatus: 'approved', reviewedAt: new Date().toISOString() }],
-      modelConfig: getStoredConfig(),
+      modelConfig: {},
       bookTitle: book.meta.title,
       bookAuthor: book.meta.author,
       bookYear: book.meta.year,

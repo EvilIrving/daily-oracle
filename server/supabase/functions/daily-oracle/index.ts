@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
 
     // Check if today's almanac already cached
     const { data: cached } = await supabase
-      .from("almanac_entries")
+      .from("almanac")
       .select("yi, ji")
       .eq("date", today)
       .single();
@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
       almanac = JSON.parse(jsonMatch[0]);
 
       // Cache to database
-      await supabase.from("almanac_entries").upsert(
+      await supabase.from("almanac").upsert(
         {
           date: today,
           yi: almanac.yi,

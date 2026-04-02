@@ -105,10 +105,6 @@ export function initializeDbSchema(db: Database.Database) {
     create index if not exists idx_review_log_book_id
       on review_log (book_id);
 
-    create table if not exists app_config (
-      key text primary key,
-      value text not null
-    );
   `);
 }
 
@@ -338,50 +334,6 @@ export function markCandidatesCommitted(db: Database.Database, candidateIds: str
   });
 
   transaction(candidateIds);
-}
-
-export function readConfig(db: Database.Database): Partial<ExtractionConfig> {
-  const rows = db.prepare(`select key, value from app_config`).all() as { key: string; value: string }[];
-  const config: Partial<ExtractionConfig> = {};
-
-  for (const row of rows) {
-    switch (row.key) {
-      case 'apiBaseUrl':
-      case 'apiKey':
-      case 'model':
-      case 'promptTemplate':
-        config[row.key] = row.value as never;
-        break;
-      case 'chunkSize':
-      case 'concurrency':
-      case 'topK':
-      case 'maxTokens':
-        config[row.key] = Number.parseInt(row.value, 10) as never;
-        break;
-      case 'temperature':
-      case 'topP':
-        config[row.key] = Number.parseFloat(row.value) as never;
-        break;
-    }
-  }
-
-  return config;
-}
-
-export function writeConfig(db: Database.Database, config: Partial<ExtractionConfig>) {
-  const statement = db.prepare(`
-    insert into app_config (key, value) values (?, ?)
-    on conflict(key) do update set value = excluded.value
-  `);
-
-  const transaction = db.transaction((input: Partial<ExtractionConfig>) => {
-    for (const [key, value] of Object.entries(input)) {
-      if (value === undefined) continue;
-      statement.run(key, String(value));
-    }
-  });
-
-  transaction(config);
 }
 
 export function listCandidatesByRun(db: Database.Database, runId: string) {
