@@ -179,6 +179,43 @@ export function listBooks(db: Database.Database): BookRecord[] {
   return rows.map(mapBookRow);
 }
 
+export function findBookByMeta(
+  db: Database.Database,
+  meta: Pick<BookMeta, 'title' | 'author' | 'year'>
+): BookRecord | null {
+  const row = db.prepare(`
+    select *
+    from books
+    where title = ?
+      and (
+        (author is null and ? is null)
+        or author = ?
+      )
+      and (
+        (year is null and ? is null)
+        or year = ?
+      )
+    order by updated_at desc
+    limit 1
+  `).get(meta.title, meta.author, meta.author, meta.year, meta.year) as
+    | {
+        id: string;
+        file_name: string;
+        supabase_book_id: string | null;
+        title: string;
+        author: string | null;
+        year: number | null;
+        language: string | null;
+        genre: string | null;
+        raw_text: string;
+        created_at: string;
+        updated_at: string;
+      }
+    | undefined;
+
+  return row ? mapBookRow(row) : null;
+}
+
 export function clearExtractionDataByBookId(db: Database.Database, bookId: string) {
   return db.prepare(`
     delete from extraction_runs

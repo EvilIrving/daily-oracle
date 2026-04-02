@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const createDb = vi.fn();
 const clearExtractionDataByBookId = vi.fn();
 const deleteBookById = vi.fn();
+const findBookByMeta = vi.fn();
 const getBookById = vi.fn();
 const getLatestRunByBookId = vi.fn();
 const listBooks = vi.fn();
@@ -16,6 +17,7 @@ vi.mock('$lib/server/db', () => ({
   createDb,
   clearExtractionDataByBookId,
   deleteBookById,
+  findBookByMeta,
   getBookById,
   getLatestRunByBookId,
   listBooks,
@@ -99,6 +101,7 @@ describe('/api/books', () => {
   });
 
   it('parses txt metadata and returns stored book summary', async () => {
+    findBookByMeta.mockReturnValue(null);
     parseTxtWithMeta.mockReturnValue({
       meta: {
         title: '一九八四',
@@ -149,6 +152,11 @@ describe('/api/books', () => {
       }
     });
     expect(parseTxtWithMeta).toHaveBeenCalledWith('title: 一九八四\n---\n正文内容', '1984');
+    expect(findBookByMeta).toHaveBeenCalledWith({}, {
+      title: '一九八四',
+      author: '奥威尔',
+      year: 1984
+    });
     expect(upsertSupabaseBook).toHaveBeenCalledWith({
       title: '一九八四',
       author: '奥威尔',
@@ -157,6 +165,52 @@ describe('/api/books', () => {
       language: 'zh'
     });
     expect(upsertBook).toHaveBeenCalled();
+  });
+
+  it('rejects duplicate uploads before writing to Supabase', async () => {
+    findBookByMeta.mockReturnValue({
+      id: 'book-dup',
+      fileName: 'existing.txt',
+      supabaseBookId: 'sb-book-dup',
+      meta: {
+        title: '一九八四',
+        author: '奥威尔',
+        year: 1984,
+        language: 'zh',
+        genre: '小说'
+      },
+      rawText: '正文内容',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z'
+    });
+    parseTxtWithMeta.mockReturnValue({
+      meta: {
+        title: '一九八四',
+        author: '奥威尔',
+        year: 1984,
+        language: 'zh',
+        genre: '小说'
+      },
+      body: '正文内容',
+      header: '元数据头'
+    });
+    createDb.mockReturnValue({});
+
+    const { POST } = await import('./+server');
+    const response = await POST({
+      request: new Request('http://localhost/api/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: '1984.txt', rawText: 'title: 一九八四\n---\n正文内容' })
+      })
+    } as Parameters<typeof POST>[0]);
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: '该书已上传。'
+    });
+    expect(upsertSupabaseBook).not.toHaveBeenCalled();
+    expect(upsertBook).not.toHaveBeenCalled();
   });
 
   it('clears extraction results for a book on PATCH', async () => {

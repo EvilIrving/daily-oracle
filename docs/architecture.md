@@ -63,6 +63,7 @@
 - 调用 AI 提取名句（使用 `docs/prompt-oracle.md`）
 - 人工逐条审核（收/弃）
 - 上传书时先将解析出的书籍元数据写入 Supabase `books`，拿到正式 `book_id`
+- 上传前先按 `title + author + year` 判重；命中已有书目时直接拒绝上传，不创建新的本地记录，也不重复写入 Supabase
 - AI 提取配置只存在当前浏览器 `localStorage`；没有本地配置就不能发起提取
 - SQLite 只保存本地工作台缓存：原文、提取任务、待审候选、审核日志，以及本地书到 Supabase `book_id` 的映射
 - `收` 时通过 `service secret key` key 立即写入 Supabase `quotes`，使用正式 `book_id` 关联；`弃` 时立即删除本地待审项
@@ -164,7 +165,8 @@ server/
     ▼
 POST /api/extract 立即创建批次并启动后台任务
   - 前端不等待整本书同步返回
-  - 上传阶段先将书籍元数据写入 Supabase `books`，拿到正式 `book_id`
+  - 上传阶段先检查本地书目是否已存在相同 `title + author + year` 的记录；存在则直接拒绝
+  - 通过判重后才将书籍元数据写入 Supabase `books`，拿到正式 `book_id`
   - 本地 SQLite `local_books` 保存 `supabase_book_id` 映射与原始正文
   - 当前书目若已有 queued/running 批次，则拒绝重复启动
   - 后台任务通过 extraction-jobs.ts 调度，支持多 worker 并发
@@ -369,6 +371,8 @@ SERVICE_SECRET_KEY=sb_secret_xxx
 - 天气数据仅用于服务端判断（选句加权 + 宜忌生成信号），不回传给客户端
 - Edge Function 对 `preferences` 中未知字段直接忽略，保证向后兼容
 - App 对响应中缺失字段给默认值，保证向前兼容
+
+**服务端环境变量（函数内建库与写 `almanac`）**：`SUPABASE_URL`、`SERVICE_SECRET_KEY`（与本地工作台同名的新版 secret，不用 legacy 的 `SUPABASE_SERVICE_ROLE_KEY`）；生成宜忌时尚需 `ANTHROPIC_API_KEY` 等（见函数实现）。部署时在 Supabase 项目 Secrets 中配置同名变量。
 
 ### themes 加权评分查询策略
 

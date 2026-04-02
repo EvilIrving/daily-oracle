@@ -60,6 +60,14 @@ interface Almanac {
   ji: string;
 }
 
+type QuoteRow = {
+  id: string;
+  text: string;
+  mood: string[];
+  themes: string[];
+  book: { title: string | null; author: string | null; year: number | null; genre: string | null };
+};
+
 // --- Helpers ---
 
 function todayString(): string {
@@ -93,15 +101,28 @@ function weatherToThemes(condition: string, temperature: number): string[] {
   return themes;
 }
 
-/** Build theme scoring SQL fragment */
-function buildThemeScoring(themes: string[]): string {
-  if (themes.length === 0) return "0";
-  return themes
-    .map((t, i) => {
-      const weight = Math.max(3 - i, 1);
-      return `case when themes @> array['${t}'] then ${weight} else 0 end`;
-    })
-    .join(" + ");
+function pickQuoteFromCandidates(rows: QuoteRow[], weatherThemes: string[]): Quote | null {
+  if (!rows.length) return null;
+  const scored = rows.map((q) => {
+    let score = 0;
+    for (const theme of weatherThemes) {
+      if (q.themes?.includes(theme)) score += 2;
+    }
+    score += Math.random() * 3;
+    return { q, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  const top = scored[0].q;
+  const b = top.book;
+  return {
+    id: top.id,
+    text: top.text,
+    author: b?.author ?? null,
+    work: b?.title ?? null,
+    year: b?.year ?? null,
+    mood: top.mood,
+    themes: top.themes,
+  };
 }
 
 function buildPrompt(body: RequestBody): string {
@@ -123,10 +144,41 @@ function buildPrompt(body: RequestBody): string {
   return prompt;
 }
 
+async function loadQuoteCandidates(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  mood: string | undefined
+): Promise<QuoteRow[]> {
+  let q = supabase
+    .from("quotes")
+    .select("id, text, mood, themes, book:books!inner(title, author, year, genre)")
+    .eq("is_active", true)
+    .limit(50);
+
+  if (mood) {
+    q = q.contains("mood", [mood]);
+  }
+
+  const { data, error } = await q;
+  if (error) throw error;
+  const rows = (data ?? []) as QuoteRow[];
+
+  if (rows.length === 0 && mood) {
+    const { data: fallback, error: err2 } = await supabase
+      .from("quotes")
+      .select("id, text, mood, themes, book:books!inner(title, author, year, genre)")
+      .eq("is_active", true)
+      .limit(50);
+    if (err2) throw err2;
+    return (fallback ?? []) as QuoteRow[];
+  }
+
+  return rows;
+}
+
 // --- Main Handler ---
 
 Deno.serve(async (req) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -135,95 +187,53 @@ Deno.serve(async (req) => {
     const body: RequestBody = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
-    const anthropicBaseUrl = Deno.env.get("ANTHROPIC_BASE_URL") || "https://api.anthropic.com";
-    const model = Deno.env.get("MODEL") || "claude-haiku-4-5-20251001";
+    // 与本地工作台一致：使用新版 `SERVICE_SECRET_KEY`（sb_secret_…），不再使用 legacy 的 service_role 名。
+    const serviceSecretKey = Deno.env.get("SERVICE_SECRET_KEY");
+    if (!serviceSecretKey) {
+      throw new Error("Missing SERVICE_SECRET_KEY");
+    }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+    const anthropicBaseUrl = Deno.env.get("ANTHROPIC_BASE_URL") || "https://api.moonshot.cn/anthropic";
+    const model = Deno.env.get("MODEL") || "kimi-k2.5";
+
+    const supabase = createClient(supabaseUrl, serviceSecretKey);
     const today = todayString();
 
-    // --- 1. Select quote ---
     const mood = body.preferences.mood;
     const weatherThemes = weatherToThemes(body.weather.condition, body.weather.temperature);
-    const themeScoring = buildThemeScoring(weatherThemes);
 
-    type QuoteRow = {
-      id: string;
-      text: string;
-      mood: string[];
-      themes: string[];
-      book: { title: string | null; author: string | null; year: number | null; genre: string | null };
-    };
+    const candidates = await loadQuoteCandidates(supabase, mood);
+    const selectedQuote = pickQuoteFromCandidates(candidates, weatherThemes);
 
-    let quoteQuery = supabase
-      .from("quotes")
-      .select("id, text, mood, themes, book:books!inner(title, author, year, genre)");
-
-    // We can't do custom scoring via supabase-js directly,
-    // so fetch candidates filtered by mood and pick randomly with theme preference
-    if (mood) {
-      quoteQuery = quoteQuery.contains("mood", [mood]);
-    }
-
-    const { data: candidates, error: quoteError } = await quoteQuery
-      .eq("is_active", true)
-      .limit(50);
-
-    if (quoteError) throw quoteError;
-
-    // Score candidates by theme overlap（出处字段在 books，见 schema.sql）
-    let selectedQuote: Quote | null = null;
-    if (candidates && candidates.length > 0) {
-      const rows = candidates as QuoteRow[];
-      const scored = rows.map((q) => {
-        let score = 0;
-        for (const theme of weatherThemes) {
-          if (q.themes?.includes(theme)) score += 2;
-        }
-        score += Math.random() * 3;
-        return { q, score };
-      });
-      scored.sort((a, b) => b.score - a.score);
-      const top = scored[0].q;
-      const b = top.book;
-      selectedQuote = {
-        id: top.id,
-        text: top.text,
-        author: b?.author ?? null,
-        work: b?.title ?? null,
-        year: b?.year ?? null,
-        mood: top.mood,
-        themes: top.themes,
-      };
-    }
-
-    // --- 2. Generate or retrieve almanac ---
     let almanac: Almanac;
 
-    // Check if today's almanac already cached
-    const { data: cached } = await supabase
+    const { data: cached, error: cacheErr } = await supabase
       .from("almanac")
       .select("yi, ji")
       .eq("date", today)
-      .single();
+      .maybeSingle();
 
-    if (cached) {
+    if (cacheErr) throw cacheErr;
+
+    if (cached?.yi && cached?.ji) {
       almanac = { yi: cached.yi, ji: cached.ji };
     } else {
-      // Call LLM to generate
+      if (!anthropicKey) {
+        throw new Error("ANTHROPIC_API_KEY is required when no almanac cache exists for today");
+      }
+
       const prompt = buildPrompt(body);
 
       const llmRes = await fetch(`${anthropicBaseUrl}/v1/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": anthropicKey,
-          "anthropic-version": "2023-06-01",
+          "x-api-key": anthropicKey
         },
         body: JSON.stringify({
           model,
-          max_tokens: 256,
+          max_tokens: 1000,
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -236,13 +246,14 @@ Deno.serve(async (req) => {
       const llmData = await llmRes.json();
       const raw = llmData.content?.[0]?.text || "";
 
-      // Parse JSON from LLM response
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error(`Failed to parse almanac from LLM: ${raw}`);
 
-      almanac = JSON.parse(jsonMatch[0]);
+      almanac = JSON.parse(jsonMatch[0]) as Almanac;
+      if (!almanac.yi?.trim() || !almanac.ji?.trim()) {
+        throw new Error("LLM returned empty yi/ji");
+      }
 
-      // Cache to database
       await supabase.from("almanac").upsert(
         {
           date: today,
@@ -259,7 +270,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // --- 3. Assemble response ---
     const response = {
       quote: selectedQuote
         ? {

@@ -117,3 +117,19 @@ refs:
 - `lib/data/database_helper.dart`
 - `flutter doctor -v`
 - `cd android && export JAVA_HOME=... && ./gradlew assembleDebug`
+
+---
+
+## iOS App 接入 daily-oracle Edge Function · 2026-04-02
+
+- **Edge Function**（`server/supabase/functions/daily-oracle/index.ts`）：`almanac` 用 `maybeSingle()`；无 mood 命中时回退拉取名句；无当日缓存且未配置 `ANTHROPIC_API_KEY` 时明确报错；服务端密钥环境变量为 **`SERVICE_SECRET_KEY`**（与 `server/.env` / 架构文档一致，不用 legacy `SUPABASE_SERVICE_ROLE_KEY`）。
+- **iOS**（`daily-oracle/`）：`URLSession` 调用 `POST …/functions/v1/daily-oracle`（`Authorization` + `apikey` 为 publishable key）；`Info.plist` 增加 `SupabaseURL` / `SupabasePublishableKey`；`DailyOracleClient` + `Codable` 模型；`CachedDailyOracle` 缓存上次响应；`ContentView` 心情选择 + 拉取 + 展示；占位经纬度与天气（后续接 CoreLocation / WeatherKit）；工程 `IPHONEOS_DEPLOYMENT_TARGET` 对齐为 **17.6**。
+- **本地构建**：若 Xcode 报 Push / iCloud entitlement 与描述文件不一致，需在 Apple Developer 打开对应 capability 或暂时改 entitlements；与本代码改动无关。
+
+---
+
+## iOS 原型级样式与双 Tab（历史 / 设置）· 2026-04-02
+
+- **DesignTokens.swift**：`AppColors` / `AppMetrics` 对齐 `docs/proto/app_two_tab_prototype.html` 的浅色与深色 hex、圆角与导航字号；`appScreenBackground()` 使用 `backgroundTertiary`。
+- **TabView**：`历史`（日历 + `DetailQuoteCard`）与 `设置`（小组件尺寸切换 + `WidgetPreviewCard` + 心情 + 拉取 + 占位列表行）；TabBar 使用 `toolbarBackground` 与主色 `tint`。
+- **逻辑**：`DailyOracleViewModel` 承载拉取与缓存；`ContentView` 仅保留 `TabView` 与 `Query`。

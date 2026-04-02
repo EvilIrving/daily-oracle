@@ -42,6 +42,7 @@ Every time something breaks -> you add a guardrail
 
 - 名句和宜忌内容先经本地人工审核，再写入 Supabase。
 - 审核动作是终态：`收` 立即入库并移出待审清单，`弃` 立即删除。
+- 书籍上传前先按 `title + author + year` 判重；重复书目直接拒绝导入，避免多个本地记录共享同一个 `supabase_book_id`。
 - App 侧用 publishable key；service secret key 只用于本地工作台和 Edge Function。Supabase 已于 2026-03 废弃 legacy key（anon/service_role），`.env` 中使用 `PUBLISHABLE_KEY` 和 `SERVICE_SECRET_KEY`。
 - 涉及字段命名、状态枚举、表结构的改动时，同时检查本地工作台、Supabase 和 iOS App 三层一致性。
 

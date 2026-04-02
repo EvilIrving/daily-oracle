@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { clearExtractionDataByBookId, createDb, deleteBookById, getBookById, getLatestRunByBookId, listBooks, upsertBook } from '$lib/server/db';
+import { clearExtractionDataByBookId, createDb, deleteBookById, findBookByMeta, getBookById, getLatestRunByBookId, listBooks, upsertBook } from '$lib/server/db';
 import { logError, logInfo } from '$lib/server/logger';
 import { parseTxtWithMeta } from '$lib/server/parser';
 import { deleteSupabaseBook, ensureSupabaseBookDeletable, upsertSupabaseBook } from '$lib/server/supabase';
@@ -69,6 +69,23 @@ export const POST: RequestHandler = async ({ request }) => {
     });
 
     const db = createDb();
+    const existingBook = findBookByMeta(db, {
+      title: parsed.meta.title,
+      author: parsed.meta.author,
+      year: parsed.meta.year
+    });
+    if (existingBook) {
+      logInfo('api/books', 'Rejected duplicate book upload.', {
+        fileName,
+        title: parsed.meta.title,
+        author: parsed.meta.author,
+        year: parsed.meta.year,
+        existingBookId: existingBook.id,
+        existingSupabaseBookId: existingBook.supabaseBookId
+      });
+      return json({ error: '该书已上传。' }, { status: 409 });
+    }
+
     const supabaseBook = await upsertSupabaseBook({
       title: parsed.meta.title,
       author: parsed.meta.author,
