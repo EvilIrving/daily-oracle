@@ -67,6 +67,57 @@ Every time something breaks -> you add a guardrail
 - 不使用 Supabase Auth；内购使用 StoreKit 2 纯客户端验证。
 - 少用 `xcodebuild` 做频繁验证，主要用于最终打包或收尾检查。
 
+## Apple App 构建计划
+
+UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_sizes_spec.html`
+
+### Phase 0 — 项目初始化 [DONE]
+
+- Xcode 创建 SwiftUI App（SwiftData + CloudKit）
+- 建好文件夹结构：App/ Models/ Views/Home/ Views/Onboarding/ Stores/ Widgets/ DesignSystem/ Resources/
+
+### Phase 1 — Design Token [DONE]
+
+- `DesignSystem/Colors.swift`：语义色（Asset Catalog light/dark）+ 宜忌固定色 + Mood enum + 心情色
+- `DesignSystem/Spacing.swift`：4pt grid 间距 + 圆角
+- `DesignSystem/Typography.swift`：字号层级（名句衬线、导航、日历、设置、标签）
+- `Assets.xcassets/Colors/`：9 个 colorset，1:1 对应 prototype CSS 变量
+
+### Phase 2 — 数据层（纯本地，可离线验证）
+
+- 清理模板代码（删 Item.swift，重写 App 入口）
+- SwiftData Models：DailyRecord、Anniversary、UserConfig
+- App Group container 配置
+- CloudKit container 配置
+- Preview 验证持久化
+
+### Phase 3 — 网络层（可 mock 验证）
+
+- Services/EdgeFunctionService.swift：对接 daily-oracle Edge Function
+- Services/WeatherService.swift：WeatherKit 封装
+- Services/LocationService.swift：CoreLocation 封装
+- 先用 hardcoded response 跑通数据流，再换真实 URL
+
+### Phase 4 — 主界面
+
+- 两 Tab 结构：历史 / 设置（对照 prototype）
+- 历史 Tab：日历 + 选中日期详情卡片（名句 + 宜忌）
+- 设置 Tab：Widget 预览 + 外观 + 语料偏好 + 纪念日入口
+- 心情选择交互
+
+### Phase 5 — Widget
+
+- WidgetKit extension + App Group 数据共享
+- 三尺寸：小 2x2（名句）、长条 4x2（名句+宜忌）、大 4x4（完整）
+- TimelineProvider + 每日午夜刷新
+
+### Phase 6 — StoreKit、打磨、收尾
+
+- StoreKit 2 内购（主题、纪念日、自定义字体）
+- Onboarding 流程
+- 动效打磨
+- iPad 布局适配
+
 ## 实施规则
 
 - 文档同步：更新协作规则时，同时修改 AGENTS.md 和 CLAUDE.md。

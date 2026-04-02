@@ -1,0 +1,46 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(512, 512)">
+    <!-- Background: warm clay/amber squircle -->
+    <rect x="-435" y="-435" width="870" height="870" rx="190" ry="190" fill="#C4896B"/>
+
+    <g transform="translate(0, 32)">
+    <!-- Open book: two pages meeting at center spine -->
+    <g transform="translate(0, 60)">
+      <!-- Left page -->
+      <path d="M-20,-20 C-20,-20 -30,-140 -180,-160 C-180,-160 -180,-160 -180,10 C-180,10 -30,30 -20,60 Z"
+            fill="#FFF5EB" stroke="#2C2420" stroke-width="5" stroke-linejoin="round"/>
+      <!-- Right page -->
+      <path d="M20,-20 C20,-20 30,-140 180,-160 C180,-160 180,-160 180,10 C180,10 30,30 20,60 Z"
+            fill="#FFF5EB" stroke="#2C2420" stroke-width="5" stroke-linejoin="round"/>
+      <!-- Spine line -->
+      <line x1="0" y1="-30" x2="0" y2="65" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+
+      <!-- Text lines on left page -->
+      <line x1="-140" y1="-100" x2="-50" y2="-90" stroke="#2C2420" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      <line x1="-150" y1="-70" x2="-45" y2="-60" stroke="#2C2420" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      <line x1="-155" y1="-40" x2="-40" y2="-30" stroke="#2C2420" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+
+      <!-- Text lines on right page -->
+      <line x1="50" y1="-90" x2="140" y2="-100" stroke="#2C2420" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      <line x1="45" y1="-60" x2="150" y2="-70" stroke="#2C2420" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      <line x1="40" y1="-30" x2="155" y2="-40" stroke="#2C2420" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+    </g>
+
+    <!-- Sun/oracle symbol above the book -->
+    <g transform="translate(0, -200)">
+      <!-- Central circle -->
+      <circle cx="0" cy="0" r="28" fill="#FFF5EB" stroke="#2C2420" stroke-width="5"/>
+      <!-- Rays -->
+      <line x1="0" y1="-48" x2="0" y2="-72" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+      <line x1="0" y1="48" x2="0" y2="72" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+      <line x1="-48" y1="0" x2="-72" y2="0" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+      <line x1="48" y1="0" x2="72" y2="0" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+      <!-- Diagonal rays -->
+      <line x1="-34" y1="-34" x2="-51" y2="-51" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+      <line x1="34" y1="-34" x2="51" y2="-51" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+      <line x1="-34" y1="34" x2="-51" y2="51" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+      <line x1="34" y1="34" x2="51" y2="51" stroke="#2C2420" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    </g>
+  </g>
+</svg>
