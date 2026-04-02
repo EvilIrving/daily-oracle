@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>用于获取本地天气，生成当天的日签内容。</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

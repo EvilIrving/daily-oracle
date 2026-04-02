@@ -33,9 +33,9 @@
 		A494DDAB2F7E6EF500D32B2E /* Exceptions for "daily-oracle" folder in "daily-oracle" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
 				App/CLAUDE.md,
 				DesignSystem/CLAUDE.md,
+				Info.plist,
 				Models/CLAUDE.md,
 				Resources/CLAUDE.md,
 				Services/CLAUDE.md,
