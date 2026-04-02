@@ -177,6 +177,9 @@ themes（可选，可多个，3-6 个语义主题词）：
 
   let candidates = $state<Candidate[]>([]);
   let candidatesTotal = $state(0);
+  /** 当前提取 run：SQLite 汇总的候选总数与已收条数（见 getRunReviewTotals） */
+  let runReviewTotal = $state(0);
+  let runReviewAccepted = $state(0);
   let libraryQuotes = $state<LibraryQuote[]>([]);
   let selectedLibraryAuthor = $state('all');
   let selectedLibraryMood = $state('all');
@@ -471,6 +474,15 @@ themes（可选，可多个，3-6 个语义主题词）：
     applyRunState(payload.run);
     candidates = (payload.candidates || []).map(mapCandidate);
     candidatesTotal = candidates.length;
+
+    const rt = payload.runReviewTotals as { total: number; accepted: number } | null | undefined;
+    if (rt && typeof rt.total === 'number' && typeof rt.accepted === 'number') {
+      runReviewTotal = rt.total;
+      runReviewAccepted = rt.accepted;
+    } else if (!payload.run) {
+      runReviewTotal = 0;
+      runReviewAccepted = 0;
+    }
 
     if (preserveNotice) return;
 
@@ -830,6 +842,8 @@ themes（可选，可多个，3-6 个语义主题词）：
     frozenExtractionProgress = null;
     candidates = [];
     candidatesTotal = 0;
+    runReviewTotal = 0;
+    runReviewAccepted = 0;
     extractStatus = 'IDLE';
     closeProgressStream();
     extractNotice = `已清空《${book.title || book.name}》的提取结果`;
@@ -871,6 +885,9 @@ themes（可选，可多个，3-6 个语义主题词）：
       stopRequestPending = false;
       frozenExtractionProgress = null;
       candidates = [];
+      candidatesTotal = 0;
+      runReviewTotal = 0;
+      runReviewAccepted = 0;
       extractStatus = 'IDLE';
       closeProgressStream();
 
@@ -1061,6 +1078,12 @@ themes（可选，可多个，3-6 个语义主题词）：
       extractNotice = status === 'approved' ? '已收录到 Supabase' : '已丢弃当前候选';
       notifySuccess(extractNotice);
 
+      const rt = payload.runReviewTotals as { total: number; accepted: number } | undefined;
+      if (rt && typeof rt.total === 'number' && typeof rt.accepted === 'number') {
+        runReviewTotal = rt.total;
+        runReviewAccepted = rt.accepted;
+      }
+
       if (status === 'approved') {
         await refreshLibrary();
       }
@@ -1154,18 +1177,17 @@ themes（可选，可多个，3-6 个语义主题词）：
   }
 
   let pendingCount = $derived(candidates.filter((candidate) => candidate.status === 'pending').length);
-  let approvedCount = $derived(candidates.filter((c) => c.status === 'approved').length);
-  let rejectedCount = $derived(candidates.filter((c) => c.status === 'rejected').length);
+  /** 待审分母：优先 SQLite 汇总的 run 总候选数，否则回退为当前列表长度 */
+  let reviewPoolSize = $derived(runReviewTotal > 0 ? runReviewTotal : candidatesTotal);
   let acceptanceRate = $derived(
-    approvedCount + rejectedCount > 0
-      ? Math.round((approvedCount / (approvedCount + rejectedCount)) * 100)
-      : null
+    runReviewTotal > 0 ? Math.round((runReviewAccepted / runReviewTotal) * 100) : null
   );
-  let extractionDensity = $derived(
-    currentBookDerived?.bodyLength && currentBookDerived.bodyLength > 0 && candidatesTotal > 0
-      ? (candidatesTotal / (currentBookDerived.bodyLength / 10000)).toFixed(1)
-      : null
-  );
+  let extractionDensity = $derived.by(() => {
+    const bodyLen = currentBookDerived?.bodyLength;
+    if (!bodyLen || bodyLen <= 0) return null;
+    if (reviewPoolSize <= 0) return null;
+    return (reviewPoolSize / (bodyLen / 10000)).toFixed(1);
+  });
   let libraryAuthorOptionsDerived = $derived(
     buildLibraryOptions(
       libraryQuotes.map((quote) => quote.author).filter(Boolean),
@@ -1461,7 +1483,7 @@ themes（可选，可多个，3-6 个语义主题词）：
                     {#each selectedFiles as file}
                       <div class="group relative">
                         <button
-                          class={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 pr-10 text-left text-sm ${currentBookId === file.id ? 'bg-[#eadfce]' : 'bg-[#f6f2eb]'}`}
+                          class={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 pr-10 text-left text-sm transition-all duration-200 ease-out motion-safe:hover:-translate-y-px ${currentBookId === file.id ? 'bg-[#eadfce] shadow-sm ring-1 ring-[#c4b0a0]/35 hover:bg-[#e5d8c4] hover:shadow-md hover:ring-[#b59067]/45' : 'bg-[#f6f2eb] ring-1 ring-transparent hover:bg-[#efe8de] hover:shadow-md hover:ring-[#d4c7b8]/60'}`}
                           type="button"
                           onclick={async () => {
                             currentBookId = file.id || '';
@@ -1556,7 +1578,7 @@ themes（可选，可多个，3-6 个语义主题词）：
                   {#if currentBookDerived}
                     <p class="mt-1 text-sm text-[#7b6b59]">
                       <span>当前书籍：{currentBookDerived?.title || currentBookDerived?.name}</span>
-                      <span class="text-[#6f604f]"> · 待处理 {pendingCount} / {candidatesTotal}</span>
+                      <span class="text-[#6f604f]"> · 待处理 {pendingCount} / {reviewPoolSize}</span>
                       {#if extractionDensity !== null}
                         <span class="text-[#6f604f]"> · 提取密度 {extractionDensity} 条/万字</span>
                       {/if}
@@ -1570,7 +1592,7 @@ themes（可选，可多个，3-6 个语义主题词）：
                 </div>
                 <div class="flex items-center gap-3">
                   {#if !currentBookDerived}
-                    <span class="text-sm text-[#6f604f]">待处理 {pendingCount} / {candidatesTotal}</span>
+                    <span class="text-sm text-[#6f604f]">待处理 {pendingCount} / {reviewPoolSize}</span>
                   {/if}
                   <button class="btn-secondary px-3.5 py-2 text-sm font-medium" type="button" onclick={clearCurrentBookResults}>
                     清空当前书结果

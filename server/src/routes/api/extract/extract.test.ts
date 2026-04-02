@@ -4,6 +4,7 @@ const createDb = vi.fn();
 const getBookById = vi.fn();
 const getCandidateStats = vi.fn();
 const getLatestRunByBookId = vi.fn();
+const getRunReviewTotals = vi.fn();
 const listCandidatesByRun = vi.fn();
 const updateRunStatus = vi.fn();
 const requestRunStop = vi.fn();
@@ -15,6 +16,7 @@ vi.mock('$lib/server/db', () => ({
   getBookById,
   getCandidateStats,
   getLatestRunByBookId,
+  getRunReviewTotals,
   listCandidatesByRun,
   updateRunStatus
 }));
@@ -39,6 +41,7 @@ describe('/api/extract', () => {
     getLatestRunByBookId.mockReturnValue({ id: 'run-1', status: 'done', total_chunks: 1 });
     listCandidatesByRun.mockReturnValue([{ id: 'candidate-1' }]);
     getCandidateStats.mockReturnValue({ total: 1, pending: 1, approved: 0, rejected: 0 });
+    getRunReviewTotals.mockReturnValue({ total: 1, accepted: 0 });
 
     const { GET } = await import('./+server');
     const response = await GET({
@@ -48,6 +51,7 @@ describe('/api/extract', () => {
     await expect(response.json()).resolves.toEqual({
       run: expect.objectContaining({ id: 'run-1', status: 'done', totalChunks: 1 }),
       candidates: [{ id: 'candidate-1' }],
+      runReviewTotals: { total: 1, accepted: 0 },
       stats: { total: 1, pending: 1, approved: 0, rejected: 0 }
     });
   });
@@ -79,6 +83,7 @@ describe('/api/extract', () => {
     });
     listCandidatesByRun.mockReturnValue([]);
     getCandidateStats.mockReturnValue({ total: 0, pending: 0, approved: 0, rejected: 0 });
+    getRunReviewTotals.mockReturnValue({ total: 0, accepted: 0 });
 
     const { POST } = await import('./+server');
     const response = await POST({
@@ -105,6 +110,7 @@ describe('/api/extract', () => {
         totalChunks: 3
       }),
       candidates: [],
+      runReviewTotals: { total: 0, accepted: 0 },
       stats: { total: 0, pending: 0, approved: 0, rejected: 0 }
     });
   });

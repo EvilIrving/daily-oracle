@@ -5,6 +5,7 @@ import {
   getCandidateStats,
   getBookById,
   getLatestRunByBookId,
+  getRunReviewTotals,
   listCandidatesByRun,
   updateRunStatus
 } from '$lib/server/db';
@@ -76,6 +77,7 @@ function getExtractionPayload(db: ReturnType<typeof createDb>, bookId: string) {
   return {
     run,
     candidates,
+    runReviewTotals: run ? getRunReviewTotals(db, run.id) : null,
     stats: {
       total: stats.total ?? 0,
       pending: stats.pending ?? 0,
@@ -236,7 +238,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
     const nextDb = createDb();
     const responsePayload = getExtractionPayload(nextDb, book.id);
-    return json({ ...responsePayload, run }, { status: 202 });
+    const runReviewTotals =
+      run?.id != null ? getRunReviewTotals(nextDb, run.id) : responsePayload.runReviewTotals;
+    return json({ ...responsePayload, run, runReviewTotals }, { status: 202 });
   } catch (error) {
     logError('api/extract', 'POST /api/extract failed.', { error });
     return json(

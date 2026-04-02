@@ -100,23 +100,31 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 
 ### Phase 4 — 主界面
 
-- 两 Tab 结构：历史 / 设置（对照 prototype）
-- 历史 Tab：日历 + 选中日期详情卡片（名句 + 宜忌）
-- 设置 Tab：Widget 预览（fake data, no need to call Edge Function, just show to user） + 外观 + 语料偏好 + 纪念日入口
-- 心情选择交互
+- 4.1 Tab 与导航：`TabView` 历史 / 设置，根级结构与 `app_two_tab_prototype` 一致
+- 4.2 历史 Tab — 日历：月视图、选日、与 `DailyRecord` 绑定；空日 / 无数据状态
+- 4.3 历史 Tab — 详情：名句 + 宜忌卡片，沿用 `DesignSystem` 字号与语义色
+- 4.4 设置 Tab — 分区骨架：列表或分组，为子模块预留入口
+- 4.5 Widget 预览：假数据示意，不调 Edge Function（仅展示给用户）
+- 4.6 外观：主题等，持久化到 `UserConfig`（或等价模型）
+- 4.7 语料偏好：与 Edge Function 请求参数对齐的本地配置 UI + 持久化
+- 4.8 纪念日：入口与 `Anniversary` 列表 / 编辑；与 Phase 6 内购门闩衔接
+- 4.9 心情：选择控件 + 写入当日记录或配置；与历史 / 详情展示一致
 
 ### Phase 5 — Widget
 
-- WidgetKit extension + App Group 数据共享
-- 三尺寸：小 2x2（名句）、长条 4x2（名句+宜忌）、大 4x4（完整）
-- TimelineProvider + 每日午夜刷新
+- 5.1 Widget extension + App Group：主 App 写入，小组件从共享容器读取 SwiftData / 共享数据
+- 5.2 小 2×2：名句（或 `widget_sizes_spec` 规定的最小信息集）
+- 5.3 长条 4×2：名句 + 宜忌
+- 5.4 大 4×4：完整布局（对照 `widget_sizes_spec`）
+- 5.5 `TimelineProvider`：刷新策略、每日午夜（或本地日界）对齐；调试可用 Widget Preview
 
 ### Phase 6 — StoreKit、打磨、收尾
 
-- StoreKit 2 内购（主题、纪念日、自定义字体）
-- Onboarding 流程
-- 动效打磨
-- iPad 布局适配
+- 6.1 StoreKit 2 基础：产品、`Transaction`、恢复购买、entitlement 与本地功能门闩
+- 6.2 付费点落地：主题、纪念日相关能力、自定义字体（可分迭代交付）
+- 6.3 Onboarding：首启流程与 `UserConfig` / 本地状态同步
+- 6.4 动效与微交互：转场、列表与日历反馈（对照 prototype 节奏）
+- 6.5 iPad / 多尺寸：`horizontalSizeClass`、横屏与宽屏布局
 
 ## 实施规则
 

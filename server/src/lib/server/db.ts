@@ -493,6 +493,34 @@ export function getCandidateStats(db: Database.Database) {
   };
 }
 
+/** 单次提取 run 的候选规模：仍在 quote_candidates 的行数 + 已弃审（行已删，仅 review_log 有记录）。采纳率分母；分子用 review_log accepted。 */
+export function getRunReviewTotals(db: Database.Database, runId: string | null | undefined) {
+  if (!runId) {
+    return { total: 0, accepted: 0 };
+  }
+  const row = db
+    .prepare(
+      `
+    select
+      (select count(*) from quote_candidates where run_id = @runId) as qc_count,
+      (select count(*) from review_log where run_id = @runId and decision = 'rejected') as rejected_logged,
+      (select count(*) from review_log where run_id = @runId and decision = 'accepted') as accepted
+  `
+    )
+    .get({ runId }) as {
+    qc_count: number | null;
+    rejected_logged: number | null;
+    accepted: number | null;
+  };
+  const qc = Number(row.qc_count ?? 0);
+  const rej = Number(row.rejected_logged ?? 0);
+  const accepted = Number(row.accepted ?? 0);
+  return {
+    total: qc + rej,
+    accepted
+  };
+}
+
 export function resetInterruptedRuns(db: Database.Database) {
   db.prepare(`
     update extraction_runs

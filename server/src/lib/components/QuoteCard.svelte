@@ -18,7 +18,9 @@
   export let actions: Action[] = [];
 </script>
 
-<article class="flex flex-wrap items-start justify-between gap-4 border-b border-[#ded4c7] px-4 py-5 sm:px-5">
+<article
+  class="flex flex-wrap items-start justify-between gap-4 border-b border-[#ded4c7] px-4 py-5 transition-all duration-200 ease-out motion-safe:hover:-translate-y-px hover:border-[#d4c4b0] hover:bg-[#faf6f0] hover:shadow-[inset_0_0_0_1px_rgba(196,176,160,0.28)] sm:px-5"
+>
   <div class="min-w-0 flex-1">
     <div class="flex items-start gap-3">
       <span class="tiny-dot mt-2" style={`background:${dot}`}></span>

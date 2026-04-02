@@ -4,6 +4,7 @@ const createDb = vi.fn();
 const deleteCandidateById = vi.fn();
 const getBookById = vi.fn();
 const getCandidateById = vi.fn();
+const getRunReviewTotals = vi.fn();
 const insertReviewLog = vi.fn();
 const markCandidatesCommitted = vi.fn();
 const updateCandidateReviewStatus = vi.fn();
@@ -15,6 +16,7 @@ vi.mock('$lib/server/db', () => ({
   deleteCandidateById,
   getBookById,
   getCandidateById,
+  getRunReviewTotals,
   insertReviewLog,
   markCandidatesCommitted,
   updateCandidateReviewStatus
@@ -50,6 +52,7 @@ describe('/api/review', () => {
   it('rejects and removes candidate immediately', async () => {
     createDb.mockReturnValue({});
     getCandidateById.mockReturnValue({ id: 'c-1', bookId: 'b-1', runId: 'r-1', reviewStatus: 'pending' });
+    getRunReviewTotals.mockReturnValue({ total: 4, accepted: 0 });
 
     const { PATCH } = await import('./+server');
     const response = await PATCH({
@@ -62,9 +65,11 @@ describe('/api/review', () => {
 
     expect(updateCandidateReviewStatus).toHaveBeenCalledWith({}, 'c-1', 'rejected');
     expect(deleteCandidateById).toHaveBeenCalledWith({}, 'c-1');
+    expect(getRunReviewTotals).toHaveBeenCalledWith({}, 'r-1');
     await expect(response.json()).resolves.toEqual({
       candidateId: 'c-1',
-      action: 'rejected'
+      action: 'rejected',
+      runReviewTotals: { total: 4, accepted: 0 }
     });
   });
 
@@ -107,6 +112,7 @@ describe('/api/review', () => {
       updatedAt: '2026-03-30T00:00:00.000Z'
     });
     commitApprovedCandidates.mockResolvedValue({ insertedCount: 1 });
+    getRunReviewTotals.mockReturnValue({ total: 5, accepted: 1 });
 
     const { PATCH } = await import('./+server');
     const response = await PATCH({
@@ -117,6 +123,7 @@ describe('/api/review', () => {
       })
     } as Parameters<typeof PATCH>[0]);
 
+    expect(getRunReviewTotals).toHaveBeenCalledWith({}, 'r-1');
     expect(updateCandidateReviewStatus).toHaveBeenCalledWith({}, 'c-1', 'approved');
     expect(verifyQuoteExistsInBook).toHaveBeenCalledWith('正文', '示例名句', '作品');
     expect(commitApprovedCandidates).toHaveBeenCalledWith({
@@ -127,7 +134,8 @@ describe('/api/review', () => {
     await expect(response.json()).resolves.toEqual({
       candidateId: 'c-1',
       action: 'approved',
-      insertedCount: 1
+      insertedCount: 1,
+      runReviewTotals: { total: 5, accepted: 1 }
     });
   });
 

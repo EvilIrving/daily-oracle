@@ -5,6 +5,7 @@ import {
   deleteCandidateById,
   getBookById,
   getCandidateById,
+  getRunReviewTotals,
   insertReviewLog,
   markCandidatesCommitted,
   updateCandidateReviewStatus
@@ -44,7 +45,8 @@ export const PATCH: RequestHandler = async ({ request }) => {
 
     return json({
       candidateId,
-      action: 'rejected'
+      action: 'rejected',
+      runReviewTotals: getRunReviewTotals(db, candidate.runId)
     });
   }
   if (!book) {
@@ -86,7 +88,8 @@ export const PATCH: RequestHandler = async ({ request }) => {
     return json({
       candidateId,
       action: 'approved',
-      insertedCount: result.insertedCount
+      insertedCount: result.insertedCount,
+      runReviewTotals: getRunReviewTotals(db, candidate.runId)
     });
   } catch (error) {
     logError('review', 'Failed to commit approved candidate to Supabase.', {
