@@ -5,7 +5,6 @@
   import { deriveExtractionProgress, type ExtractionProgressSnapshot } from '$lib/extraction-progress';
 
   type MainTab = 'extract' | 'library' | 'almanac' | 'review-log';
-  type ReviewFilter = 'all' | 'pending';
   type CandidateStatus = 'pending' | 'approved' | 'rejected';
 
   type Candidate = {
@@ -30,7 +29,6 @@
     genre: string;
     moods: string[];
     themes: string[];
-    state?: string;
     dot: string;
   };
 
@@ -138,10 +136,8 @@ themes（可选，可多个，3-6 个语义主题词）：
 
   // Reactive state with $state runes
   let activeTab = $state<MainTab>('extract');
-  let activeReviewFilter = $state<ReviewFilter>('all');
   let currentBookId = $state('');
   let currentRunId = $state('');
-  let currentRunLabel = $state('--');
   let extractStatus = $state('IDLE');
   let runProcessedChunks = $state(0);
   let runTotalChunks = $state(0);
@@ -176,18 +172,14 @@ themes（可选，可多个，3-6 个语义主题词）：
   let candidates = $state<Candidate[]>([]);
   let candidatesTotal = $state(0);
   let libraryQuotes = $state<LibraryQuote[]>([]);
-     let selectedLibraryAuthor = $state('all');
+  let selectedLibraryAuthor = $state('all');
   let selectedLibraryMood = $state('all');
   let selectedLibraryTheme = $state('all');
   let authorFiltersExpanded = $state(false);
   let moodFiltersExpanded = $state(false);
-  let themeFiltersExpanded = $state(false); 
+  let themeFiltersExpanded = $state(false);
   let deletingLibraryQuoteIds = $state(new Set<string>());
-  let almanacToday: AlmanacTodayCard | null = $state(createInitialAlmanacToday());
-  let libraryStats = $state({
-    totalCommitted: 0,
-    pending: 0
-  });
+  let almanacToday: AlmanacTodayCard | null = $state(null);
 
   let extractNotice = $state('等待导入 txt 文件');
 
@@ -262,10 +254,6 @@ themes（可选，可多个，3-6 个语义主题词）：
 
   function upsertSelectedFile(file: ReturnType<typeof mapBookSummary>) {
     selectedFiles = [file, ...selectedFiles.filter((item) => item.id !== file.id)];
-  }
-
-  function createInitialAlmanacToday(): AlmanacTodayCard | null {
-    return null;
   }
 
   function createEmptyConfig(): ExtractConfig {
@@ -422,26 +410,9 @@ themes（可选，可多个，3-6 个语义主题词）：
     return `${bytes} B`;
   }
 
-  function formatRunLabel(run: any) {
-    if (!run) return '--';
-
-    const stamp = run.startedAt || run.started_at || run.finishedAt || run.finished_at;
-    if (!stamp) return '本次提取';
-
-    const date = new Date(stamp);
-    if (Number.isNaN(date.getTime())) return '本次提取';
-
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hour = String(date.getHours()).padStart(2, '0');
-    const minute = String(date.getMinutes()).padStart(2, '0');
-    return `${month}-${day} ${hour}:${minute} 提取`;
-  }
-
   function applyRunState(run: any) {
     if (!run) {
       currentRunId = '';
-      currentRunLabel = '--';
       extractStatus = 'IDLE';
       runProcessedChunks = 0;
       runTotalChunks = 0;
@@ -454,7 +425,6 @@ themes（可选，可多个，3-6 个语义主题词）：
     }
 
     currentRunId = run?.id || '';
-    currentRunLabel = formatRunLabel(run);
     extractStatus = run?.status?.toUpperCase?.() || 'IDLE';
     runProcessedChunks = Number(run?.processedChunks ?? run?.processed_chunks ?? 0);
     runTotalChunks = Number(run?.totalChunks ?? run?.total_chunks ?? 0);
@@ -652,17 +622,6 @@ themes（可选，可多个，3-6 个语义主题词）：
     await importBooks(files);
   }
 
-  function clearApiKey() {
-    clearTextField('apiKey');
-  }
-
-  function clearTextField(field: 'apiUrl' | 'model' | 'apiKey') {
-    config = {
-      ...config,
-      [field]: ''
-    };
-  }
-
   function switchProvider(providerId: string) {
     const target = getProviderById(providerState, providerId);
     if (!target) return;
@@ -855,7 +814,6 @@ themes（可选，可多个，3-6 个语义主题词）：
     }
 
     currentRunId = '';
-    currentRunLabel = '--';
     runProcessedChunks = 0;
     runTotalChunks = 0;
     runFailedChunks = 0;
@@ -898,7 +856,6 @@ themes（可选，可多个，3-6 个语义主题词）：
       const nextBook = selectedFiles[0] ?? null;
       currentBookId = nextBook?.id || '';
       currentRunId = '';
-      currentRunLabel = '--';
       runProcessedChunks = 0;
       runTotalChunks = 0;
       runFailedChunks = 0;
@@ -931,7 +888,6 @@ themes（可选，可多个，3-6 个语义主题词）：
     const payload = await response.json().catch(() => ({}));
 
     libraryQuotes = (payload.quotes || []).map(mapLibraryQuote);
-    libraryStats = payload.stats || libraryStats;
 
     if (!response.ok) {
       notifyError(payload.error || '读取语料管理库失败。');
@@ -1119,10 +1075,6 @@ themes（可选，可多个，3-6 个语义主题词）：
 
     deletingLibraryQuoteIds = new Set([...deletingLibraryQuoteIds, id]);
     libraryQuotes = libraryQuotes.filter((quote) => quote.id !== id);
-    libraryStats = {
-      ...libraryStats,
-      totalCommitted: Math.max(0, Number(libraryStats.totalCommitted || 0) - 1)
-    };
     notifySuccess('已从语料管理库删除这条名句');
 
     const response = await fetch('/api/library', {
@@ -1136,21 +1088,12 @@ themes（可选，可多个，3-6 个语义主题词）：
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       libraryQuotes = [target, ...libraryQuotes];
-      libraryStats = {
-        ...libraryStats,
-        totalCommitted: Number(libraryStats.totalCommitted || 0) + 1
-      };
       notifyError(payload.error || '删除名句失败。');
       deletingLibraryQuoteIds = new Set([...deletingLibraryQuoteIds].filter((quoteId) => quoteId !== id));
       return;
     }
 
     deletingLibraryQuoteIds = new Set([...deletingLibraryQuoteIds].filter((quoteId) => quoteId !== id));
-  }
-
-  function reviewFilterCount(filter: ReviewFilter) {
-    if (filter === 'all') return candidates.length;
-    return candidates.length;
   }
 
   function buildLibraryOptions(values: string[], allLabel: string) {
@@ -1203,11 +1146,6 @@ themes（可选，可多个，3-6 个语义主题词）：
     selectedLibraryTheme = value;
   }
 
-  let filteredCandidates = $derived(
-    activeReviewFilter === 'all'
-      ? candidates
-      : candidates.filter((candidate) => candidate.status === activeReviewFilter)
-  );
   let pendingCount = $derived(candidates.filter((candidate) => candidate.status === 'pending').length);
   let approvedCount = $derived(candidates.filter((c) => c.status === 'approved').length);
   let rejectedCount = $derived(candidates.filter((c) => c.status === 'rejected').length);
@@ -1281,8 +1219,6 @@ themes（可选，可多个，3-6 个语义主题词）：
       frozenProgress: frozenExtractionProgress
     })
   );
-
-  let activeProviderDerived = $derived(getProviderById(providerState, activeProviderId));
 
   $effect(() => {
     if (configReady) {
@@ -1637,8 +1573,8 @@ themes（可选，可多个，3-6 个语义主题词）：
             </header>
 
             <div>
-              {#if filteredCandidates.length}
-                {#each filteredCandidates as candidate}
+              {#if candidates.length}
+                {#each candidates as candidate}
                   <QuoteCard
                     text={candidate.text}
                     author={candidate.author}
