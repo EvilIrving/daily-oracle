@@ -54,8 +54,6 @@ themes（可选，可多个，3-6 个语义主题词）：
   "themes": ["离别", "故乡", "秋"]
 }
 
-额外要求：
+## 示例
 
-- 如果原文是非中文，必须同时输出 `text` 和 `text_cn`
-- `text` 始终保留原文，不要把翻译覆盖到 `text`
-- `text_cn` 只用于本地审核显示，因此不要解释这个字段，不要输出额外备注
+[{"text":"……",text_cn:"……","moods":["sad"],"themes":["离别","秋"]},{"text":"To be, or not to be.","text_cn":"生存还是毁灭。","moods":["philosophical"],"themes":["存在","抉择"]}]
