@@ -13,6 +13,7 @@ export const GET: RequestHandler = ({ url }) => {
       bookId: r.book_id,
       bookTitle: r.book_title,
       text: r.text,
+      textCn: r.text_cn,
       lang: r.lang,
       author: r.author,
       work: r.work,

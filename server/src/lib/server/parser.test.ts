@@ -140,6 +140,22 @@ describe('parseAiJsonArray', () => {
     expect(parsed[0]?.themes).toEqual(['回忆', '离别']);
   });
 
+  it('keeps text_cn for non-Chinese quotes', () => {
+    const parsed = parseAiJsonArray(`
+[
+  {
+    "text": "We are all in the gutter, but some of us are looking at the stars.",
+    "text_cn": "我们都身处沟渠之中，但仍有人仰望星空。",
+    "moods": ["philosophical"],
+    "themes": ["命运", "希望"]
+  }
+]
+`);
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]?.textCn).toBe('我们都身处沟渠之中，但仍有人仰望星空。');
+  });
+
   it('keeps quotes when moods and themes are missing', () => {
     const parsed = parseAiJsonArray(`
 [
@@ -196,6 +212,7 @@ describe('buildQuoteCandidates', () => {
       [
         {
           text: '此情可待成追忆，只是当时已惘然。',
+          textCn: null,
           moods: ['sad'],
           themes: ['回忆', '离别']
         }
@@ -214,6 +231,7 @@ describe('buildQuoteCandidates', () => {
     expect(candidates[0]?.work).toBe('锦瑟');
     expect(candidates[0]?.year).toBe(812);
     expect(candidates[0]?.lang).toBe('zh');
+    expect(candidates[0]?.textCn).toBeNull();
   });
 
   it('marks non-zh-en sources as translated', () => {
@@ -221,6 +239,7 @@ describe('buildQuoteCandidates', () => {
       [
         {
           text: '所有幸福的家庭都是相似的。',
+          textCn: '所有幸福的家庭都是相似的。',
           moods: ['philosophical'],
           themes: ['家庭']
         }
@@ -236,6 +255,7 @@ describe('buildQuoteCandidates', () => {
     );
 
     expect(candidates[0]?.lang).toBe('translated');
+    expect(candidates[0]?.textCn).toBe('所有幸福的家庭都是相似的。');
   });
 
   it('infers zh when language metadata is missing', () => {
@@ -243,6 +263,7 @@ describe('buildQuoteCandidates', () => {
       [
         {
           text: '人总是在接近幸福时倍感幸福，在幸福进行时却患得患失。',
+          textCn: null,
           moods: ['philosophical'],
           themes: ['幸福', '失去']
         }

@@ -23,9 +23,13 @@ export async function extractQuotesForChunk(input: {
   totalChunks: number;
   signal?: AbortSignal;
 }): Promise<ExtractedQuotePayload[]> {
+  const baseURL = input.config.apiBaseUrl.trim() || undefined;
+  const useBearerAuth = baseURL != null && baseURL.toLowerCase().includes('longcat');
   const client = new Anthropic({
-    apiKey: input.config.apiKey,
-    baseURL: input.config.apiBaseUrl || undefined
+    baseURL,
+    ...(useBearerAuth
+      ? { apiKey: null, authToken: input.config.apiKey }
+      : { apiKey: input.config.apiKey, authToken: null })
   });
 
   const systemPrompt = (input.config.promptTemplate || loadPromptTemplate()).trim();

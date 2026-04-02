@@ -182,7 +182,9 @@ POST /api/extract 立即创建批次并启动后台任务
     ▼
 解析 AI 返回的 JSON 数组
   - 过滤 <think> 标签
-  - 保留提取出的名句正文；moods/themes 仅作为补充标签，缺失时不丢弃候选
+  - 保留提取出的名句正文；若原文非中文，可额外保留 `text_cn` 作为本地审核显示译文
+  - `text_cn` 只存本地 SQLite 与审核日志，不写入 Supabase 正式库
+  - moods/themes 仅作为补充标签，缺失时不丢弃候选
   - moods 只允许保留 `server/supabase/schema.sql` 中 `quote_mood` 枚举支持的值
   - 句子候选写入本地 SQLite `quote_candidates`
   - 候选关联本地 `local_books.id`；审核通过时再通过 `local_books.supabase_book_id` 关联 Supabase `books`

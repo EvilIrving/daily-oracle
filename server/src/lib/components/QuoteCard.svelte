@@ -7,6 +7,7 @@
   };
 
   export let text = '';
+  export let textCn: string | null = null;
   export let author = '未知作者';
   export let work = '未知作品';
   export let year: number | null = null;
@@ -22,7 +23,12 @@
     <div class="flex items-start gap-3">
       <span class="tiny-dot mt-2" style={`background:${dot}`}></span>
       <div class="min-w-0">
-        <p class="quote-text text-[1.08rem]">{text}</p>
+        <p class:quote-text={!textCn} class:text-[1.08rem]={!textCn} class:text-[0.98rem]={!!textCn} class:leading-7={!!textCn}>
+          {text}
+        </p>
+        {#if textCn}
+          <p class="mt-2 text-[0.98rem] leading-7 text-[#8b7968]">{textCn}</p>
+        {/if}
         <div class="mt-4 flex flex-wrap items-center gap-2 text-[0.84rem] text-[#7b6b59]">
           <span>{author}</span>
           <span>{work}</span>

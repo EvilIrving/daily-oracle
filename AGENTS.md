@@ -91,7 +91,7 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 - CloudKit container 配置
 - Preview 验证持久化
 
-### Phase 3 — 网络层（可 mock 验证）
+### Phase 3 — 网络层（可 mock 验证）[DONE]
 
 - Services/EdgeFunctionService.swift：对接 daily-oracle Edge Function
 - Services/WeatherService.swift：WeatherKit 封装

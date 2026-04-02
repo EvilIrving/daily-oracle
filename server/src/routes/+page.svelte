@@ -10,6 +10,7 @@
   type Candidate = {
     id: string;
     text: string;
+    textCn: string | null;
     author: string;
     work: string;
     year?: number | null;
@@ -122,10 +123,10 @@ themes（可选，可多个，3-6 个语义主题词）：
 ## 输出格式（必须严格遵守）
 
 - 只输出一个合法的 JSON 数组，作为回复的全部内容；不要输出数组以外的任何字符（不要 Markdown、不要代码围栏、不要解释）。
-- 数组元素为对象，字段：text（string）、moods（string[]）、themes（string[]），含义见上文「标签定义」。
+- 数组元素为对象，字段：text（string）、text_cn（string，可选，仅当原文不是中文时必须提供中文翻译）、moods（string[]）、themes（string[]），含义见上文「标签定义」。
 - 本段没有合格句子时，输出：[]
 - 示例（仅结构示意）：
-[{"text":"……","moods":["sad"],"themes":["离别","秋"]},{"text":"……","moods":["calm"],"themes":["雨","等待"]}]`;
+[{"text":"……","moods":["sad"],"themes":["离别","秋"]},{"text":"To be, or not to be.","text_cn":"生存还是毁灭。","moods":["philosophical"],"themes":["存在","抉择"]}]`;
   const mainTabs: { id: MainTab; label: string }[] = [
     { id: 'extract', label: '提取' },
     { id: 'library', label: '名句库' },
@@ -713,6 +714,7 @@ themes（可选，可多个，3-6 个语义主题词）：
     return {
       id: item.id,
       text: item.text,
+      textCn: item.textCn ?? item.text_cn ?? null,
       author: item.author || '未知作者',
       work: item.work || item.sourceBook || '未知作品',
       year: item.year,
@@ -1577,6 +1579,7 @@ themes（可选，可多个，3-6 个语义主题词）：
                 {#each candidates as candidate}
                   <QuoteCard
                     text={candidate.text}
+                    textCn={candidate.textCn}
                     author={candidate.author}
                     work={candidate.work}
                     year={candidate.year ?? null}

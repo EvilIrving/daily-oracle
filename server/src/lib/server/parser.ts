@@ -163,6 +163,7 @@ export function buildQuoteCandidates(
 ): QuoteCandidate[] {
   return payloads.map((item) => ({
     text: item.text,
+    textCn: item.textCn,
     lang: deriveQuoteLang(meta.language, item.text),
     author: meta.author,
     work: meta.title,
@@ -192,6 +193,7 @@ function sanitizeExtractedQuote(input: unknown): ExtractedQuotePayload | null {
 
   const item = input as Record<string, unknown>;
   const text = String(item.text || '').trim();
+  const textCn = sanitizeTranslatedText(item.text_cn);
   const moods = sanitizeQuoteMoods(item.moods);
   const themes = sanitizeThemes(item.themes);
 
@@ -201,6 +203,7 @@ function sanitizeExtractedQuote(input: unknown): ExtractedQuotePayload | null {
 
   return {
     text,
+    textCn,
     moods,
     themes
   };
@@ -234,4 +237,9 @@ export function sanitizeQuoteMoods(value: unknown): QuoteMood[] {
 function sanitizeThemes(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 8);
+}
+
+function sanitizeTranslatedText(value: unknown): string | null {
+  const text = String(value || '').trim();
+  return text ? text : null;
 }

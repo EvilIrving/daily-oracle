@@ -64,6 +64,7 @@ export function initializeDbSchema(db: Database.Database) {
       run_id text not null references extraction_runs(id) on delete cascade,
       book_id text not null references books(id) on delete cascade,
       text text not null,
+      text_cn text,
       lang text not null,
       author text,
       work text,
@@ -90,6 +91,7 @@ export function initializeDbSchema(db: Database.Database) {
       book_title text,
       run_id text,
       text text not null,
+      text_cn text,
       lang text,
       author text,
       work text,
@@ -111,6 +113,20 @@ export function initializeDbSchema(db: Database.Database) {
   const columns = db.prepare(`pragma table_info(books)`).all() as Array<{ name: string }>;
   if (!columns.some((column) => column.name === 'supabase_book_id')) {
     db.exec(`alter table books add column supabase_book_id text;`);
+  }
+
+  const candidateColumns = db.prepare(`pragma table_info(quote_candidates)`).all() as Array<{
+    name: string;
+  }>;
+  if (!candidateColumns.some((column) => column.name === 'text_cn')) {
+    db.exec(`alter table quote_candidates add column text_cn text;`);
+  }
+
+  const reviewLogColumns = db.prepare(`pragma table_info(review_log)`).all() as Array<{
+    name: string;
+  }>;
+  if (!reviewLogColumns.some((column) => column.name === 'text_cn')) {
+    db.exec(`alter table review_log add column text_cn text;`);
   }
 }
 
@@ -311,10 +327,10 @@ export function insertCandidates(
 ) {
   const statement = db.prepare(`
     insert or ignore into quote_candidates (
-      id, run_id, book_id, text, lang, author, work, year, genre, moods_json, themes_json, source_book,
+      id, run_id, book_id, text, text_cn, lang, author, work, year, genre, moods_json, themes_json, source_book,
       chunk_index, normalized_text, review_status, reviewed_at, committed_at, created_at
     ) values (
-      @id, @runId, @bookId, @text, @lang, @author, @work, @year, @genre, @moodsJson, @themesJson, @sourceBook,
+      @id, @runId, @bookId, @text, @textCn, @lang, @author, @work, @year, @genre, @moodsJson, @themesJson, @sourceBook,
       @chunkIndex, @normalizedText, @reviewStatus, null, null, @createdAt
     )
   `);
@@ -326,6 +342,7 @@ export function insertCandidates(
         runId,
         bookId,
         text: candidate.text,
+        textCn: candidate.textCn,
         lang: candidate.lang,
         author: candidate.author,
         work: candidate.work,
@@ -492,10 +509,10 @@ export function insertReviewLog(
 ) {
   db.prepare(`
     insert into review_log (
-      id, candidate_id, book_id, book_title, run_id, text, lang, author, work, year, genre,
+      id, candidate_id, book_id, book_title, run_id, text, text_cn, lang, author, work, year, genre,
       moods_json, themes_json, chunk_index, decision, decided_at, created_at
     ) values (
-      @id, @candidateId, @bookId, @bookTitle, @runId, @text, @lang, @author, @work, @year, @genre,
+      @id, @candidateId, @bookId, @bookTitle, @runId, @text, @textCn, @lang, @author, @work, @year, @genre,
       @moodsJson, @themesJson, @chunkIndex, @decision, @decidedAt, @createdAt
     )
   `).run({
@@ -505,6 +522,7 @@ export function insertReviewLog(
     bookTitle,
     runId: candidate.runId,
     text: candidate.text,
+    textCn: candidate.textCn,
     lang: candidate.lang,
     author: candidate.author,
     work: candidate.work,
@@ -553,6 +571,7 @@ export function getReviewLogByBookId(db: Database.Database, bookId: string) {
     book_title: string | null;
     run_id: string | null;
     text: string;
+    text_cn: string | null;
     lang: string | null;
     author: string | null;
     work: string | null;
@@ -573,6 +592,7 @@ function mapCandidateRow(row: any): QuoteCandidateRecord {
     runId: row.run_id,
     bookId: row.book_id,
     text: row.text,
+    textCn: row.text_cn,
     lang: row.lang,
     author: row.author,
     work: row.work,

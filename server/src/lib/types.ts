@@ -47,12 +47,14 @@ export type ExtractionConfig = {
 
 export type ExtractedQuotePayload = {
   text: string;
+  textCn: string | null;
   moods: string[];
   themes: string[];
 };
 
 export type QuoteCandidate = {
   text: string;
+  textCn: string | null;
   lang: QuoteLang;
   author: string | null;
   work: string | null;
