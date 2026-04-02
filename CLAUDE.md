@@ -85,7 +85,7 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 
 ### Phase 2 — 数据层（纯本地，可离线验证）
 
-- 清理模板代码（删 Item.swift，重写 App 入口）
+- 清理模板代码（删 Item.swift，重写 App 入口）（[DONE]）
 - SwiftData Models：DailyRecord、Anniversary、UserConfig
 - App Group container 配置
 - CloudKit container 配置
@@ -102,7 +102,7 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 
 - 两 Tab 结构：历史 / 设置（对照 prototype）
 - 历史 Tab：日历 + 选中日期详情卡片（名句 + 宜忌）
-- 设置 Tab：Widget 预览 + 外观 + 语料偏好 + 纪念日入口
+- 设置 Tab：Widget 预览（fake data, no need to call Edge Function, just show to user） + 外观 + 语料偏好 + 纪念日入口
 - 心情选择交互
 
 ### Phase 5 — Widget
@@ -121,6 +121,5 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 ## 实施规则
 
 - 文档同步：更新协作规则时，同时修改 AGENTS.md 和 CLAUDE.md。
-- 事实核对：以 `docs/architecture.md`、相关代码和用户提供的原文为准。
-- 元数据来源：`lang`、`author`、`work`、`year`、`genre` 等字段统一来自 txt 元数据头，不由 AI 生成。
+- 事实核对：以 `docs/architecture.md`、相关代码和用户提供的原文为准。 
 - 环境安全：敏感密钥只放安全配置，不进入仓库；SvelteKit 服务端配置通过 `$env/dynamic/private` 访问。
