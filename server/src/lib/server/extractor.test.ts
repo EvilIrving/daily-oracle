@@ -27,8 +27,6 @@ function createConfig(): ExtractionConfig {
     concurrency: 2,
     temperature: 0.2,
     topP: 0.9,
-    topK: 50,
-    maxTokens: 2048,
     promptTemplate: ''
   };
 }
@@ -41,7 +39,7 @@ function createBook() {
       title: '示例书',
       author: '作者',
       year: 2024,
-      language: '中文',
+      language: 'zh',
       genre: '小说'
     }
   };

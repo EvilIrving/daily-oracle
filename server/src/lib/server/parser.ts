@@ -1,4 +1,11 @@
-import type { BookMeta, ExtractedQuotePayload, ParsedBook, QuoteCandidate, QuoteMood } from '../types';
+import type {
+  BookMeta,
+  ExtractedQuotePayload,
+  ParsedBook,
+  QuoteCandidate,
+  QuoteLang,
+  QuoteMood
+} from '../types';
 import { logError, logInfo } from './logger';
 
 const META_LABELS = new Map<string, keyof BookMeta>([
@@ -51,11 +58,8 @@ export function parseTxtWithMeta(rawText: string, fallbackTitle = ''): ParsedBoo
 
     if (!inBody) {
       headerLines.push(normalizedLine);
-      if (/^[{}]+$/.test(trimmed)) {
-        continue;
-      }
 
-      const match = trimmed.match(/^"?([A-Za-z_]+)"?\s*:\s*(.+?)(?:,)?$/);
+      const match = trimmed.match(/^\s*(title|author|year|language|genre)\s*:\s*(.*)$/i);
       if (!match) continue;
 
       const key = META_LABELS.get(match[1].trim().toLowerCase());
@@ -106,19 +110,8 @@ function extractInlineBodyAfterSeparator(line: string): string {
 }
 
 function parseMetaValue(rawValue: string): string | null {
-  const trimmed = rawValue.trim();
-  if (!trimmed) return null;
-
-  if (/^null$/i.test(trimmed)) {
-    return null;
-  }
-
-  const quoted = trimmed.match(/^"(.*)"$/);
-  if (quoted) {
-    return quoted[1].trim() || null;
-  }
-
-  return trimmed;
+  const t = rawValue.trim();
+  return t === '' ? null : t;
 }
 
 export function stripThinkingAndFences(raw: string): string {
@@ -213,28 +206,20 @@ function sanitizeExtractedQuote(input: unknown): ExtractedQuotePayload | null {
   };
 }
 
-function deriveQuoteLang(value: string | null, text: string): 'zh' | 'en' | 'translated' {
-  const sourceLanguage = String(value || '').trim().toLowerCase();
-  if (/(中文|汉语|漢語|chinese|\bzh\b)/.test(sourceLanguage)) {
-    return 'zh';
-  }
+const BOOK_LANG = new Set(['zh', 'en', 'translated', 'other']);
 
-  if (/(英文|英语|英語|english|\ben\b)/.test(sourceLanguage)) {
-    return 'en';
-  }
+export function deriveBookLang(value: string | null): 'zh' | 'en' | 'translated' | 'other' {
+  const v = String(value || '').trim();
+  if (BOOK_LANG.has(v)) return v as 'zh' | 'en' | 'translated' | 'other';
+  return 'other';
+}
 
-  if (sourceLanguage) {
-    return 'translated';
-  }
-
-  if (/[\u3400-\u9fff]/.test(text)) {
-    return 'zh';
-  }
-
-  if (/[A-Za-z]/.test(text)) {
-    return 'en';
-  }
-
+function deriveQuoteLang(value: string | null, text: string): QuoteLang {
+  const v = String(value || '').trim();
+  if (v === 'zh' || v === 'en' || v === 'translated') return v;
+  if (v === 'other') return 'translated';
+  if (/[\u3400-\u9fff]/.test(text)) return 'zh';
+  if (/[A-Za-z]/.test(text)) return 'en';
   return 'translated';
 }
 

@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import {
   createDb,
   getBookById,
@@ -8,7 +9,7 @@ import {
 } from '$lib/server/db';
 import { commitApprovedCandidates } from '$lib/server/supabase';
 
-export async function POST({ request }) {
+export const POST: RequestHandler = async ({ request }) => {
   const payload = (await request.json()) as { bookId?: string; runId?: string };
   const bookId = String(payload.bookId || '').trim();
   const runId = String(payload.runId || '').trim();
@@ -21,6 +22,9 @@ export async function POST({ request }) {
   const book = getBookById(db, bookId);
   if (!book) {
     return json({ error: '未找到对应书目。' }, { status: 404 });
+  }
+  if (!book.supabaseBookId) {
+    return json({ error: '该书尚未绑定 Supabase 正式书目。' }, { status: 409 });
   }
 
   const latestRun = getLatestRunByBookId(db, bookId);
@@ -35,14 +39,8 @@ export async function POST({ request }) {
 
   try {
     const result = await commitApprovedCandidates({
-      runId,
       candidates: approvedCandidates,
-      modelConfig: {},
-      bookTitle: book.meta.title,
-      bookAuthor: book.meta.author,
-      bookYear: book.meta.year,
-      bookGenre: book.meta.genre,
-      sourceLang: book.meta.language
+      supabaseBookId: book.supabaseBookId
     });
 
     markCandidatesCommitted(
@@ -57,4 +55,4 @@ export async function POST({ request }) {
       { status: 500 }
     );
   }
-}
+};

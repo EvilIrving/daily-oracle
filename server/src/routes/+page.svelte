@@ -60,8 +60,6 @@
     concurrency: number;
     temperature: number;
     topP: number;
-    topK: number;
-    maxTokens: number;
     prompt: string;
   };
 
@@ -77,20 +75,59 @@
   };
 
   const LEGACY_CONFIG_STORAGE_KEY = 'daily-quote.extract-config';
-  const CONFIG_STORAGE_KEY = 'daily-quote.extract-config.providers.v1';
-  const DEFAULT_PROVIDER_IDS = [] as const;
+  const CONFIG_STORAGE_KEY = 'daily-quote.extract-config.providers.v1'; 
   const DEFAULT_PROMPT = `你是一个文学语料库编辑，任务是从以下书籍文本中提取适合「每日名句」产品使用的候选句子。
 
 ## 产品背景
+
 这些句子会出现在一个极简 iOS 小组件上，用户每天看一句，可以按心情筛选。目标是让用户读完之后产生「这说的是我」的感受。
 
 ## 入选标准
+
 只保留同时满足以下所有条件的句子：
+
 1. 长度：中文 15–60 字，英文 10–40 词
-2. 脱离上下文仍然成立
-3. 经验可代入
-4. 语言有密度
-      5. 开放性：给出张力但不完全解释张力`;
+2. 脱离上下文仍然成立：非情节描写、场景或景物描写，不依赖上下文，具备独立完整性
+3. 经验可代入：描述普遍但难以言说的处境或感受，不是奇异经历，不是历史事实，不是知识性陈述
+4. 语言有密度：不能是口水话，需要具备文学性或哲思性
+5. 开放性：给出张力但不完全解释张力；如果是结论句，必须是「读者没有语言表达过但一旦看到就认同」的那种
+
+## 排除标准
+
+以下一律排除：
+
+- 情节推进句、对话接续句（离开上下文无意义）
+- 纯知识性/历史性陈述
+- 励志空话、鸡汤结论（「坚持就是胜利」类）
+- 过于私人的专有名词导致无法代入
+
+## 标签定义
+
+moods（可选，可多选，按强度排序）：
+
+- calm：静，不一定是好的静
+- sad：失落、离别、错过
+- anxious：悬而未决，等待，不安
+- happy：轻盈，意外的好
+- resilient：撑过去了，但有代价
+- romantic：不一定是爱情，是某种柔软
+- philosophical：看穿了什么，或者什么都没看穿
+- angry：压着的，不是爆发
+
+themes（可选，可多个，3-6 个语义主题词）：
+
+- 该句涉及的核心主题，如：离别、雨、父子、时间、孤独、自然、爱情、故乡、成长、死亡、回忆
+- 如适合特定季节，也包含季节词：春、夏、秋、冬
+- 如与特定天气意境相关，也包含天气词：雨、雪、风、晴
+- 不要填写抽象空泛的词如"人生"、"情感"，选择具体可触及的词
+
+## 输出格式（必须严格遵守）
+
+- 只输出一个合法的 JSON 数组，作为回复的全部内容；不要输出数组以外的任何字符（不要 Markdown、不要代码围栏、不要解释）。
+- 数组元素为对象，字段：text（string）、moods（string[]）、themes（string[]），含义见上文「标签定义」。
+- 本段没有合格句子时，输出：[]
+- 示例（仅结构示意）：
+[{"text":"……","moods":["sad"],"themes":["离别","秋"]},{"text":"……","moods":["calm"],"themes":["雨","等待"]}]`;
   const mainTabs: { id: MainTab; label: string }[] = [
     { id: 'extract', label: '提取' },
     { id: 'library', label: '名句库' },
@@ -98,10 +135,6 @@
     { id: 'review-log', label: '审核日志' }
   ];
 
-  const reviewFilters: { id: ReviewFilter; label: string }[] = [
-    { id: 'all', label: '全部' },
-    { id: 'pending', label: '待处理' }
-  ];
 
   // Reactive state with $state runes
   let activeTab = $state<MainTab>('extract');
@@ -117,8 +150,10 @@
   let runLastError: string | null = $state(null);
   let stopRequestPending = $state(false);
   let frozenExtractionProgress: ExtractionProgressSnapshot | null = $state(null);
-  let progressStream: EventSource | null = $state(null);
+  let progressStream: EventSource | null = null;
   let progressStreamBookId = $state('');
+  let fileInput = $state.raw<HTMLInputElement | null>(null);
+  let isUploadDragging = $state(false);
   let selectedFiles = $state<{
     id?: string;
     name: string;
@@ -131,28 +166,22 @@
     bodyLength?: number;
     status: string;
   }[]>([]);
-  let currentBook: (typeof selectedFiles)[number] | null = $state(null);
 
   let config = $state(createEmptyConfig());
   let providerState = $state(createEmptyProviderState());
-  let activeProviderId = $state(providerState.activeProviderId);
-  let activeProvider: ProviderProfile | null = $state(null);
+  let activeProviderId = $state(providerState.activeProviderId); 
   let configReady = $state(false);
   let promptExpanded = $state(false);
 
   let candidates = $state<Candidate[]>([]);
   let candidatesTotal = $state(0);
   let libraryQuotes = $state<LibraryQuote[]>([]);
-  let libraryAuthorOptions = $state<{ value: string; label: string; count: number }[]>([]);
-  let libraryMoodOptions = $state<{ value: string; label: string; count: number }[]>([]);
-  let libraryThemeOptions = $state<{ value: string; label: string; count: number }[]>([]);
-  let selectedLibraryAuthor = $state('all');
+     let selectedLibraryAuthor = $state('all');
   let selectedLibraryMood = $state('all');
   let selectedLibraryTheme = $state('all');
   let authorFiltersExpanded = $state(false);
   let moodFiltersExpanded = $state(false);
-  let themeFiltersExpanded = $state(false);
-  let filteredLibraryQuotes = $state<LibraryQuote[]>([]);
+  let themeFiltersExpanded = $state(false); 
   let deletingLibraryQuoteIds = $state(new Set<string>());
   let almanacToday: AlmanacTodayCard | null = $state(createInitialAlmanacToday());
   let libraryStats = $state({
@@ -248,8 +277,6 @@
       concurrency: 1,
       temperature: 0.2,
       topP: 0.9,
-      topK: 50,
-      maxTokens: 4096,
       prompt: DEFAULT_PROMPT
     };
   }
@@ -289,10 +316,14 @@
       concurrency: toFiniteNumber(next.concurrency, fallback.concurrency),
       temperature: toFiniteNumber(next.temperature, fallback.temperature),
       topP: toFiniteNumber(next.topP, fallback.topP),
-      topK: toFiniteNumber(next.topK, fallback.topK),
-      maxTokens: toFiniteNumber(next.maxTokens, fallback.maxTokens),
       prompt: String(next.prompt ?? fallback.prompt)
     };
+  }
+
+  function stripPromptFromConfig(input: Partial<ExtractConfig> | null | undefined): Partial<ExtractConfig> {
+    if (!input) return {};
+    const { prompt: _prompt, ...rest } = input;
+    return rest;
   }
 
   function normalizeProviderState(
@@ -310,7 +341,7 @@
       providerMap.set(id, {
         id,
         name: String(raw.name || id),
-        config: normalizeConfig(raw.config)
+        config: normalizeConfig(stripPromptFromConfig(raw.config))
       });
     }
 
@@ -322,7 +353,7 @@
       providers = [{
         id: newId,
         name: `提供商 1`,
-        config: normalizeConfig(baseConfig)
+        config: normalizeConfig(stripPromptFromConfig(baseConfig))
       }];
     }
 
@@ -353,7 +384,7 @@
       const legacyRaw = window.localStorage.getItem(LEGACY_CONFIG_STORAGE_KEY);
       if (!legacyRaw) return null;
 
-      const legacyConfig = normalizeConfig(JSON.parse(legacyRaw));
+      const legacyConfig = normalizeConfig(stripPromptFromConfig(JSON.parse(legacyRaw)));
       return createProviderState(legacyConfig);
     } catch {
       return null;
@@ -362,7 +393,14 @@
 
   function persistLocalProviderState(nextState = providerState) {
     if (!browser) return;
-    window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(nextState));
+    const persistedState: ProviderConfigState = {
+      activeProviderId: nextState.activeProviderId,
+      providers: nextState.providers.map((provider) => ({
+        ...provider,
+        config: normalizeConfig(stripPromptFromConfig(provider.config))
+      }))
+    };
+    window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(persistedState));
   }
 
   function hydrateConfigFromProvider(providerId: string) {
@@ -517,6 +555,11 @@
   async function handleFileChange(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
     const files = Array.from(input.files || []);
+    await importBooks(files);
+    input.value = '';
+  }
+
+  async function importBooks(files: File[]) {
     if (!files.length) return;
 
     try {
@@ -569,9 +612,44 @@
       }
     } catch (error) {
       notifyError(error instanceof Error ? error.message : 'TXT 解析失败。');
-    } finally {
-      input.value = '';
     }
+  }
+
+  function openFileInput() {
+    fileInput?.click();
+  }
+
+  function handleUploadDragEnter(event: DragEvent) {
+    event.preventDefault();
+    isUploadDragging = true;
+  }
+
+  function handleUploadDragOver(event: DragEvent) {
+    event.preventDefault();
+    isUploadDragging = true;
+  }
+
+  function handleUploadDragLeave(event: DragEvent) {
+    event.preventDefault();
+    const current = event.currentTarget as Node | null;
+    const next = event.relatedTarget as Node | null;
+    if (current && next && current.contains(next)) return;
+    isUploadDragging = false;
+  }
+
+  async function handleUploadDrop(event: DragEvent) {
+    event.preventDefault();
+    isUploadDragging = false;
+    const files = Array.from(event.dataTransfer?.files || []).filter(
+      (file) => file.type === 'text/plain' || /\.txt$/i.test(file.name)
+    );
+
+    if (!files.length) {
+      notifyError('只支持导入 txt 文件。');
+      return;
+    }
+
+    await importBooks(files);
   }
 
   function clearApiKey() {
@@ -906,8 +984,6 @@
             concurrency: Number(config.concurrency),
             temperature: Number(config.temperature),
             topP: Number(config.topP),
-            topK: Number(config.topK),
-            maxTokens: Number(config.maxTokens),
             promptTemplate: config.prompt
           }
         })
@@ -1141,26 +1217,26 @@
       : null
   );
   let extractionDensity = $derived(
-    currentBook?.bodyLength && currentBook.bodyLength > 0 && candidatesTotal > 0
-      ? (candidatesTotal / (currentBook.bodyLength / 10000)).toFixed(1)
+    currentBookDerived?.bodyLength && currentBookDerived.bodyLength > 0 && candidatesTotal > 0
+      ? (candidatesTotal / (currentBookDerived.bodyLength / 10000)).toFixed(1)
       : null
   );
   let libraryAuthorOptionsDerived = $derived(
     buildLibraryOptions(
       libraryQuotes.map((quote) => quote.author).filter(Boolean),
-      '全部作者'
+      '全部'
     )
   );
   let libraryMoodOptionsDerived = $derived(
     buildLibraryOptions(
       libraryQuotes.flatMap((quote) => quote.moods).filter(Boolean),
-      '全部心情'
+      '全部'
     )
   );
   let libraryThemeOptionsDerived = $derived(
     buildLibraryOptions(
       libraryQuotes.flatMap((quote) => quote.themes).filter(Boolean),
-      '全部主题'
+      '全部'
     )
   );
 
@@ -1320,8 +1396,17 @@
               </header>
 
               {#if editDialogProvider}
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]" onclick={() => cancelEdit()} onkeydown={(e) => e.key === 'Escape' && cancelEdit()} role="dialog" aria-modal="true" tabindex="-1">
-                  <div class="soft-panel w-[420px] max-h-[90vh] overflow-y-auto p-5">
+                <div
+                  class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]"
+                  onclick={(event) => {
+                    if (event.target === event.currentTarget) cancelEdit();
+                  }}
+                  onkeydown={(e) => e.key === 'Escape' && cancelEdit()}
+                  role="dialog"
+                  aria-modal="true"
+                  tabindex="-1"
+                >
+                  <div class="soft-panel w-[420px] max-h-[90vh] overflow-y-auto p-5" onclick={(event) => event.stopPropagation()}>
                     <p class="mb-4 text-sm font-medium text-ink">编辑提供商</p>
                     <div class="space-y-3">
                       <label class="block">
@@ -1362,23 +1447,13 @@
                           <input class="w-full accent-[#b59067]" type="range" min="0" max="1" step="0.01" bind:value={editDialogConfig.topP} />
                         </label>
                       </div>
-                      <div class="grid grid-cols-3 gap-3">
-                        <label class="block">
-                          <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">Top K</span>
-                          <input class="field w-full px-3 py-2 text-sm" type="number" min="1" step="1" bind:value={editDialogConfig.topK} />
-                        </label>
-                        <label class="block">
-                          <span class="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#85715d]">Max Tokens</span>
-                          <input class="field w-full px-3 py-2 text-sm" type="number" min="1" step="1" bind:value={editDialogConfig.maxTokens} />
-                        </label>
-                        <label class="block">
-                          <div class="mb-1 flex items-center justify-between text-[11px] text-[#6f604f]">
-                            <span class="uppercase tracking-[0.12em]">切片</span>
-                            <span>{editDialogConfig.chunkSize}</span>
-                          </div>
-                          <input class="w-full accent-[#b59067]" type="range" min="1000" max="6000" step="500" bind:value={editDialogConfig.chunkSize} />
-                        </label>
-                      </div>
+                      <label class="block">
+                        <div class="mb-1 flex items-center justify-between text-[11px] text-[#6f604f]">
+                          <span class="uppercase tracking-[0.12em]">切片</span>
+                          <span>{editDialogConfig.chunkSize}</span>
+                        </div>
+                        <input class="w-full accent-[#b59067]" type="range" min="1000" max="6000" step="500" bind:value={editDialogConfig.chunkSize} />
+                      </label>
                     </div>
                     <div class="mt-5 flex justify-end gap-2">
                       <button class="btn-secondary px-4 py-2 text-sm" onclick={cancelEdit} type="button">取消</button>
@@ -1399,20 +1474,44 @@
                     Prompt
                   </button>
                   {#if promptExpanded}
-                    <textarea class="field mt-2 min-h-[200px] w-full resize-none px-4 py-3 text-sm leading-7" bind:value={config.prompt}></textarea>
+                    <textarea
+                      class="field mt-2 min-h-[200px] w-full resize-none overflow-y-auto px-4 py-3 text-sm leading-7 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                      bind:value={config.prompt}
+                    ></textarea>
                   {/if}
                 </div>
 
-                <label class="block">
-                  <div class="rounded-[18px] border border-dashed border-[#d4c7b8] bg-[#fffdf8] px-4 py-6 text-center">
+                <div
+                  class={`rounded-[18px] border border-dashed transition ${
+                    isUploadDragging ? 'border-[#b59067] bg-[#fff7eb]' : 'border-[#d4c7b8] bg-[#fffdf8]'
+                  }`}
+                  role="group"
+                  aria-label="TXT 文件上传区"
+                  ondragenter={handleUploadDragEnter}
+                  ondragover={handleUploadDragOver}
+                  ondragleave={handleUploadDragLeave}
+                  ondrop={handleUploadDrop}
+                >
+                  <input
+                    bind:this={fileInput}
+                    class="hidden"
+                    type="file"
+                    multiple
+                    accept=".txt,text/plain"
+                    onchange={handleFileChange}
+                  />
+                  <button
+                    class="w-full px-4 py-6 text-center"
+                    type="button"
+                    onclick={openFileInput}
+                  >
                     <p class="text-sm text-[#7a6a58]">拖入或点击选择</p>
                     <p class="mt-1.5 text-xs text-[#8b7a67]">仅在当前设备解析，不上传到服务器</p>
                     <span class="btn-secondary mt-3 inline-flex cursor-pointer px-5 py-2 text-base font-medium">
                       选择 txt 文件
-                      <input class="hidden" type="file" multiple accept=".txt,text/plain" onchange={handleFileChange} />
                     </span>
-                  </div>
-                </label>
+                  </button>
+                </div>
 
                 {#if selectedFiles.length > 0}
                   <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1507,18 +1606,33 @@
           </section>
 
           <section class="soft-panel overflow-hidden">
-            <header class="flex flex-wrap items-center justify-between gap-4 border-b border-[#ded4c7] px-4 py-4 sm:px-5">
-              <div>
-                <h2 class="text-[0.98rem] font-medium text-ink">待审清单</h2>
-                {#if currentBook}
-                  <p class="mt-1 text-sm text-[#7b6b59]">当前书籍：{currentBookDerived?.title || currentBookDerived?.name}</p>
-                {/if}
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-sm text-[#6f604f]">待处理 {pendingCount} / {candidatesTotal}</span>
-                <button class="btn-secondary px-3.5 py-2 text-sm font-medium" type="button" onclick={clearCurrentBookResults}>
-                  清空当前书结果
-                </button>
+            <header class="border-b border-[#ded4c7] px-4 py-4 sm:px-5">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-[0.98rem] font-medium text-ink">待审清单</h2>
+                  {#if currentBookDerived}
+                    <p class="mt-1 text-sm text-[#7b6b59]">
+                      <span>当前书籍：{currentBookDerived?.title || currentBookDerived?.name}</span>
+                      <span class="text-[#6f604f]"> · 待处理 {pendingCount} / {candidatesTotal}</span>
+                      {#if extractionDensity !== null}
+                        <span class="text-[#6f604f]"> · 提取密度 {extractionDensity} 条/万字</span>
+                      {/if}
+                      {#if acceptanceRate !== null}
+                        <span class="text-[#6f604f]"> · 采纳率 {acceptanceRate}%</span>
+                      {:else}
+                        <span class="text-[#a89880]"> · 收/弃后统计采纳率</span>
+                      {/if}
+                    </p>
+                  {/if}
+                </div>
+                <div class="flex items-center gap-3">
+                  {#if !currentBookDerived}
+                    <span class="text-sm text-[#6f604f]">待处理 {pendingCount} / {candidatesTotal}</span>
+                  {/if}
+                  <button class="btn-secondary px-3.5 py-2 text-sm font-medium" type="button" onclick={clearCurrentBookResults}>
+                    清空当前书结果
+                  </button>
+                </div>
               </div>
             </header>
 
@@ -1552,18 +1666,6 @@
                 </div>
               {/if}
             </div>
-
-            <footer class="flex flex-wrap gap-x-6 gap-y-2 bg-[#f5f1ea] px-4 py-3 text-[0.82rem] text-[#6f604f] sm:px-5">
-              <span>本批 {candidatesTotal} 条</span>
-              {#if extractionDensity !== null}
-                <span>提取密度 {extractionDensity} 条/万字</span>
-              {/if}
-              {#if acceptanceRate !== null}
-                <span>采纳率 {acceptanceRate}%</span>
-              {:else}
-                <span class="text-[#a89880]">收/弃后统计采纳率</span>
-              {/if}
-            </footer>
           </section>
         </div>
       {:else if activeTab === 'library'}
@@ -1683,7 +1785,7 @@
             </div>
           </section>
         </div>
-      {:else}
+      {:else if activeTab === 'almanac'}
         <div class="px-4 py-4 sm:px-6 sm:py-5">
           <section class="soft-panel overflow-hidden">
             {#each almanacToday ? [almanacToday] : [] as today}

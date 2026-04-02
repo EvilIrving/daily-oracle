@@ -4,7 +4,9 @@ import { verifyQuoteExistsInBook } from './quote-verifier';
 describe('verifyQuoteExistsInBook', () => {
   it('accepts quotes that exist in the parsed body after normalization', () => {
     const result = verifyQuoteExistsInBook(
-      '"title": "围城"\n---\n“人总是在接近幸福时倍感幸福，在幸福进行时却患得患失。”',
+      `title: 围城
+---
+“人总是在接近幸福时倍感幸福，在幸福进行时却患得患失。”`,
       '人总是在接近幸福时倍感幸福，在幸福进行时却患得患失'
     );
 
@@ -17,7 +19,9 @@ describe('verifyQuoteExistsInBook', () => {
 
   it('rejects quotes that do not exist in the parsed body', () => {
     const result = verifyQuoteExistsInBook(
-      '"title": "围城"\n---\n人总是在接近幸福时倍感幸福，在幸福进行时却患得患失。',
+      `title: 围城
+---
+人总是在接近幸福时倍感幸福，在幸福进行时却患得患失。`,
       '从此故乡只有冬夏，再无春秋。'
     );
 
@@ -30,7 +34,12 @@ describe('verifyQuoteExistsInBook', () => {
   });
 
   it('rejects when the parsed body is empty', () => {
-    const result = verifyQuoteExistsInBook('"title": "空书"\n---\n', '任意一句');
+    const result = verifyQuoteExistsInBook(
+      `title: 空书
+---
+`,
+      '任意一句'
+    );
 
     expect(result).toEqual(
       expect.objectContaining({

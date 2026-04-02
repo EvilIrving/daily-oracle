@@ -57,7 +57,7 @@ describe('/api/extract', () => {
     getBookById.mockReturnValue({
       id: 'book-1',
       rawText: '正文',
-      meta: { title: '示例书', author: '作者', year: 2024, language: '中文', genre: '小说' }
+      meta: { title: '示例书', author: '作者', year: 2024, language: 'zh', genre: '小说' }
     });
     getLatestRunByBookId.mockReturnValue(null);
     startExtractionJob.mockReturnValue({

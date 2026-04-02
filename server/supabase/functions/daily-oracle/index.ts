@@ -148,9 +148,17 @@ Deno.serve(async (req) => {
     const weatherThemes = weatherToThemes(body.weather.condition, body.weather.temperature);
     const themeScoring = buildThemeScoring(weatherThemes);
 
+    type QuoteRow = {
+      id: string;
+      text: string;
+      mood: string[];
+      themes: string[];
+      book: { title: string | null; author: string | null; year: number | null; genre: string | null };
+    };
+
     let quoteQuery = supabase
       .from("quotes")
-      .select("id, text, author, work, year, mood, themes");
+      .select("id, text, mood, themes, book:books!inner(title, author, year, genre)");
 
     // We can't do custom scoring via supabase-js directly,
     // so fetch candidates filtered by mood and pick randomly with theme preference
@@ -164,20 +172,30 @@ Deno.serve(async (req) => {
 
     if (quoteError) throw quoteError;
 
-    // Score candidates by theme overlap
+    // Score candidates by theme overlap（出处字段在 books，见 schema.sql）
     let selectedQuote: Quote | null = null;
     if (candidates && candidates.length > 0) {
-      const scored = candidates.map((q: Quote) => {
+      const rows = candidates as QuoteRow[];
+      const scored = rows.map((q) => {
         let score = 0;
         for (const theme of weatherThemes) {
           if (q.themes?.includes(theme)) score += 2;
         }
-        // Add randomness to avoid always picking the same one
         score += Math.random() * 3;
-        return { ...q, score };
+        return { q, score };
       });
-      scored.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
-      selectedQuote = scored[0];
+      scored.sort((a, b) => b.score - a.score);
+      const top = scored[0].q;
+      const b = top.book;
+      selectedQuote = {
+        id: top.id,
+        text: top.text,
+        author: b?.author ?? null,
+        work: b?.title ?? null,
+        year: b?.year ?? null,
+        mood: top.mood,
+        themes: top.themes,
+      };
     }
 
     // --- 2. Generate or retrieve almanac ---

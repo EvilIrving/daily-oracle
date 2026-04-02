@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import {
   createDb,
   deleteCandidateById,
@@ -15,7 +16,7 @@ import type { ReviewStatus } from '$lib/types';
 
 const ALLOWED_STATUS = new Set<ReviewStatus>(['approved', 'rejected']);
 
-export async function PATCH({ request }) {
+export const PATCH: RequestHandler = async ({ request }) => {
   const payload = (await request.json()) as {
     candidateId?: string;
     status?: ReviewStatus;
@@ -49,6 +50,9 @@ export async function PATCH({ request }) {
   if (!book) {
     return json({ error: '未找到候选所属书目。' }, { status: 404 });
   }
+  if (!book.supabaseBookId) {
+    return json({ error: '该书尚未绑定 Supabase 正式书目。' }, { status: 409 });
+  }
 
   const verification = verifyQuoteExistsInBook(book.rawText, candidate.text, book.meta.title);
   if (!verification.valid) {
@@ -72,14 +76,8 @@ export async function PATCH({ request }) {
 
   try {
     const result = await commitApprovedCandidates({
-      runId: candidate.runId,
       candidates: [{ ...candidate, reviewStatus: 'approved', reviewedAt: new Date().toISOString() }],
-      modelConfig: {},
-      bookTitle: book.meta.title,
-      bookAuthor: book.meta.author,
-      bookYear: book.meta.year,
-      bookGenre: book.meta.genre,
-      sourceLang: book.meta.language
+      supabaseBookId: book.supabaseBookId
     });
 
     insertReviewLog(db, candidate, 'accepted', book.meta.title);
@@ -88,8 +86,7 @@ export async function PATCH({ request }) {
     return json({
       candidateId,
       action: 'approved',
-      insertedCount: result.insertedCount,
-      batchId: result.batchId
+      insertedCount: result.insertedCount
     });
   } catch (error) {
     logError('review', 'Failed to commit approved candidate to Supabase.', {
@@ -107,4 +104,4 @@ export async function PATCH({ request }) {
       { status: 500 }
     );
   }
-}
+};

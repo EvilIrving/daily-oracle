@@ -4,11 +4,11 @@
 
 系统分三层，**完全解耦**，唯一契约是数据库 schema 和 Edge Function 的请求/响应格式。
 
-- **Local 工作台**：语料生产（书籍解析、AI 提取、人工审核），通过 `service_role` 写入 Supabase 正式数据。
+- **Local 工作台**：语料生产（书籍解析、AI 提取、人工审核），通过 `service secret key` 写入 Supabase 正式数据。
 - **Supabase 业务层**：数据持久化 + 单一 Edge Function（接收客户端配置，组装每日数据包返回）。
 - **Apple App（iOS / iPadOS）**：展示 + 用户交互，所有用户数据存本地（SwiftData + CloudKit 同步），通过 WeatherKit 获取天气，StoreKit 2 管理内购。
 
-**无用户体系**：不使用 Supabase Auth。App 使用 anon key 直连 Supabase SDK / Edge Function。用户数据（历史、配置、纪念日）全部存本地 SwiftData，通过 CloudKit 实现跨设备同步。
+**无用户体系**：不使用 Supabase Auth。App 使用 publishable key 直连 Supabase SDK / Edge Function。用户数据（历史、配置、纪念日）全部存本地 SwiftData，通过 CloudKit 实现跨设备同步。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -19,7 +19,7 @@
 │  └──────────┘   └─────────────┘   └────────────────┘   └────┬─────┘ │
 └───────────────────────────────────────────────────────────┼─────────┘
                                                             │
-                                  service_role 写入正式书目与已审核数据
+                                  service secret key 写入正式书目与已审核数据
                                                             ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                   Layer 2: Supabase 业务层                           │
@@ -32,7 +32,7 @@
 │  │  接收客户端配置 → 选句 + 生成宜忌 → 返回每日数据包           │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
-                              ▲ anon key（无用户 token）
+                              ▲ publishable key（无用户 token）
                               │
 ┌─────────────────────────────┴───────────────────────────────────────┐
 │                Layer 3: Apple App（iOS / iPadOS）                   │
@@ -65,7 +65,7 @@
 - 上传书时先将解析出的书籍元数据写入 Supabase `books`，拿到正式 `book_id`
 - AI 提取配置只存在当前浏览器 `localStorage`；没有本地配置就不能发起提取
 - SQLite 只保存本地工作台缓存：原文、提取任务、待审候选、审核日志，以及本地书到 Supabase `book_id` 的映射
-- `收` 时通过 `service_role` key 立即写入 Supabase `quotes`，使用正式 `book_id` 关联；`弃` 时立即删除本地待审项
+- `收` 时通过 `service secret key` key 立即写入 Supabase `quotes`，使用正式 `book_id` 关联；`弃` 时立即删除本地待审项
 - 删除书时先删除 Supabase `books`，成功后再删除本地缓存书；若该书已有关联 quotes，则删除应被拒绝
 - 收或者弃都存入审核日志，用于后续分析
 
@@ -79,18 +79,19 @@
 | `@anthropic-ai/sdk` | AI 提取，通过 `baseURL` 接入兼容端点 |
 | `better-sqlite3` | 本地待审队列 |
 | TailwindCSS v3 | 样式 |
-| `@supabase/supabase-js` | service_role 写入 |
+| `@supabase/supabase-js` | service secret key 写入 |
 
 ### txt 元数据头规范
 
-上传的 txt 文件顶部预留结构化元数据，解析器自动读取：
+上传的 txt 文件顶部预留结构化元数据，解析器自动读取。格式固定为 **`key: value` 单行**，键名为英文，**值不加引号**（冒号后整段即为值，仅做首尾空白 trim）：
 
 ```
-"title": "一九八四",
-"author": "乔治奥威尔",
-"year": 1986,
-"language": "中文",
-"genre": "小说"
+title: 生死场
+author: 萧红
+year: 1935
+language: zh
+genre: 小说
+
 -------------
 
 （正文从分隔符之后开始）
@@ -99,7 +100,7 @@
 解析规则：
 
 - 逐行读取直到遇到 `---` 或连续 `-` 分隔符
-- 按 JSON 风格的 `key: value` 行提取元数据（`title`、`author`、`year`、`language`、`genre`）
+- 仅识别键名 `title`、`author`、`year`、`language`、`genre`（大小写不敏感）；`language` 须为 Supabase 枚举：`zh`、`en`、`translated`、`other`
 - 分隔符之后的全部内容作为正文，进入切片流程
 - 元数据自动填充到 AI prompt 的来源信息，并作为 Supabase `books` 表与本地审核上下文的事实源
 - 缺少某个字段不报错，视为空值
@@ -125,7 +126,7 @@ server/
 │   │   │   ├── chunker.ts            # 文本按段落切片
 │   │   │   ├── parser.ts             # txt 元数据解析 + AI JSON 输出解析 + mood 过滤
 │   │   │   ├── db.ts                 # SQLite 操作（local_books/runs/candidates/review_log）
-│   │   │   ├── supabase.ts           # Supabase service_role 写入客户端
+│   │   │   ├── supabase.ts           # Supabase service secret key 写入客户端
 │   │   │   ├── extractor.ts          # 后台并发提取执行器
 │   │   │   ├── extraction-jobs.ts    # 任务调度 + 进度订阅发布
 │   │   │   ├── extraction-control.ts # 运行中任务的中止控制（AbortController）
@@ -180,7 +181,7 @@ POST /api/extract 立即创建批次并启动后台任务
 解析 AI 返回的 JSON 数组
   - 过滤 <think> 标签
   - 保留提取出的名句正文；moods/themes 仅作为补充标签，缺失时不丢弃候选
-  - moods 只允许保留 docs/schema.sql 中 quote_mood 枚举支持的值
+  - moods 只允许保留 `server/supabase/schema.sql` 中 `quote_mood` 枚举支持的值
   - 句子候选写入本地 SQLite `quote_candidates`
   - 候选关联本地 `local_books.id`；审核通过时再通过 `local_books.supabase_book_id` 关联 Supabase `books`
     │
@@ -221,10 +222,9 @@ const client = new Anthropic({
 
 const response = await client.messages.create({
   model: config.model,
-  max_tokens: config.maxTokens,
+  max_tokens: 4096, // 固定值，不在 UI / 环境变量中配置
   temperature: config.temperature,
   top_p: config.topP,
-  top_k: config.topK,
   system: prompt,
   messages: [{ role: 'user', content: userContent }],
 });
@@ -240,14 +240,16 @@ CHUNK_SIZE=4000
 CONCURRENCY=3
 TEMPERATURE=0.3
 TOP_P=0.9
-TOP_K=50
-MAX_TOKENS=4096
+
+# Supabase（2026-03 起使用新版 key，legacy anon/service secret key 已废弃）
+SUPABASE_URL=https://xxx.supabase.co
+PUBLISHABLE_KEY=sb_publishable_xxx
+SERVICE_SECRET_KEY=sb_secret_xxx
 ```
 
 说明：
 
-- 当前实现使用非 streaming `messages.create`；`max_tokens` 必须控制在 Anthropic SDK 的 10 分钟非流式超时保护阈值内
-- 默认 `MAX_TOKENS` 为 `4096`；如果配置值过大，服务端会在发请求前自动收敛到安全上限，避免整个提取批次在本地被 SDK 直接拒绝
+- 当前实现使用非 streaming `messages.create`；`max_tokens` 固定为 `4096`（与兼容网关的非流式输出上限一致；不在工作台配置）；不发送 `top_k`，由服务端默认
 
 ### UI 页面
 
@@ -257,7 +259,7 @@ MAX_TOKENS=4096
 - 提取 Tab：
   - 左栏：支持多模型提供商切换（每个独立保存 API URL / 模型 / API Key / 采样参数 / Prompt）
   - 快捷复制按钮（API URL、模型、API Key）
-  - 参数配置：切片大小、并发数、Temperature、Top P、Top K、Max Tokens、Prompt 编辑器
+  - 参数配置：切片大小、并发数、Temperature、Top P、Prompt 编辑器
   - 右栏：txt 上传、已选书籍卡片、清空结果、删除书籍、提取进度条、开始/停止按钮
   - 状态机：IDLE / QUEUED / RUNNING / DONE / PARTIAL / STOPPED / ERROR
   - SSE 进度订阅：刷新页面后自动恢复运行中任务的进度推送
@@ -408,10 +410,10 @@ limit 5;
 
 | 表 | 策略 |
 |----|------|
-| books | anon 公开只读 |
-| quotes | anon 公开只读（is_active = true） |
-| almanac | anon 公开只读 |
-| books / quotes / almanac | 仅 service_role 可写 |
+| books | publishable key 公开只读 |
+| quotes | publishable key 公开只读（is_active = true） |
+| almanac | publishable key 公开只读 |
+| books / quotes / almanac | 仅 service secret key 可写 |
 
 ### 视图
 
@@ -553,7 +555,7 @@ Widget Timeline Provider
 
 | 组件 | 用途 |
 |------|------|
-| Supabase Swift SDK | 调用 Edge Function（anon key，无用户 token） |
+| Supabase Swift SDK | 调用 Edge Function（publishable key，无用户 token） |
 | WeatherKit | 获取天气数据，传给 Edge Function |
 | CoreLocation | 获取经纬度坐标 |
 | SwiftData | 本地持久化（历史、配置、纪念日），App Group container 共享 |
@@ -580,7 +582,7 @@ sequenceDiagram
 
     User->>UI: 本地选择 txt 文件
     UI->>UI: 读取文件内容并解析元数据头
-    UI->>Supabase: service_role UPSERT books
+    UI->>Supabase: service secret key UPSERT books
     Supabase-->>UI: 返回正式 book_id
     UI->>SQLite: 写入 local_books(raw_text, meta, supabase_book_id)
     UI->>UI: 切片正文
@@ -592,7 +594,7 @@ sequenceDiagram
     User->>UI: 逐条审核（收/弃）
     User->>UI: 点击入库
     UI->>SQLite: 读取 candidate.book_id 对应的 local_books.supabase_book_id
-    UI->>Supabase: service_role INSERT quotes(book_id, text, mood, themes)
+    UI->>Supabase: service secret key INSERT quotes(book_id, text, mood, themes)
     Supabase-->>UI: 成功
 ```
 

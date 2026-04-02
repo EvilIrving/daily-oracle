@@ -1,8 +1,9 @@
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import { createDb, getCandidateStats } from '$lib/server/db';
 import { deactivateSupabaseQuote, listSupabaseQuotes } from '$lib/server/supabase';
 
-export async function GET() {
+export const GET: RequestHandler = async () => {
   const db = createDb();
   const pendingStats = getCandidateStats(db);
 
@@ -28,9 +29,9 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+};
 
-export async function DELETE({ request }) {
+export const DELETE: RequestHandler = async ({ request }) => {
   const payload = (await request.json()) as { quoteId?: string };
   const quoteId = String(payload.quoteId || '').trim();
 
@@ -47,4 +48,4 @@ export async function DELETE({ request }) {
       { status: 500 }
     );
   }
-}
+};

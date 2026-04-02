@@ -30,6 +30,7 @@ export function initializeDbSchema(db: Database.Database) {
     create table if not exists books (
       id text primary key,
       file_name text not null,
+      supabase_book_id text,
       title text not null,
       author text,
       year integer,
@@ -106,18 +107,24 @@ export function initializeDbSchema(db: Database.Database) {
       on review_log (book_id);
 
   `);
+
+  const columns = db.prepare(`pragma table_info(books)`).all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === 'supabase_book_id')) {
+    db.exec(`alter table books add column supabase_book_id text;`);
+  }
 }
 
 export function upsertBook(
   db: Database.Database,
-  input: { id: string; fileName: string; meta: BookMeta; rawText: string }
+  input: { id: string; fileName: string; supabaseBookId: string | null; meta: BookMeta; rawText: string }
 ): BookRecord {
   const now = new Date().toISOString();
   db.prepare(`
-    insert into books (id, file_name, title, author, year, language, genre, raw_text, created_at, updated_at)
-    values (@id, @fileName, @title, @author, @year, @language, @genre, @rawText, @createdAt, @updatedAt)
+    insert into books (id, file_name, supabase_book_id, title, author, year, language, genre, raw_text, created_at, updated_at)
+    values (@id, @fileName, @supabaseBookId, @title, @author, @year, @language, @genre, @rawText, @createdAt, @updatedAt)
     on conflict(id) do update set
       file_name = excluded.file_name,
+      supabase_book_id = excluded.supabase_book_id,
       title = excluded.title,
       author = excluded.author,
       year = excluded.year,
@@ -128,6 +135,7 @@ export function upsertBook(
   `).run({
     id: input.id,
     fileName: input.fileName,
+    supabaseBookId: input.supabaseBookId,
     title: input.meta.title,
     author: input.meta.author,
     year: input.meta.year,
@@ -141,6 +149,7 @@ export function upsertBook(
   return {
     id: input.id,
     fileName: input.fileName,
+    supabaseBookId: input.supabaseBookId,
     meta: input.meta,
     rawText: input.rawText,
     createdAt: now,
@@ -156,6 +165,7 @@ export function listBooks(db: Database.Database): BookRecord[] {
   `).all() as Array<{
     id: string;
     file_name: string;
+    supabase_book_id: string | null;
     title: string;
     author: string | null;
     year: number | null;
@@ -385,6 +395,7 @@ export function getBookById(db: Database.Database, bookId: string): BookRecord |
     | {
         id: string;
         file_name: string;
+        supabase_book_id: string | null;
         title: string;
         author: string | null;
         year: number | null;
@@ -545,6 +556,7 @@ function mapCandidateRow(row: any): QuoteCandidateRecord {
 function mapBookRow(row: {
   id: string;
   file_name: string;
+  supabase_book_id: string | null;
   title: string;
   author: string | null;
   year: number | null;
@@ -557,6 +569,7 @@ function mapBookRow(row: {
   return {
     id: row.id,
     fileName: row.file_name,
+    supabaseBookId: row.supabase_book_id,
     meta: {
       title: row.title,
       author: row.author,

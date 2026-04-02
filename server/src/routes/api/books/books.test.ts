@@ -4,21 +4,32 @@ const createDb = vi.fn();
 const clearExtractionDataByBookId = vi.fn();
 const deleteBookById = vi.fn();
 const getBookById = vi.fn();
+const getLatestRunByBookId = vi.fn();
 const listBooks = vi.fn();
 const upsertBook = vi.fn();
 const parseTxtWithMeta = vi.fn();
+const upsertSupabaseBook = vi.fn();
+const ensureSupabaseBookDeletable = vi.fn();
+const deleteSupabaseBook = vi.fn();
 
 vi.mock('$lib/server/db', () => ({
   createDb,
   clearExtractionDataByBookId,
   deleteBookById,
   getBookById,
+  getLatestRunByBookId,
   listBooks,
   upsertBook
 }));
 
 vi.mock('$lib/server/parser', () => ({
   parseTxtWithMeta
+}));
+
+vi.mock('$lib/server/supabase', () => ({
+  upsertSupabaseBook,
+  ensureSupabaseBookDeletable,
+  deleteSupabaseBook
 }));
 
 describe('/api/books', () => {
@@ -28,6 +39,7 @@ describe('/api/books', () => {
 
   it('returns persisted books on GET', async () => {
     createDb.mockReturnValue({});
+    getLatestRunByBookId.mockReturnValue(undefined);
     listBooks.mockReturnValue([
       {
         id: 'book-1',
@@ -36,9 +48,10 @@ describe('/api/books', () => {
           title: '示例书',
           author: '作者',
           year: 2024,
-          language: '中文',
+          language: 'zh',
           genre: '小说'
         },
+        supabaseBookId: 'sb-book-1',
         rawText: '正文',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-02T00:00:00.000Z'
@@ -46,7 +59,7 @@ describe('/api/books', () => {
     ]);
 
     const { GET } = await import('./+server');
-    const response = await GET();
+    const response = await GET({} as Parameters<typeof GET>[0]);
     const payload = await response.json();
 
     expect(payload).toEqual({
@@ -57,11 +70,13 @@ describe('/api/books', () => {
           title: '示例书',
           author: '作者',
           year: 2024,
-          language: '中文',
+          language: 'zh',
           genre: '小说',
+          supabase_book_id: 'sb-book-1',
           body_length: 2,
           created_at: '2024-01-01T00:00:00.000Z',
-          updated_at: '2024-01-02T00:00:00.000Z'
+          updated_at: '2024-01-02T00:00:00.000Z',
+          status: 'idle'
         }
       ]
     });
@@ -89,21 +104,23 @@ describe('/api/books', () => {
         title: '一九八四',
         author: '奥威尔',
         year: 1984,
-        language: '中文',
+        language: 'zh',
         genre: '小说'
       },
       body: '正文内容',
       header: '元数据头'
     });
     createDb.mockReturnValue({});
+    upsertSupabaseBook.mockResolvedValue({ id: 'sb-book-1' });
     upsertBook.mockReturnValue({
       id: 'book-1',
       fileName: '1984.txt',
+      supabaseBookId: 'sb-book-1',
       meta: {
         title: '一九八四',
         author: '奥威尔',
         year: 1984,
-        language: '中文',
+        language: 'zh',
         genre: '小说'
       }
     });
@@ -113,7 +130,7 @@ describe('/api/books', () => {
       request: new Request('http://localhost/api/books', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: '1984.txt', rawText: '"title": "一九八四"\n---\n正文内容' })
+        body: JSON.stringify({ fileName: '1984.txt', rawText: 'title: 一九八四\n---\n正文内容' })
       })
     } as Parameters<typeof POST>[0]);
 
@@ -125,12 +142,20 @@ describe('/api/books', () => {
         title: '一九八四',
         author: '奥威尔',
         year: 1984,
-        language: '中文',
+        language: 'zh',
         genre: '小说',
+        supabaseBookId: 'sb-book-1',
         bodyLength: 4
       }
     });
-    expect(parseTxtWithMeta).toHaveBeenCalledWith('"title": "一九八四"\n---\n正文内容', '1984');
+    expect(parseTxtWithMeta).toHaveBeenCalledWith('title: 一九八四\n---\n正文内容', '1984');
+    expect(upsertSupabaseBook).toHaveBeenCalledWith({
+      title: '一九八四',
+      author: '奥威尔',
+      year: 1984,
+      genre: '小说',
+      language: 'zh'
+    });
     expect(upsertBook).toHaveBeenCalled();
   });
 
@@ -143,7 +168,7 @@ describe('/api/books', () => {
         title: '一九八四',
         author: '奥威尔',
         year: 1984,
-        language: '中文',
+        language: 'zh',
         genre: '小说'
       },
       rawText: '正文内容'
@@ -167,7 +192,7 @@ describe('/api/books', () => {
         title: '一九八四',
         author: '奥威尔',
         year: 1984,
-        language: '中文',
+        language: 'zh',
         genre: '小说',
         bodyLength: 4
       }
@@ -176,6 +201,19 @@ describe('/api/books', () => {
 
   it('deletes a book on DELETE', async () => {
     createDb.mockReturnValue({});
+    getBookById.mockReturnValue({
+      id: 'book-1',
+      fileName: '1984.txt',
+      supabaseBookId: 'sb-book-1',
+      meta: {
+        title: '一九八四',
+        author: '奥威尔',
+        year: 1984,
+        language: 'zh',
+        genre: '小说'
+      },
+      rawText: '正文内容'
+    });
     deleteBookById.mockReturnValue({ changes: 1 });
 
     const { DELETE } = await import('./+server');
@@ -183,6 +221,8 @@ describe('/api/books', () => {
       url: new URL('http://localhost/api/books?bookId=book-1')
     } as Parameters<typeof DELETE>[0]);
 
+    expect(ensureSupabaseBookDeletable).toHaveBeenCalledWith('sb-book-1');
+    expect(deleteSupabaseBook).toHaveBeenCalledWith('sb-book-1');
     expect(deleteBookById).toHaveBeenCalledWith({}, 'book-1');
     await expect(response.json()).resolves.toEqual({
       ok: true,

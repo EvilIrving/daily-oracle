@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { buildQuoteCandidates, normalizeQuoteText, parseAiJsonArray, parseTxtWithMeta, sanitizeQuoteMoods } from './parser';
+import {
+  buildQuoteCandidates,
+  deriveBookLang,
+  normalizeQuoteText,
+  parseAiJsonArray,
+  parseTxtWithMeta,
+  sanitizeQuoteMoods
+} from './parser';
 
 describe('parseTxtWithMeta', () => {
-  it('parses json-style metadata header and body after separator', () => {
+  it('parses plain key: value metadata header and body after separator', () => {
     const parsed = parseTxtWithMeta(
-      `"title": "一九八四",
-"author": "乔治·奥威尔",
-"year": 1984,
-"language": "中文",
-"genre": "小说"
+      `title: 一九八四
+author: 乔治·奥威尔
+year: 1984
+language: zh
+genre: 小说
 
 -------------
 
@@ -20,14 +27,14 @@ describe('parseTxtWithMeta', () => {
     expect(parsed.meta.title).toBe('一九八四');
     expect(parsed.meta.author).toBe('乔治·奥威尔');
     expect(parsed.meta.year).toBe(1984);
-    expect(parsed.meta.language).toBe('中文');
+    expect(parsed.meta.language).toBe('zh');
     expect(parsed.meta.genre).toBe('小说');
     expect(parsed.body).toContain('战争即和平');
   });
 
   it('falls back gracefully when fields are missing', () => {
     const parsed = parseTxtWithMeta(
-      `"title": "围城"
+      `title: 围城
 
 ---
 
@@ -43,8 +50,8 @@ describe('parseTxtWithMeta', () => {
 
   it('accepts separator lines with unicode dashes and invisible chars', () => {
     const parsed = parseTxtWithMeta(
-      `\uFEFF"title": "局外人",
-"author": "加缪"
+      `\uFEFFtitle: 局外人
+author: 加缪
 
 \u200B———————
 
@@ -59,7 +66,7 @@ describe('parseTxtWithMeta', () => {
 
   it('keeps inline body content after the separator', () => {
     const parsed = parseTxtWithMeta(
-      `"title": "变形记"
+      `title: 变形记
 --- 一天早晨，格里高尔从不安的梦中醒来。`,
       'fallback'
     );
@@ -68,15 +75,13 @@ describe('parseTxtWithMeta', () => {
     expect(parsed.body).toBe('一天早晨，格里高尔从不安的梦中醒来。');
   });
 
-  it('accepts braces and null values in metadata header', () => {
+  it('parses header without braces', () => {
     const parsed = parseTxtWithMeta(
-      `{
-"title": "扶桑",
-"author": "严歌苓",
-"year": 1998,
-"language": "中文",
-"genre": "小说"
-}
+      `title: 扶桑
+author: 严歌苓
+year: 1998
+language: zh
+genre: 小说
 ---
 正文`,
       'fallback'
@@ -85,9 +90,21 @@ describe('parseTxtWithMeta', () => {
     expect(parsed.meta.title).toBe('扶桑');
     expect(parsed.meta.author).toBe('严歌苓');
     expect(parsed.meta.year).toBe(1998);
-    expect(parsed.meta.language).toBe('中文');
+    expect(parsed.meta.language).toBe('zh');
     expect(parsed.meta.genre).toBe('小说');
     expect(parsed.body).toBe('正文');
+  });
+});
+
+describe('deriveBookLang', () => {
+  it('passes through book_lang tokens only', () => {
+    expect(deriveBookLang('zh')).toBe('zh');
+    expect(deriveBookLang('en')).toBe('en');
+    expect(deriveBookLang('translated')).toBe('translated');
+    expect(deriveBookLang('other')).toBe('other');
+    expect(deriveBookLang('中文')).toBe('other');
+    expect(deriveBookLang(null)).toBe('other');
+    expect(deriveBookLang('')).toBe('other');
   });
 });
 
@@ -187,7 +204,7 @@ describe('buildQuoteCandidates', () => {
         title: '锦瑟',
         author: '李商隐',
         year: 812,
-        language: '中文',
+        language: 'zh',
         genre: '诗'
       },
       0
@@ -212,7 +229,7 @@ describe('buildQuoteCandidates', () => {
         title: '安娜·卡列尼娜',
         author: '托尔斯泰',
         year: 1878,
-        language: '俄文',
+        language: 'other',
         genre: '小说'
       },
       0

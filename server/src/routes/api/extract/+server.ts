@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import {
   createDb,
   getCandidateStats,
@@ -21,8 +22,6 @@ function normalizeRequestConfig(input: Partial<ExtractionConfig> | null | undefi
     concurrency: 1,
     temperature: 0.2,
     topP: 0.9,
-    topK: 50,
-    maxTokens: 4096,
     promptTemplate: ''
   };
   const next = input || {};
@@ -43,8 +42,6 @@ function normalizeRequestConfig(input: Partial<ExtractionConfig> | null | undefi
     concurrency: toFiniteInt(next.concurrency, fallback.concurrency),
     temperature: toFiniteNumber(next.temperature, fallback.temperature),
     topP: toFiniteNumber(next.topP, fallback.topP),
-    topK: toFiniteInt(next.topK, fallback.topK),
-    maxTokens: toFiniteInt(next.maxTokens, fallback.maxTokens),
     promptTemplate: String(next.promptTemplate ?? fallback.promptTemplate)
   };
 }
@@ -88,7 +85,7 @@ function getExtractionPayload(db: ReturnType<typeof createDb>, bookId: string) {
   };
 }
 
-export async function GET({ url }) {
+export const GET: RequestHandler = async ({ url }) => {
   const bookId = url.searchParams.get('bookId');
   if (!bookId) {
     return json({ error: 'bookId 必填。' }, { status: 400 });
@@ -176,9 +173,9 @@ export async function GET({ url }) {
       }
     }
   );
-}
+};
 
-export async function POST({ request }) {
+export const POST: RequestHandler = async ({ request }) => {
   try {
     const requestPayload = (await request.json()) as {
       bookId?: string;
@@ -221,8 +218,6 @@ export async function POST({ request }) {
       concurrency: config.concurrency,
       temperature: config.temperature,
       topP: config.topP,
-      topK: config.topK,
-      maxTokens: config.maxTokens,
       promptTemplateLength: config.promptTemplate?.length ?? 0
     });
     const run = startExtractionJob({
@@ -251,9 +246,9 @@ export async function POST({ request }) {
       { status: 500 }
     );
   }
-}
+};
 
-export async function PATCH({ request }) {
+export const PATCH: RequestHandler = async ({ request }) => {
   try {
     const payload = (await request.json()) as { bookId?: string; runId?: string };
     const db = createDb();
@@ -301,4 +296,4 @@ export async function PATCH({ request }) {
       { status: 500 }
     );
   }
-}
+};

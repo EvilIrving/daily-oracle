@@ -24,15 +24,35 @@ describe('/api/library', () => {
     createDb.mockReturnValue({});
     getCandidateStats.mockReturnValue({ pending: 2 });
     listSupabaseQuotes.mockResolvedValue([
-      { id: 'q-1', text: '示例名句', mood: ['calm'], themes: ['time'] }
+      {
+        id: 'q-1',
+        text: '示例名句',
+        author: '作者',
+        work: '作品',
+        year: 2024,
+        genre: '小说',
+        mood: ['calm'],
+        themes: ['time']
+      }
     ]);
 
     const { GET } = await import('./+server');
-    const response = await GET();
+    const response = await GET({} as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      quotes: [{ id: 'q-1', text: '示例名句', mood: ['calm'], themes: ['time'] }],
+      quotes: [
+        {
+          id: 'q-1',
+          text: '示例名句',
+          author: '作者',
+          work: '作品',
+          year: 2024,
+          genre: '小说',
+          mood: ['calm'],
+          themes: ['time']
+        }
+      ],
       stats: {
         totalCommitted: 1,
         pending: 2
@@ -46,7 +66,7 @@ describe('/api/library', () => {
     listSupabaseQuotes.mockRejectedValue(new Error('缺少环境变量：SUPABASE_URL'));
 
     const { GET } = await import('./+server');
-    const response = await GET();
+    const response = await GET({} as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({

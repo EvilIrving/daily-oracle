@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import { createDb, listReviewLogBooks, getReviewLogByBookId } from '$lib/server/db';
 
-export function GET({ url }) {
+export const GET: RequestHandler = ({ url }) => {
   const db = createDb();
   const bookId = url.searchParams.get('bookId');
 
@@ -44,4 +45,4 @@ export function GET({ url }) {
       lastDecidedAt: b.last_decided_at
     }))
   );
-}
+};

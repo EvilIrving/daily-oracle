@@ -1,8 +1,10 @@
 import crypto from 'node:crypto';
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import { clearExtractionDataByBookId, createDb, deleteBookById, getBookById, getLatestRunByBookId, listBooks, upsertBook } from '$lib/server/db';
 import { logError, logInfo } from '$lib/server/logger';
 import { parseTxtWithMeta } from '$lib/server/parser';
+import { deleteSupabaseBook, ensureSupabaseBookDeletable, upsertSupabaseBook } from '$lib/server/supabase';
 import type { TaskStatus } from '$lib/types';
 
 function getBookStatus(db: ReturnType<typeof createDb>, bookId: string): TaskStatus {
@@ -11,7 +13,7 @@ function getBookStatus(db: ReturnType<typeof createDb>, bookId: string): TaskSta
   return run.status as TaskStatus;
 }
 
-export async function GET() {
+export const GET: RequestHandler = async () => {
   const db = createDb();
   const books = listBooks(db).map((book) => {
     const status = getBookStatus(db, book.id);
@@ -21,19 +23,20 @@ export async function GET() {
       title: book.meta.title,
       author: book.meta.author,
       year: book.meta.year,
-      language: book.meta.language,
-      genre: book.meta.genre,
-      body_length: book.rawText.length,
-      created_at: book.createdAt,
-      updated_at: book.updatedAt,
+          language: book.meta.language,
+          genre: book.meta.genre,
+          supabase_book_id: book.supabaseBookId,
+          body_length: book.rawText.length,
+          created_at: book.createdAt,
+          updated_at: book.updatedAt,
       status
     };
   });
 
   return json({ books });
-}
+};
 
-export async function POST({ request }) {
+export const POST: RequestHandler = async ({ request }) => {
   try {
     const payload = (await request.json()) as {
       fileName?: string;
@@ -66,9 +69,17 @@ export async function POST({ request }) {
     });
 
     const db = createDb();
+    const supabaseBook = await upsertSupabaseBook({
+      title: parsed.meta.title,
+      author: parsed.meta.author,
+      year: parsed.meta.year,
+      genre: parsed.meta.genre,
+      language: parsed.meta.language
+    });
     const record = upsertBook(db, {
       id: crypto.randomUUID(),
       fileName,
+      supabaseBookId: supabaseBook.id,
       meta: parsed.meta,
       rawText: parsed.body
     });
@@ -89,6 +100,7 @@ export async function POST({ request }) {
         year: record.meta.year,
         language: record.meta.language,
         genre: record.meta.genre,
+        supabaseBookId: record.supabaseBookId,
         bodyLength: parsed.body.length
       }
     });
@@ -96,14 +108,14 @@ export async function POST({ request }) {
     logError('api/books', 'POST /api/books failed.', { error });
     return json(
       {
-        error: error instanceof Error ? error.message : '上传书籍失败。'
+        error: error instanceof Error ? error.message : (error as any)?.message || '上传书籍失败。'
       },
       { status: 500 }
     );
   }
-}
+};
 
-export async function PATCH({ request }) {
+export const PATCH: RequestHandler = async ({ request }) => {
   const payload = (await request.json()) as {
     bookId?: string;
     action?: string;
@@ -139,19 +151,29 @@ export async function PATCH({ request }) {
       bodyLength: book.rawText.length
     }
   });
-}
+};
 
-export async function DELETE({ url }) {
+export const DELETE: RequestHandler = async ({ url }) => {
   const bookId = String(url.searchParams.get('bookId') || '').trim();
   if (!bookId) {
     return json({ error: 'bookId 必填。' }, { status: 400 });
   }
 
   const db = createDb();
+  const book = getBookById(db, bookId);
+  if (!book) {
+    return json({ error: '未找到对应书目。' }, { status: 404 });
+  }
+
+  if (book.supabaseBookId) {
+    await ensureSupabaseBookDeletable(book.supabaseBookId);
+    await deleteSupabaseBook(book.supabaseBookId);
+  }
+
   const result = deleteBookById(db, bookId);
   if (!result.changes) {
     return json({ error: '未找到对应书目。' }, { status: 404 });
   }
 
   return json({ ok: true, bookId });
-}
+};

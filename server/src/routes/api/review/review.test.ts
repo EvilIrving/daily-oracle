@@ -4,6 +4,7 @@ const createDb = vi.fn();
 const deleteCandidateById = vi.fn();
 const getBookById = vi.fn();
 const getCandidateById = vi.fn();
+const insertReviewLog = vi.fn();
 const markCandidatesCommitted = vi.fn();
 const updateCandidateReviewStatus = vi.fn();
 const commitApprovedCandidates = vi.fn();
@@ -14,6 +15,7 @@ vi.mock('$lib/server/db', () => ({
   deleteCandidateById,
   getBookById,
   getCandidateById,
+  insertReviewLog,
   markCandidatesCommitted,
   updateCandidateReviewStatus
 }));
@@ -96,14 +98,15 @@ describe('/api/review', () => {
         title: '作品',
         author: '作者',
         year: 2024,
-        language: '中文',
+        language: 'zh',
         genre: '小说'
       },
+      supabaseBookId: 'sb-book-1',
       rawText: '正文',
       createdAt: '2026-03-30T00:00:00.000Z',
       updatedAt: '2026-03-30T00:00:00.000Z'
     });
-    commitApprovedCandidates.mockResolvedValue({ batchId: 'batch-1', insertedCount: 1 });
+    commitApprovedCandidates.mockResolvedValue({ insertedCount: 1 });
 
     const { PATCH } = await import('./+server');
     const response = await PATCH({
@@ -117,21 +120,14 @@ describe('/api/review', () => {
     expect(updateCandidateReviewStatus).toHaveBeenCalledWith({}, 'c-1', 'approved');
     expect(verifyQuoteExistsInBook).toHaveBeenCalledWith('正文', '示例名句', '作品');
     expect(commitApprovedCandidates).toHaveBeenCalledWith({
-      runId: 'r-1',
       candidates: [expect.objectContaining({ id: 'c-1', reviewStatus: 'approved' })],
-      modelConfig: {},
-      bookTitle: '作品',
-      bookAuthor: '作者',
-      bookYear: 2024,
-      bookGenre: '小说',
-      sourceLang: '中文'
+      supabaseBookId: 'sb-book-1'
     });
     expect(markCandidatesCommitted).toHaveBeenCalledWith({}, ['c-1']);
     await expect(response.json()).resolves.toEqual({
       candidateId: 'c-1',
       action: 'approved',
-      insertedCount: 1,
-      batchId: 'batch-1'
+      insertedCount: 1
     });
   });
 
@@ -151,9 +147,10 @@ describe('/api/review', () => {
         title: '作品',
         author: '作者',
         year: 2024,
-        language: '中文',
+        language: 'zh',
         genre: '小说'
       },
+      supabaseBookId: 'sb-book-1',
       rawText: '正文',
       createdAt: '2026-03-30T00:00:00.000Z',
       updatedAt: '2026-03-30T00:00:00.000Z'

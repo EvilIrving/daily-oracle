@@ -61,3 +61,16 @@ Internet Archive — 量大，包含扫描版
 
 bible.com 可以下载，或直接搜"和合本 txt"有大量镜像
 Gutenberg 上有 King James Version
+
+
+
+
+
+
+
+
+
+
+
+
+export SUPABASE_ACCESS_TOKEN=你的token

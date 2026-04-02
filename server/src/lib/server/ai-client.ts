@@ -8,8 +8,8 @@ import { parseAiJsonArray } from './parser';
 const WORKSPACE_ROOT =
   path.basename(process.cwd()) === 'server' ? path.dirname(process.cwd()) : process.cwd();
 const PROMPT_PATH = path.join(WORKSPACE_ROOT, 'docs/prompt-oracle.md');
-const NON_STREAMING_MAX_TOKENS_LIMIT = 21333;
-const DEFAULT_REQUEST_MAX_TOKENS = 4096;
+/** 非流式输出上限（与提供商文档核对；不在 UI 暴露）。 */
+const REQUEST_MAX_TOKENS = 4096;
 const REQUEST_TIMEOUT_MS = 120_000;
 
 export function loadPromptTemplate(): string {
@@ -30,18 +30,9 @@ export async function extractQuotesForChunk(input: {
 
   const systemPrompt = (input.config.promptTemplate || loadPromptTemplate()).trim();
   const userContent = buildChunkUserPrompt(input.meta, input.chunk, input.totalChunks);
-  const safeMaxTokens = resolveRequestMaxTokens(input.config.maxTokens);
   const safeTopP = resolveTopP(input.config.topP);
-  const safeTopK = resolveTopK(input.config.topK);
-  if (safeMaxTokens !== input.config.maxTokens) {
-    logInfo('ai-client', 'Adjusted maxTokens for non-streaming request.', {
-      requestedMaxTokens: input.config.maxTokens,
-      effectiveMaxTokens: safeMaxTokens,
-      limit: NON_STREAMING_MAX_TOKENS_LIMIT
-    });
-  }
   const chunkTag = `[${input.chunk.index + 1}/${input.totalChunks}]`;
-  logInfo('ai-client', `${chunkTag} → ${input.config.model} (${input.chunk.text.length} chars, maxTokens=${safeMaxTokens}, temp=${input.config.temperature})`);
+  logInfo('ai-client', `${chunkTag} → ${input.config.model} (${input.chunk.text.length} chars, temp=${input.config.temperature})`);
 
   const t0 = Date.now();
   const responseText = await requestWithRetry(async () => {
@@ -50,10 +41,9 @@ export async function extractQuotesForChunk(input: {
       const response = await client.messages.create(
         {
           model: input.config.model,
-          max_tokens: safeMaxTokens,
+          max_tokens: REQUEST_MAX_TOKENS,
           temperature: input.config.temperature,
           top_p: safeTopP,
-          top_k: safeTopK,
           system: systemPrompt,
           messages: [{ role: 'user', content: userContent }]
         },
@@ -80,11 +70,11 @@ export async function extractQuotesForChunk(input: {
 
 function buildChunkUserPrompt(meta: BookMeta, chunk: TextChunk, totalChunks: number): string {
   const sourceLines = [
-    meta.title && `"title": "${meta.title}"`,
-    meta.author && `"author": "${meta.author}"`,
-    meta.year && `"year": ${meta.year}`,
-    meta.language && `"language": "${meta.language}"`,
-    meta.genre && `"genre": "${meta.genre}"`
+    meta.title && `title: ${meta.title}`,
+    meta.author && `author: ${meta.author}`,
+    meta.year != null && `year: ${meta.year}`,
+    meta.language && `language: ${meta.language}`,
+    meta.genre && `genre: ${meta.genre}`
   ].filter(Boolean);
 
   return `## 来源信息
@@ -107,25 +97,10 @@ async function requestWithRetry<T>(fn: () => Promise<T>, retries = 1): Promise<T
   }
 }
 
-export function resolveRequestMaxTokens(value: number): number {
-  const parsed = Number.isFinite(value) ? Math.floor(value) : NaN;
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return DEFAULT_REQUEST_MAX_TOKENS;
-  }
-
-  return Math.min(parsed, NON_STREAMING_MAX_TOKENS_LIMIT);
-}
-
 export function resolveTopP(value: number): number {
   const parsed = Number.isFinite(value) ? value : NaN;
   if (!Number.isFinite(parsed)) return 0.9;
   return Math.max(0, Math.min(1, parsed));
-}
-
-export function resolveTopK(value: number): number {
-  const parsed = Number.isFinite(value) ? Math.floor(value) : NaN;
-  if (!Number.isFinite(parsed)) return 50;
-  return Math.max(1, parsed);
 }
 
 function createTimeoutSignal(externalSignal: AbortSignal | undefined, timeoutMs: number) {

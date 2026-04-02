@@ -42,8 +42,6 @@ export type ExtractionConfig = {
   concurrency: number;
   temperature: number;
   topP: number;
-  topK: number;
-  maxTokens: number;
   promptTemplate: string;
 };
 
@@ -71,6 +69,7 @@ export type QuoteCandidate = {
 export type BookRecord = {
   id: string;
   fileName: string;
+  supabaseBookId: string | null;
   meta: BookMeta;
   rawText: string;
   createdAt: string;
