@@ -19,7 +19,7 @@ enum Tab: CaseIterable {
 }
 
 struct RootView: View {
-    @State private var selectedTab: Tab = .history
+    @State private var selectedTab: Tab = .settings
 
     var body: some View {
         ZStack(alignment: .bottom) {

@@ -15,7 +15,7 @@ final class UserConfig {
     var preferredSourceLanguages: [String]
     var preferredGenres: [String]
     var lastSyncedAt: Date?
-    /// 用户在 `QuoteCard` 点选 `quote_mood` 偏好后，作为下次 `preferences.mood` 发给 Edge。
+    /// 用户选中的 `quote_mood` 偏好，作为下次 `preferences.mood` 发给 Edge。
     var preferredQuoteMoodRaw: String?
 
     init(

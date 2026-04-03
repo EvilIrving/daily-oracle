@@ -18,7 +18,7 @@ struct SettingsTab: View {
                 .foregroundStyle(Color("textPrimary"))
 
             VStack(spacing: Spacing.lg) {
-                widgetItem("小 · 2×2") { WidgetPreviewSmall().frame(width: 170) }
+                widgetItem("小 · 2×2") { WidgetPreviewSmall().frame(width: 170, height: 170) }
                 widgetItem("长条 · 4×2") { WidgetPreviewMedium() }
                 widgetItem("大 · 4×4") { WidgetPreviewLarge() }
             }
@@ -27,9 +27,6 @@ struct SettingsTab: View {
     private func widgetItem<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(spacing: Spacing.xs) {
             content()
-            Text(label)
-                .font(.sectionLabel)
-                .foregroundStyle(Color("textTertiary"))
         }
     }
 }
