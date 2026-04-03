@@ -1,4 +1,3 @@
-import CoreLocation
 import Foundation
 import SwiftData
 import Testing
@@ -26,34 +25,6 @@ final class EdgeFunctionServiceSpy: EdgeFunctionServicing, @unchecked Sendable {
 
     func fetchDailyOracle(request: OracleEdgeRequest) async throws -> OracleEdgeResponse {
         receivedRequests.append(request)
-        return try result.get()
-    }
-}
-
-final class WeatherServiceSpy: WeatherServicing, @unchecked Sendable {
-    private(set) var receivedLocations: [CLLocation] = []
-    private let result: Result<WeatherSnapshot, Error>
-
-    init(result: Result<WeatherSnapshot, Error>) {
-        self.result = result
-    }
-
-    func weather(for location: CLLocation) async throws -> WeatherSnapshot {
-        receivedLocations.append(location)
-        return try result.get()
-    }
-}
-
-final class LocationServiceSpy: LocationServicing, @unchecked Sendable {
-    private(set) var requestCount = 0
-    private let result: Result<LocationSnapshot, Error>
-
-    init(result: Result<LocationSnapshot, Error>) {
-        self.result = result
-    }
-
-    func currentLocation() async throws -> LocationSnapshot {
-        requestCount += 1
         return try result.get()
     }
 }

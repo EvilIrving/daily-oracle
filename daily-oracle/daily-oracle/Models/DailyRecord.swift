@@ -16,7 +16,6 @@ final class DailyRecord {
     var recommended: String
     var avoided: String
     var moodRawValue: String?
-    var weatherSummary: String?
     var note: String?
     var createdAt: Date
     var updatedAt: Date
@@ -30,7 +29,6 @@ final class DailyRecord {
         recommended: String = "",
         avoided: String = "",
         mood: QuoteMood? = nil,
-        weatherSummary: String? = nil,
         note: String? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now
@@ -43,7 +41,6 @@ final class DailyRecord {
         self.recommended = recommended
         self.avoided = avoided
         self.moodRawValue = mood?.rawValue
-        self.weatherSummary = weatherSummary
         self.note = note
         self.createdAt = createdAt
         self.updatedAt = updatedAt

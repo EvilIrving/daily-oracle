@@ -7,9 +7,6 @@ import Foundation
 import SwiftData
 
 enum OracleModelContainer {
-    static let appGroupIdentifier = "group.cain.com.daily-oracle"
-    static let cloudKitContainerIdentifier = "iCloud.cain.com.daily-oracle"
-
     static let shared: ModelContainer = {
         try! makeContainer()
     }()
@@ -24,9 +21,7 @@ enum OracleModelContainer {
         let configuration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: inMemory,
-            allowsSave: true,
-            groupContainer: inMemory ? .none : .identifier(appGroupIdentifier),
-            cloudKitDatabase: .automatic
+            allowsSave: true
         )
 
         return try ModelContainer(for: schema, configurations: [configuration])

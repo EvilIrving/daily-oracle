@@ -5,19 +5,20 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 
 ## Apple App 开发约定
 
-- App 侧 Supabase 只允许使用 `SUPABASE_URL` + `PUBLISHABLE_KEY`；`SERVICE_SECRET_KEY` 只能留在 `server/.env` 和 Supabase Edge Function 环境变量。
-- 在未引入 `.xcconfig` 前，`SUPABASE_URL` / `PUBLISHABLE_KEY` 先放 `daily-oracle/daily-oracle/Info.plist`；后续需要多环境时再迁移到 `.xcconfig` 注入。
-- `Info.plist` 只放客户端可公开配置和权限文案，不放 service secret、管理口令或任何可写库的密钥。
-- Personal Team 开发环境不支持 `iCloud`、`Push Notifications`、`WeatherKit`；这三项必须设计成可裁剪能力，不能阻塞本地开发。
-- Apple App 维持两条交付线：`Dev Baseline` 和 `Production Capabilities`。
-- `Dev Baseline` 目标是让 Personal Team 也能编译、运行、联调主流程；默认关闭 `iCloud`、`Push Notifications`、`WeatherKit`，用本地存储和降级逻辑跑通。
-- `Production Capabilities` 只在付费 Apple Developer Program 账号下启用；开启前先确认 App ID、entitlements、provisioning profile 一致。
-- 改 entitlements、capability、bundle id、container id 前，先判断当前是不是 Personal Team；若是，优先保 `Dev Baseline` 可运行。
-- Widget 不自己申请定位权限；主 App 负责写入共享数据，Widget 只读最后一次成功同步结果。
-- 没有定位权限时，允许功能降级并明确提示；没有 WeatherKit 时，允许天气字段为空或回退到不依赖天气的请求；没有 CloudKit 时，SwiftData 继续本地工作。
-- 设置页需要预留“服务状态 / 权限状态”分区，展示定位、天气、同步当前是否可用，避免静默失败。
-- Push / 后台刷新只有在明确需要远程刷新 widget 或通知时才启用，不提前开 capability。
-- 发版前必须逐项确认：权限文案、无网表现、无定位表现、无天气表现、首次启动表现、签名与 provisioning 一致。
+第一版迭代：开发纯本地 app，不涉及天气、定位、同步等能力
+
+后续使用一段时间后，再引入天气、定位、同步等能力，让句子推送更智能，数据更丰富，用户体验更完善
+ 
+
+- App 目录为 `daily-oracle/`，SwiftUI + SwiftData + WidgetKit，支持 iOS / iPadOS / macOS。
+- Deployment Target：iOS/iPadOS 17.6、macOS 14.0；引入更高版本 API 前需要确认。
+- 三端共用同一 App target；平台差异集中在视图层最外层用 `#if os()` 处理。
+- 测试框架使用 Swift Testing（`import Testing`）。
+- 当前第一版使用纯本地 SwiftData；Widget 阶段再切到 App Group 共享存储，CloudKit 也延后到 Phase 7。
+- 不使用 Supabase Auth；内购使用 StoreKit 2 纯客户端验证。
+- 少用 `xcodebuild` 做频繁验证，主要用于最终打包或收尾检查。
+
+## 已完成
 
 ### Phase 0 — 项目初始化 [DONE]
 
@@ -42,18 +43,19 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 ### Phase 3 — 网络层 [DONE]
 
 - Services/EdgeFunctionService.swift：对接 daily-oracle Edge Function
-- Services/WeatherService.swift：WeatherKit 封装
-- Services/LocationService.swift：CoreLocation 封装
 - 截止 Phase 3 只保留模型层和网络层
 - UI 视为 0，`RootView` 保持空壳
 - 不保留 mock 数据、seed 数据或模板 UI test
 
-### Phase 3.5 — 配置与能力裁剪
+### Phase 3.5 — 清理不可用 Capabilities [DONE]
 
-- 3.5.1 从 `Info.plist` 读取 `SupabaseURL`、`SupabasePublishableKey`，集中封装到单一配置类型，不允许在业务代码里散读 plist。
-- 3.5.2 抽出 `CloudKit`、`WeatherKit`、`Push` 的能力边界，支持 capability 不可用时降级。
-- 3.5.3 `Dev Baseline` 默认可关闭 `iCloud`、`Push Notifications`、`WeatherKit`，但不删模型字段，不改业务契约。
-- 3.5.4 真机调试前先检查签名身份、entitlements、App ID、Provisioning Profile 是否匹配；不匹配先回退到 `Dev Baseline`。
+- App 侧已移除 `WeatherService.swift`、`LocationService.swift`、相关字段与测试替身
+- `DailyRecord`、`UserConfig`、`OracleServiceModels` 已去除 lat/lng/weather 相关字段
+- entitlements 已移除 WeatherKit、CloudKit；SwiftData `ModelContainer` 已改为纯本地存储
+- `daily-oracle` Edge Function 现在支持无天气请求；不传 `lat/lng/weather` 时跳过天气逻辑
+- 无天气时会从 `PROMPT_YI` 中移除天气整行，不保留空占位
+
+## 待办
 
 ### Phase 4 — 主界面
 
@@ -66,7 +68,7 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 - 4.7 语料偏好：与 Edge Function 请求参数对齐的本地配置 UI + 持久化
 - 4.8 纪念日：入口与 `Anniversary` 列表 / 编辑；与 Phase 6 内购门闩衔接
 - 4.9 心情：选择控件 + 写入当日记录或配置；与历史 / 详情展示一致
-- 4.10 设置页显示定位、天气、同步、推送当前状态与不可用原因。
+- 4.10 设置页显示定位、天气、同步、推送当前状态与不可用原因
 
 ### Phase 5 — Widget
 
@@ -84,11 +86,9 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 - 6.4 动效与微交互：转场、列表与日历反馈（对照 prototype 节奏）
 - 6.5 iPad / 多尺寸：`horizontalSizeClass`、横屏与宽屏布局
 
-### Phase 7 — Production Capabilities 收口
+### Phase 7 — Production Capabilities（需付费 Apple Developer Program）
 
-- 7.1 CloudKit：确认 container id、entitlement、SwiftData 存储位置、跨设备同步行为一致。
-- 7.2 WeatherKit：确认 Apple Developer 后台能力、Xcode capability、entitlement、真机天气请求可用。
-- 7.3 Push / 后台刷新：只在明确有业务需求时启用并联调。
-- 7.4 归档前检查 App ID、bundle identifier、provisioning profile、entitlements 四者一致。
-
- 
+- 7.1 WeatherKit + CoreLocation：重新加入定位与天气能力，接入 Edge Function lat/lng 参数
+- 7.2 CloudKit：确认 container id、entitlement、SwiftData 存储位置、跨设备同步行为一致
+- 7.3 Push / 后台刷新：只在明确有业务需求时启用并联调
+- 7.4 归档前检查 App ID、bundle identifier、provisioning profile、entitlements 四者一致

@@ -6,7 +6,6 @@
 import Foundation
 import Observation
 import SwiftData
-import CoreLocation
 import OSLog
 
 @MainActor
@@ -17,17 +16,11 @@ final class DailyOracleStore {
     private(set) var lastResponseDate: Date?
 
     private let edgeService: any EdgeFunctionServicing
-    private let weatherService: any WeatherServicing
-    private let locationService: any LocationServicing
 
     init(
-        edgeService: any EdgeFunctionServicing,
-        weatherService: any WeatherServicing,
-        locationService: any LocationServicing
+        edgeService: any EdgeFunctionServicing
     ) {
         self.edgeService = edgeService
-        self.weatherService = weatherService
-        self.locationService = locationService
     }
 
     func refresh(using modelContext: ModelContext, config: UserConfig?) async {
@@ -37,33 +30,15 @@ final class DailyOracleStore {
 
         Log.store.info("Refresh started")
         do {
-            let location = try await locationService.currentLocation()
-            let weather = try await weatherService.weather(
-                for: CLLocation(latitude: location.latitude, longitude: location.longitude)
-            )
-            let request = makeRequest(location: location, weather: weather, config: config)
+            let request = makeRequest(config: config)
             let response = try await edgeService.fetchDailyOracle(request: request)
 
-            try upsertDailyRecord(
-                with: response,
-                weather: weather,
-                modelContext: modelContext
-            )
+            try upsertDailyRecord(with: response, modelContext: modelContext)
 
             if let config {
-                config.cityName = location.cityName ?? config.cityName
-                config.latitude = location.latitude
-                config.longitude = location.longitude
                 config.lastSyncedAt = .now
             } else {
-                modelContext.insert(
-                    UserConfig(
-                        cityName: location.cityName,
-                        latitude: location.latitude,
-                        longitude: location.longitude,
-                        lastSyncedAt: .now
-                    )
-                )
+                modelContext.insert(UserConfig(lastSyncedAt: .now))
             }
 
             try modelContext.save()
@@ -75,18 +50,10 @@ final class DailyOracleStore {
         }
     }
 
-    private func makeRequest(
-        location: LocationSnapshot,
-        weather: WeatherSnapshot,
-        config: UserConfig?
-    ) -> OracleEdgeRequest {
+    private func makeRequest(config: UserConfig?) -> OracleEdgeRequest {
         OracleEdgeRequest(
-            geo: .init(lng: location.longitude, lat: location.latitude),
-            weather: .init(
-                temperature: weather.temperature,
-                condition: weather.condition,
-                wind: weather.windSpeed
-            ),
+            geo: nil,
+            weather: nil,
             profile: .init(
                 lang: Locale.preferredLanguages.first?.prefix(2).description ?? "zh",
                 region: Locale.current.region?.identifier ?? "CN",
@@ -100,11 +67,7 @@ final class DailyOracleStore {
         )
     }
 
-    private func upsertDailyRecord(
-        with response: OracleEdgeResponse,
-        weather: WeatherSnapshot,
-        modelContext: ModelContext
-    ) throws {
+    private func upsertDailyRecord(with response: OracleEdgeResponse, modelContext: ModelContext) throws {
         let date = oracleDate(from: response.date)
         let descriptor = FetchDescriptor<DailyRecord>(
             predicate: #Predicate<DailyRecord> { record in
@@ -125,7 +88,6 @@ final class DailyOracleStore {
             existing.quoteWork = quote.work
             existing.recommended = recommended
             existing.avoided = avoided
-            existing.weatherSummary = weather.summary
             existing.updatedAt = .now
         } else {
             modelContext.insert(
@@ -135,8 +97,7 @@ final class DailyOracleStore {
                     quoteAuthor: quoteAuthor,
                     quoteWork: quote.work,
                     recommended: recommended,
-                    avoided: avoided,
-                    weatherSummary: weather.summary
+                    avoided: avoided
                 )
             )
         }

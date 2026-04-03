@@ -35,8 +35,8 @@ const PROMPT_YI = `今天的输入信号：
 // --- Types ---
 
 interface RequestBody {
-  geo: { lng: number; lat: number };
-  weather: { temperature: number; condition: string; wind?: number };
+  geo?: { lng: number; lat: number };
+  weather?: { temperature: number; condition: string; wind?: number };
   profile: { lang: string; region: string; pro: boolean };
   preferences: {
     mood?: string;
@@ -133,8 +133,12 @@ function buildPrompt(body: RequestBody): string {
   prompt = prompt.replace("{{month}}", monthName(lang));
   prompt = prompt.replace("{{weekday}}", weekday(lang));
   prompt = prompt.replace("{{solar_term}}", "null"); // TODO: solar term lookup
-  prompt = prompt.replace("{{condition}}", body.weather.condition);
-  prompt = prompt.replace("{{temperature}}", String(body.weather.temperature));
+  if (body.weather) {
+    prompt = prompt.replace("{{condition}}", body.weather.condition);
+    prompt = prompt.replace("{{temperature}}", String(body.weather.temperature));
+  } else {
+    prompt = prompt.replace("- 天气：{{condition}}，{{temperature}}℃\n", "");
+  }
   prompt = prompt.replace(
     "{{mood_history}}",
     JSON.stringify(body.preferences.mood_history || [])
@@ -203,7 +207,9 @@ Deno.serve(async (req) => {
     const today = todayString();
 
     const mood = body.preferences.mood;
-    const weatherThemes = weatherToThemes(body.weather.condition, body.weather.temperature);
+    const weatherThemes = body.weather
+      ? weatherToThemes(body.weather.condition, body.weather.temperature)
+      : [];
 
     const candidates = await loadQuoteCandidates(supabase, mood);
     const selectedQuote = pickQuoteFromCandidates(candidates, weatherThemes);

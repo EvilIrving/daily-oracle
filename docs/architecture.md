@@ -6,9 +6,9 @@
 
 - **Local 工作台**：语料生产（书籍解析、AI 提取、人工审核），通过 `service secret key` 写入 Supabase 正式数据。
 - **Supabase 业务层**：数据持久化 + 单一 Edge Function（接收客户端配置，组装每日数据包返回）。
-- **Apple App（iOS / iPadOS）**：展示 + 用户交互，所有用户数据存本地（SwiftData + CloudKit 同步），通过 WeatherKit 获取天气，StoreKit 2 管理内购。
+- **Apple App（iOS / iPadOS）**：展示 + 用户交互，当前第一版所有用户数据只存本地 SwiftData，不接天气、定位、同步；后续阶段再补回 WeatherKit / CoreLocation / CloudKit / Widget 共享，StoreKit 2 保持不变。
 
-**无用户体系**：不使用 Supabase Auth。App 使用 publishable key 直连 Supabase SDK / Edge Function。用户数据（历史、配置、纪念日）全部存本地 SwiftData，通过 CloudKit 实现跨设备同步。
+**无用户体系**：不使用 Supabase Auth。App 使用 publishable key 直连 Supabase SDK / Edge Function。当前阶段用户数据（历史、配置、纪念日）全部只存本地 SwiftData；跨设备同步后置到 Phase 7。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -43,13 +43,10 @@
 │  │ 主界面：Phase 3 截止为空壳，Phase 4 再开始实现                │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │  ┌────────────────┐   ┌────────────────┐   ┌────────────────┐       │
-│  │ WeatherKit     │   │ SwiftData      │   │ CloudKit       │       │
-│  │ 客户端取天气    │   │ + App Group    │   │ 跨设备同步     │       │
+│  │ SwiftData      │   │ Edge Function  │   │ StoreKit 2     │       │
+│  │ 纯本地存储      │   │ 客户端请求      │   │ 内购管理       │       │
 │  └────────────────┘   └────────────────┘   └────────────────┘       │
-│  ┌────────────────┐   ┌────────────────┐                            │
-│  │ StoreKit 2     │   │ CoreLocation   │                            │
-│  │ 内购管理       │   │ 获取坐标       │                            │
-│  └────────────────┘   └────────────────┘                            │
+│  Phase 7 再接回：WeatherKit / CoreLocation / CloudKit / App Group   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -321,8 +318,6 @@ SERVICE_SECRET_KEY=sb_secret_xxx
 
 ```json
 {
-  "geo": { "lng": 113.26, "lat": 23.13 },
-  "weather": { "temperature": 28, "condition": "sunny", "wind": 3 },
   "profile": { "lang": "zh", "region": "CN", "pro": true },
   "preferences": {
     "mood": "calm",
@@ -334,15 +329,15 @@ SERVICE_SECRET_KEY=sb_secret_xxx
 
 | 字段 | 说明 |
 |------|------|
-| `geo` | 经纬度坐标（CoreLocation） |
-| `weather` | 天气数据（WeatherKit，客户端获取） |
+| `geo` | 可选，经纬度坐标（后续接回 CoreLocation 时传） |
+| `weather` | 可选，天气数据（后续接回 WeatherKit 时传） |
 | `profile` | 用户基础信息（语言、地区、是否付费） |
 | `preferences` | 扩展配置（心情、历史偏好等，未来新增字段放这里） |
 
 **处理逻辑**：
 
 1. 解析请求参数
-2. 根据 mood + themes + weather + 日期信号加权评分，从 `quotes` 表选句
+2. 根据 mood + themes + 日期信号加权评分，从 `quotes` 表选句；有天气时再额外叠加 weather 信号
 3. 调用 LLM 生成宜忌（使用 `docs/prompt-yi.md`，prompt 硬编码在函数内）
 4. 将宜忌按日期写入 `almanac`（缓存记录）
 5. 组装数据包返回
@@ -370,7 +365,7 @@ SERVICE_SECRET_KEY=sb_secret_xxx
 
 **关键设计**：
 
-- 天气数据仅用于服务端判断（选句加权 + 宜忌生成信号），不回传给客户端
+- 天气数据是可选信号；缺失时服务端跳过天气加权和天气 prompt 行，不回传给客户端
 - Edge Function 对 `preferences` 中未知字段直接忽略，保证向后兼容
 - App 只解码 `quote` 的展示字段（`id`、`text`、`author`、`work`、`year`）；
 
@@ -439,7 +434,7 @@ limit 5;
 
 **共享层（两端通用）**：
 
-- 业务逻辑、数据层（SwiftData + CloudKit）、网络层（Supabase SDK + WeatherKit）、StoreKit 2
+- 业务逻辑、数据层（SwiftData，本地优先）、网络层（Supabase SDK / Edge Function）、StoreKit 2
 - 大部分 SwiftUI 视图代码
 
 **平台差异层（`#if os()` 条件编译）**：
@@ -457,7 +452,7 @@ limit 5;
 - 用户心情选择（8 种：calm, happy, sad, anxious, angry, resilient, romantic, philosophical），触发换匹配名句 + 更新宜忌
 - 日历历史视图
 - 主题切换
-- 小组件数据同步
+- 小组件数据同步（Phase 5）
 - 纪念日管理（本地 SwiftData）
 
 ### 用户数据存储
@@ -467,8 +462,8 @@ limit 5;
 | 存储方式 | 数据 |
 |---------|------|
 | SwiftData | 每日记录（心情、名句、宜忌）、纪念日、App 配置、历史数据 |
-| App Group UserDefaults | 轻量标志位（lastFetchDate、当日缓存） |
-| CloudKit | SwiftData 自动同步，跨设备共享 |
+| App Group UserDefaults | Phase 5 再引入，用于 Widget 轻量共享 |
+| CloudKit | Phase 7 再引入，用于跨设备同步 |
 
 ### 内购（StoreKit 2）
 
@@ -483,13 +478,13 @@ limit 5;
 
 ### 天气（WeatherKit）
 
-客户端直接使用 Apple WeatherKit 获取天气数据，传给 Edge Function 作为选句和宜忌生成的信号。
+当前第一版不接天气。Phase 7 再由客户端使用 Apple WeatherKit 获取天气，并作为可选信号传给 Edge Function。
 
 ### 权限
 
 - **CoreLocation**：请求位置权限（`whenInUse`），获取经纬度坐标
 - **WeatherKit**：基于位置获取天气
-- 首次启动引导授权，拒绝后降级为手动选择城市
+- 当前第一版不申请这些权限；后续能力恢复时再启用授权流程
 
 ### 小组件三尺寸
 
@@ -537,7 +532,7 @@ App Group UserDefaults
 App 启动 / 后台刷新
     │
     ├── 检查 lastFetchDate != 今天？
-    │       ├── 是 → WeatherKit 取天气 → 获取坐标 → 调用 daily-oracle(geo, weather, profile, preferences) → 更新缓存
+    │       ├── 是 → 调用 daily-oracle(profile, preferences) → 更新缓存
     │       └── 否 → 使用缓存
     │
     └── WidgetCenter.shared.reloadAllTimelines()
@@ -556,7 +551,7 @@ Widget Timeline Provider
 
 - 预览当前小组件外观（实时效果）
 - 配置显示内容（心情筛选、刷新名句）
-- 日期显示 / 天气展示（WeatherKit 数据）/ 主题切换
+- 日期显示 / 主题切换
 - 心情选择 → 触发换匹配名句
 - **日历视图**：按月查看历史，每天显示当日名句/心情/宜忌
 
@@ -565,12 +560,12 @@ Widget Timeline Provider
 | 组件 | 用途 |
 |------|------|
 | Supabase Swift SDK | 调用 Edge Function（publishable key，无用户 token） |
-| WeatherKit | 获取天气数据，传给 Edge Function |
-| CoreLocation | 获取经纬度坐标 |
-| SwiftData | 本地持久化（历史、配置、纪念日），App Group container 共享 |
-| CloudKit | SwiftData 自动同步，跨设备 |
+| WeatherKit | Phase 7 再接入，作为 Edge Function 可选输入 |
+| CoreLocation | Phase 7 再接入，提供天气定位 |
+| SwiftData | 本地持久化（历史、配置、纪念日） |
+| CloudKit | Phase 7 再接入，做跨设备同步 |
 | StoreKit 2 | 内购验证（客户端本地） |
-| App Group | 共享 UserDefaults，App ↔ Widget 数据传递 |
+| App Group | Phase 5 再接入，做 App ↔ Widget 数据传递 |
 | WidgetKit | timeline provider 定时刷新 + `WidgetCenter.shared.reloadTimelines` |
 
 本地缓存策略：缓存当日数据，离线可用。
@@ -612,15 +607,9 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant App as iOS App
-    participant CL as CoreLocation
-    participant WK as WeatherKit
     participant Edge as Edge Function
 
-    App->>CL: 请求位置
-    CL-->>App: 经纬度
-    App->>WK: 请求天气(经纬度)
-    WK-->>App: 天气数据
-    App->>Edge: daily-oracle(geo, weather, profile, preferences)
+    App->>Edge: daily-oracle(profile, preferences)
     Edge->>Edge: 选句 + 生成宜忌
     Edge-->>App: { quote, almanac, date }
     App->>App: 存入 SwiftData + 更新 Widget
@@ -634,10 +623,10 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant LLM as LLM Provider
 
-    Edge->>Edge: 解析请求（geo, weather, profile, preferences）
-    Edge->>DB: 按 mood + themes + weather 加权选句
+    Edge->>Edge: 解析请求（profile, preferences, geo?, weather?）
+    Edge->>DB: 按 mood + themes 加权选句；有天气时再叠加 weather
     DB-->>Edge: 候选名句
-    Edge->>LLM: 生成宜忌（日期 + 天气 + 心情历史 + 阅读偏好）
+    Edge->>LLM: 生成宜忌（日期 + 可选天气 + 心情历史 + 阅读偏好）
     LLM-->>Edge: 宜/忌文本
     Edge->>DB: INSERT almanac（按日期缓存）
     Edge-->>Edge: 组装响应 { quote, almanac, date }
