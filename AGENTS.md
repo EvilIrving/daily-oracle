@@ -83,7 +83,7 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 - `DesignSystem/Typography.swift`：字号层级（名句衬线、导航、日历、设置、标签）
 - `Assets.xcassets/Colors/`：9 个 colorset，1:1 对应 prototype CSS 变量
 
-### Phase 2 — 数据层（纯本地，可离线验证）
+### Phase 2 — 数据层（纯本地，可离线验证）[DONE]
 
 - 清理模板代码（删 Item.swift，重写 App 入口）（[DONE]）
 - SwiftData Models：DailyRecord、Anniversary、UserConfig
@@ -91,12 +91,14 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 - CloudKit container 配置
 - Preview 验证持久化
 
-### Phase 3 — 网络层（可 mock 验证）[DONE]
+### Phase 3 — 网络层 [DONE]
 
 - Services/EdgeFunctionService.swift：对接 daily-oracle Edge Function
 - Services/WeatherService.swift：WeatherKit 封装
 - Services/LocationService.swift：CoreLocation 封装
-- 先用 hardcoded response 跑通数据流，再换真实 URL
+- 截止 Phase 3 只保留模型层和网络层
+- UI 视为 0，`RootView` 保持空壳
+- 不保留 mock 数据、seed 数据或模板 UI test
 
 ### Phase 4 — 主界面
 

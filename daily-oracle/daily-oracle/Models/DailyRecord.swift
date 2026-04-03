@@ -13,9 +13,9 @@ final class DailyRecord {
     var quoteText: String
     var quoteAuthor: String
     var quoteWork: String?
-    var recommended: [String]
-    var avoided: [String]
-    var moodRawValue: String
+    var recommended: String
+    var avoided: String
+    var moodRawValue: String?
     var weatherSummary: String?
     var note: String?
     var createdAt: Date
@@ -27,9 +27,9 @@ final class DailyRecord {
         quoteText: String,
         quoteAuthor: String,
         quoteWork: String? = nil,
-        recommended: [String] = [],
-        avoided: [String] = [],
-        mood: DailyMood = .calm,
+        recommended: String = "",
+        avoided: String = "",
+        mood: QuoteMood? = nil,
         weatherSummary: String? = nil,
         note: String? = nil,
         createdAt: Date = .now,
@@ -42,30 +42,21 @@ final class DailyRecord {
         self.quoteWork = quoteWork
         self.recommended = recommended
         self.avoided = avoided
-        self.moodRawValue = mood.rawValue
+        self.moodRawValue = mood?.rawValue
         self.weatherSummary = weatherSummary
         self.note = note
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
 
-    var mood: DailyMood {
-        get { DailyMood(rawValue: moodRawValue) ?? .calm }
+    var mood: QuoteMood? {
+        get {
+            guard let raw = moodRawValue, !raw.isEmpty else { return nil }
+            return QuoteMood(rawValue: raw)
+        }
         set {
-            moodRawValue = newValue.rawValue
+            moodRawValue = newValue?.rawValue
             updatedAt = .now
         }
     }
-}
-
-enum DailyMood: String, Codable, CaseIterable, Sendable {
-    case calm
-    case joyful
-    case focused
-    case reflective
-    case tender
-}
-
-private extension Calendar {
-    static let oracle = Calendar(identifier: .gregorian)
 }

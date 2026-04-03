@@ -40,7 +40,7 @@
 │  │ 小组件 2×2 │   │ 长条 2×4   │   │ 大组件 4×4 │                   │
 │  └────────────┘   └────────────┘   └────────────┘                   │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │ 主界面：预览 / 配置 / 日历历史 / 主题切换                      │   │
+│  │ 主界面：Phase 3 截止为空壳，Phase 4 再开始实现                │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │  ┌────────────────┐   ┌────────────────┐   ┌────────────────┐       │
 │  │ WeatherKit     │   │ SwiftData      │   │ CloudKit       │       │
@@ -347,7 +347,7 @@ SERVICE_SECRET_KEY=sb_secret_xxx
 4. 将宜忌按日期写入 `almanac`（缓存记录）
 5. 组装数据包返回
 
-**响应格式**：
+**响应格式**（与 App 侧 `OracleEdgeResponse` 对齐；`quote` 必返，**无可用已发布名句时整请求失败**）：
 
 ```json
 {
@@ -356,9 +356,7 @@ SERVICE_SECRET_KEY=sb_secret_xxx
     "text": "原文",
     "author": "作者",
     "work": "作品",
-    "year": 1984,
-    "mood": ["calm", "philosophical"],
-    "themes": ["孤独", "自由"]
+    "year": 1984
   },
   "almanac": {
     "yi": "宜：在自然光下读几页纸质书",
@@ -368,13 +366,15 @@ SERVICE_SECRET_KEY=sb_secret_xxx
 }
 ```
 
+服务端选句时仍使用库内 `mood` / `themes` 等元数据做加权；**不必、也不作为契约字段**出现在给 App 的 `quote` 对象里。若历史实现或调试响应中多带了这些键，App 解码时忽略即可。
+
 **关键设计**：
 
 - 天气数据仅用于服务端判断（选句加权 + 宜忌生成信号），不回传给客户端
 - Edge Function 对 `preferences` 中未知字段直接忽略，保证向后兼容
-- App 对响应中缺失字段给默认值，保证向前兼容
+- App 只解码 `quote` 的展示字段（`id`、`text`、`author`、`work`、`year`）；
 
-**服务端环境变量（函数内建库与写 `almanac`）**：`SUPABASE_URL`、`SERVICE_SECRET_KEY`（与本地工作台同名的新版 secret，不用 legacy 的 `SUPABASE_SERVICE_ROLE_KEY`）；生成宜忌时尚需 `ANTHROPIC_API_KEY` 等（见函数实现）。部署时在 Supabase 项目 Secrets 中配置同名变量。
+**服务端环境变量（函数内建库与写 `almanac`）**：`SUPABASE_URL`、`SERVICE_SECRET_KEY`；生成宜忌时尚需 `ANTHROPIC_API_KEY` 等（见函数实现）。
 
 ### themes 加权评分查询策略
 
@@ -438,14 +438,17 @@ limit 5;
 **开发节奏**：先完成 iPhone 主线，再适配 iPad 布局，不扩展到 macOS 或 Catalyst。
 
 **共享层（两端通用）**：
+
 - 业务逻辑、数据层（SwiftData + CloudKit）、网络层（Supabase SDK + WeatherKit）、StoreKit 2
 - 大部分 SwiftUI 视图代码
 
 **平台差异层（`#if os()` 条件编译）**：
+
 - iPadOS：多栏布局优化、键盘快捷键、拖拽支持
 - Widget：同一份 Widget 代码覆盖 iPhone / iPad，按尺寸族适配布局
 
 **最低版本**：
+
 - iOS / iPadOS：17.6
 
 ### 职责

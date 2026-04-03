@@ -4,6 +4,21 @@
 
 ---
 
+## v0.2.3 — 2026-04-03
+
+**Apple App 改为双轨能力规划，iOS 约定下沉到子目录文档**
+
+- Apple App 新增 `Dev Baseline` 和 `Production Capabilities` 两条交付线
+- `Dev Baseline` 以 Personal Team 可编译、可运行、可联调为目标，允许关闭 `iCloud`、`Push Notifications`、`WeatherKit`
+- `Production Capabilities` 只在付费 Apple Developer Program 账号下启用，要求 App ID、entitlements、provisioning profile 一致
+- App 侧 Supabase 配置边界明确：客户端只使用 `SUPABASE_URL` 和 `PUBLISHABLE_KEY`，不接触 `SERVICE_SECRET_KEY`
+- 在未引入 `.xcconfig` 前，iOS 客户端配置先放 `daily-oracle/daily-oracle/Info.plist`
+- iOS 细化约定不再堆在仓库根文档，统一收敛到 `daily-oracle/CLAUDE.md`
+
+**原因**：实际联调时发现 Personal Team 无法签出带 `iCloud`、`Push Notifications`、`WeatherKit` 的 profile。如果继续把这些能力当默认前提，日常开发会被签名阻塞。改成双轨后，先保证本地可跑，再补正式能力；同时把 iOS 约定下沉到 `daily-oracle/CLAUDE.md`，避免根文档混入子项目实现细节。
+
+---
+
 ## v0.2.2 — 2026-04-02
 
 **工作台配置与数据边界继续收紧**

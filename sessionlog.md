@@ -1,3 +1,30 @@
+## pnpm + better-sqlite3 安装修复 - 2026-03-30 from: Cursor  
+
+主题: server 依赖安装失败与 node-gyp PATH 修复 | 标签: [build, config, bugfix]
+
+摘要:
+在 server 目录执行 `pnpm i` 时，`better-sqlite3` 的 install 脚本失败（ELIFECYCLE）。根因是 Node 24.12.0 无预编译包需本地编译，但脚本里执行 `node-gyp` 时 PATH 中找不到命令——pnpm 隔离布局下根项目的 node-gyp 不会出现在 better-sqlite3 包脚本的 PATH 中。通过在 `server/package.json` 使用 `pnpm.packageExtensions` 为 `better-sqlite3@*` 注入 `node-gyp` 依赖，使 node-gyp 进入该包的依赖树，安装脚本能解析到 node-gyp；随后 `pnpm install --no-frozen-lockfile` 成功并完成源码编译。验证时需注意先 `svelte-kit sync` 再 `pnpm check`，否则缺 `.svelte-kit/tsconfig.json`。
+
+决策:
+
+- 采用 packageExtensions 绑定 node-gyp 到 better-sqlite3，而非仅加根 devDependencies（后者仍无法被子包 install 脚本找到）。
+- 不单独要求用户全局安装 node-gyp，保持可复现的仓库级配置。
+
+备注:
+
+- 首次安装或改 package.json 后若 lockfile 冻结，需 `--no-frozen-lockfile` 或更新 lockfile。
+- 仍可能出现 `No prebuilt binaries found` 警告，属预期，会走 node-gyp 编译。
+
+原因:
+
+- prebuild-install 对 Node 24 / darwin / arm64 暂无匹配预构建时需本地编译。
+- pnpm 的依赖隔离导致 `node-gyp` 必须作为 better-sqlite3 可解析的依赖出现。
+
+引用:
+
+- 文件: `server/package.json`（`pnpm.packageExtensions`）
+- 命令: `cd server && pnpm install --no-frozen-lockfile`；`pnpm exec svelte-kit sync && pnpm check`
+
 ## 管理台主页面从 Svelte 4 迁移到 Svelte 5 Runes 语法 · 2026-03-31 · claude-haiku-4-5
 
 用户指出 `server/src/routes/+page.svelte` 使用了错误的 Svelte 4 语法，要求转换为 Svelte 5。
@@ -5,6 +32,7 @@
 **问题：** 文件使用了 Svelte 4 的 `let` 声明响应式变量、`$:` 响应式语句、`onMount` 生命周期和 `on:click` 事件指令。
 
 **改动：**
+
 - 所有 `let` 状态变量改为 `$state()` runes（约 40+ 处）
 - `$:` 响应式语句改为 `$derived()`（如 `filteredCandidates`、`pendingCount` 等）和 `$effect()`（如配置持久化、过滤器重置）
 - `onMount(() => { ... })` 改为 `$effect(() => { ... })`，带 cleanup 返回
@@ -12,6 +40,7 @@
 - 移除 `import { onMount } from 'svelte'`，`$effect` 是内置 rune
 
 **注意事项：**
+
 - 原 `$: currentBook = getCurrentBook()` 改为 `currentBookDerived = $derived(...)`，模板中引用需改为 `currentBookDerived`
 - 部分 `$: if (...)` 侧效果必须用 `$effect()` 而不是 `$derived()`
 - `libraryAuthorOptions` 等三个过滤器选项变量改为派生变量，模板中引用需加 `Derived` 后缀
@@ -25,6 +54,7 @@
 ai-client 和 extractor 里每个 chunk 原本会打 4 条多行 JSON 日志（包含完整 prompt 文本、完整 AI 响应、完整候选对象数组），高并发时终端几乎不可读。
 
 改动：
+
 - `ai-client.ts`：删掉"Prepared AI request payload"（含完整 prompt 文本）和"Received AI response"（含完整响应文本）、"Parsed AI response"（含完整对象数组），合并成 2 条紧凑单行：`[3/12] → model (N chars, maxTokens=…)` 和 `[3/12] ← M quotes (N chars, 3.2s)`
 - `extractor.ts`：dispatch 日志改为 `[3/12] dispatching (workers=2, done=2, failed=0)`；成功日志改为 `[3/12] ✓ 4 quotes (3.4s)`，并逐条预览引文前 60 字；失败日志内联错误信息和耗时；run 完成日志合并为单行 summary
 - `extraction-jobs.ts`：job queued 加一条，job completed 删掉（extractor 自己的 Run finished 已足够）

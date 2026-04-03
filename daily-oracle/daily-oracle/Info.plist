@@ -4,6 +4,10 @@
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>用于获取本地天气，生成当天的日签内容。</string>
+	<key>SupabasePublishableKey</key>
+	<string>sb_publishable_CEAAnqJE30o_XnX3LDd5bg_PEKJcsFD</string>
+	<key>SupabaseURL</key>
+	<string>https://iwoauzftqntuunnfifwc.supabase.co</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

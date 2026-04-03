@@ -5,30 +5,15 @@
 
 import Foundation
 import CoreLocation
+import OSLog
 
 protocol LocationServicing: Sendable {
     func currentLocation() async throws -> LocationSnapshot
 }
 
 struct LocationService: LocationServicing {
-    enum Mode: Sendable {
-        case mock
-        case live
-    }
-
-    private let mode: Mode
-
-    init(mode: Mode = .mock) {
-        self.mode = mode
-    }
-
     func currentLocation() async throws -> LocationSnapshot {
-        switch mode {
-        case .mock:
-            return .init(latitude: 30.2741, longitude: 120.1551, cityName: "杭州")
-        case .live:
-            return try await LocationManagerBridge().requestCurrentLocation()
-        }
+        return try await LocationManagerBridge().requestCurrentLocation()
     }
 }
 
@@ -95,16 +80,19 @@ private final class LocationManagerBridge: NSObject, CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else {
+            Log.location.warning("didUpdateLocations called with empty array")
             continuation?.resume(throwing: LocationServiceError.unableToLocate)
             continuation = nil
             return
         }
 
+        Log.location.info("Location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
         continuation?.resume(returning: .init(location: location))
         continuation = nil
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Log.location.error("Location failed: \(error.localizedDescription, privacy: .public)")
         continuation?.resume(throwing: error)
         continuation = nil
     }

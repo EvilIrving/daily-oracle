@@ -12,28 +12,36 @@ pnpm-debug.log*
 .env.*.local
 .env.production
 
-# ===== SvelteKit =====
+# ===== SvelteKit / Vite =====
 .svelte-kit/
 build/
 dist/
 .vercel/
 .netlify/
-
-# ===== Vite =====
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# ===== TypeScript / 测试产物 =====
+*.tsbuildinfo
+coverage/
+test-results/
+playwright-report/
 
 # ===== Xcode / Swift =====
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
 *.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+**/*.xcuserstate
+*.xccheckout
 DerivedData/
+.deriveddata-tests/
 *.ipa
 *.dSYM.zip
 *.dSYM
-build/
 .build/
-*.resolved
+.swiftpm/
+
+# Package.resolved 建议纳入版本控制（可复现依赖）；勿再使用 *.resolved 全盘忽略
 
 # ===== macOS =====
 .DS_Store
@@ -47,6 +55,7 @@ Icon?
 
 # ===== 编辑器 =====
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
@@ -60,8 +69,15 @@ temp/
 logs/
 *.log
 
+# ===== 本地工作台 SQLite（WAL 副作用文件，主库是否入库由团队约定）=====
+server/data/*.db-wal
+server/data/*.db-shm
 
-
-
-env.md 
+# ===== 密钥与本地工具配置（勿提交）=====
 ed25519*
+*.pem
+*.p12
+.claude/settings.local.json
+
+# 仅忽略仓库根目录下的 env.md（避免误伤 docs/env.md）
+env.md

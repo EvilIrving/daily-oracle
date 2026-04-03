@@ -5,6 +5,7 @@
 
 import Foundation
 import CoreLocation
+import OSLog
 #if canImport(WeatherKit)
 import WeatherKit
 #endif
@@ -14,43 +15,35 @@ protocol WeatherServicing: Sendable {
 }
 
 struct WeatherService: WeatherServicing {
-    enum Mode: Sendable {
-        case mock
-        #if canImport(WeatherKit)
-        case live
-        #endif
-    }
-
-    private let mode: Mode
-
-    init(mode: Mode = .mock) {
-        self.mode = mode
-    }
-
     func weather(for location: CLLocation) async throws -> WeatherSnapshot {
-        switch mode {
-        case .mock:
-            return .init(
-                temperature: 21,
-                condition: "多云",
-                windSpeed: 3.2,
-                summary: "多云 21°C"
-            )
         #if canImport(WeatherKit)
-        case .live:
-            let service = WeatherKit.WeatherService.shared
+        let service = WeatherKit.WeatherService.shared
+        do {
             let weather = try await service.weather(for: location)
             let current = weather.currentWeather
             let temperature = current.temperature.converted(to: .celsius).value
             let wind = current.wind.speed.converted(to: .metersPerSecond).value
-
+            Log.weather.info("Weather: \(current.condition.description, privacy: .public) \(Int(temperature.rounded()))°C")
             return .init(
                 temperature: temperature,
                 condition: current.condition.description,
                 windSpeed: wind,
                 summary: "\(current.condition.description) \(Int(temperature.rounded()))°C"
             )
-        #endif
+        } catch {
+            Log.weather.error("WeatherKit failed: \(error.localizedDescription, privacy: .public)")
+            throw error
         }
+        #else
+        throw WeatherServiceError.unavailable
+        #endif
+    }
+}
+
+enum WeatherServiceError: LocalizedError {
+    case unavailable
+
+    var errorDescription: String? {
+        "当前平台不可用 WeatherKit。"
     }
 }

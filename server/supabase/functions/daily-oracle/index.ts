@@ -16,21 +16,21 @@ const PROMPT_YI = `今天的输入信号：
 - 宜和忌要有内在张力，像是同一个人今天的两面
 
 正面示例：
-宜：在自然光下读几页纸质书
-忌：把休息当成需要被证明才能拥有的东西
+在自然光下读几页纸质书
+把休息当成需要被证明才能拥有的东西
 
-宜：出门走一段不常走的路，看陌生的窗口
-忌：用沉默代替真正想说的话
+出门走一段不常走的路，看陌生的窗口
+用沉默代替真正想说的话
 
 反面示例（排除）：
-宜：保持积极心态 ← 空话
-忌：不要生气 ← 说教
+保持积极心态 ← 空话
+不要生气 ← 说教
 
-宜：宜嫁娶 ← 古代的宜忌
-忌：忌出行 ← 古代的宜忌
+宜嫁娶 ← 古代的宜忌
+忌出行 ← 古代的宜忌
 
-严格按以下 JSON 格式输出，不加任何解释：
-{"yi": "宜：...", "ji": "忌：..."}`;
+严格按以下 JSON 格式输出，不加任何解释，不带"宜："或"忌："前缀：
+{"yi": "...", "ji": "..."}`;
 
 // --- Types ---
 
@@ -101,8 +101,10 @@ function weatherToThemes(condition: string, temperature: number): string[] {
   return themes;
 }
 
-function pickQuoteFromCandidates(rows: QuoteRow[], weatherThemes: string[]): Quote | null {
-  if (!rows.length) return null;
+function pickQuoteFromCandidates(rows: QuoteRow[], weatherThemes: string[]): Quote {
+  if (!rows.length) {
+    throw new Error("quotes 表中没有可用的已发布名句");
+  }
   const scored = rows.map((q) => {
     let score = 0;
     for (const theme of weatherThemes) {
@@ -271,17 +273,13 @@ Deno.serve(async (req) => {
     }
 
     const response = {
-      quote: selectedQuote
-        ? {
-            id: selectedQuote.id,
-            text: selectedQuote.text,
-            author: selectedQuote.author,
-            work: selectedQuote.work,
-            year: selectedQuote.year,
-            mood: selectedQuote.mood,
-            themes: selectedQuote.themes,
-          }
-        : null,
+      quote: {
+        id: selectedQuote.id,
+        text: selectedQuote.text,
+        author: selectedQuote.author,
+        work: selectedQuote.work,
+        year: selectedQuote.year,
+      },
       almanac,
       date: today,
     };

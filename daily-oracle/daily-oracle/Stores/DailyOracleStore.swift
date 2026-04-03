@@ -7,6 +7,7 @@ import Foundation
 import Observation
 import SwiftData
 import CoreLocation
+import OSLog
 
 @MainActor
 @Observable
@@ -20,9 +21,9 @@ final class DailyOracleStore {
     private let locationService: any LocationServicing
 
     init(
-        edgeService: any EdgeFunctionServicing = EdgeFunctionService(),
-        weatherService: any WeatherServicing = WeatherService(),
-        locationService: any LocationServicing = LocationService()
+        edgeService: any EdgeFunctionServicing,
+        weatherService: any WeatherServicing,
+        locationService: any LocationServicing
     ) {
         self.edgeService = edgeService
         self.weatherService = weatherService
@@ -34,6 +35,7 @@ final class DailyOracleStore {
         lastErrorMessage = nil
         defer { isLoading = false }
 
+        Log.store.info("Refresh started")
         do {
             let location = try await locationService.currentLocation()
             let weather = try await weatherService.weather(
@@ -66,7 +68,9 @@ final class DailyOracleStore {
 
             try modelContext.save()
             lastResponseDate = oracleDate(from: response.date)
+            Log.store.info("Refresh completed for \(response.date, privacy: .public)")
         } catch {
+            Log.store.error("Refresh failed: \(error.localizedDescription, privacy: .public)")
             lastErrorMessage = error.localizedDescription
         }
     }
@@ -89,7 +93,7 @@ final class DailyOracleStore {
                 pro: false
             ),
             preferences: .init(
-                mood: DailyMood.calm.rawValue,
+                mood: config?.preferredQuoteMoodRaw,
                 moodHistory: [],
                 genreHistory: config?.preferredGenres ?? []
             )
@@ -110,19 +114,17 @@ final class DailyOracleStore {
         let existing = try modelContext.fetch(descriptor).first
         let quote = response.quote
 
-        let quoteText = quote?.text ?? "今天还没有抽到名句。"
-        let quoteAuthor = quote?.author ?? "每日神谕"
-        let recommended = [response.almanac.yi.removingOraclePrefix("宜：")]
-        let avoided = [response.almanac.ji.removingOraclePrefix("忌：")]
-        let mood = DailyMood(rawValue: quote?.mood.first ?? "") ?? .calm
+        let quoteText = quote.text
+        let quoteAuthor = quote.author ?? ""
+        let recommended = response.almanac.yi
+        let avoided = response.almanac.ji
 
         if let existing {
             existing.quoteText = quoteText
             existing.quoteAuthor = quoteAuthor
-            existing.quoteWork = quote?.work
+            existing.quoteWork = quote.work
             existing.recommended = recommended
             existing.avoided = avoided
-            existing.mood = mood
             existing.weatherSummary = weather.summary
             existing.updatedAt = .now
         } else {
@@ -131,10 +133,9 @@ final class DailyOracleStore {
                     date: date,
                     quoteText: quoteText,
                     quoteAuthor: quoteAuthor,
-                    quoteWork: quote?.work,
+                    quoteWork: quote.work,
                     recommended: recommended,
                     avoided: avoided,
-                    mood: mood,
                     weatherSummary: weather.summary
                 )
             )
@@ -148,15 +149,4 @@ final class DailyOracleStore {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.date(from: value).map { Calendar.oracle.startOfDay(for: $0) } ?? Calendar.oracle.startOfDay(for: .now)
     }
-}
-
-private extension String {
-    func removingOraclePrefix(_ prefix: String) -> String {
-        guard hasPrefix(prefix) else { return self }
-        return String(dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
-private extension Calendar {
-    static let oracle = Calendar(identifier: .gregorian)
 }
