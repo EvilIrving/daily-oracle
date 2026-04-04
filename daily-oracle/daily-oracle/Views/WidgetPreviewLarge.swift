@@ -1,14 +1,20 @@
 import SwiftUI
 
 struct WidgetPreviewLarge: View {
+    private let record: WidgetPreviewLargeRecord
+
+    init(record: WidgetPreviewLargeRecord = .preview) {
+        self.record = record
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            
-            Text("窗镜子里浮现着冰冷而硕大的雪花，在敞开领口、揩拭脖颈的驹子周围，飘扬着一条条银线。雪光把房间里的轮廓衬得更浅，仿佛有人把呼吸也停在了玻璃的另一面。")
+            Text(record.quoteText)
                 .font(.system(size: 17, design: .serif))
                 .foregroundStyle(Color("textPrimary"))
+                .lineSpacing(4)
 
-            Text("— 加西亚·马尔克斯")
+            Text(record.authorLine)
                 .font(.system(size: 13))
                 .foregroundStyle(Color("textTertiary"))
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -23,7 +29,7 @@ struct WidgetPreviewLarge: View {
                         .fill(Color("yi"))
                         .frame(width: 4, height: 16)
 
-                    Text("出门走一段不常走的路，看陌生的窗口")
+                    Text(record.recommended)
                         .font(.system(size: 14))
                         .foregroundStyle(Color("textSecondary"))
                         .lineLimit(1)
@@ -34,7 +40,7 @@ struct WidgetPreviewLarge: View {
                         .fill(Color("ji"))
                         .frame(width: 4, height: 16)
 
-                    Text("用沉默代替真正想说的话")
+                    Text(record.avoided)
                         .font(.system(size: 14))
                         .foregroundStyle(Color("textSecondary"))
                         .lineLimit(1)
@@ -50,12 +56,16 @@ struct WidgetPreviewLarge: View {
 
                         Text(mood.label)
                             .font(.system(size: 10.5))
-                            .foregroundStyle(Color("textSecondary"))
+                            .foregroundStyle(mood == record.mood ? Color("textPrimary") : Color("textSecondary"))
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 999)
+                            .fill(mood == record.mood ? mood.color.opacity(0.14) : .clear)
+                    )
                 }
             }
             .padding(.top, Spacing.md)
@@ -68,6 +78,45 @@ struct WidgetPreviewLarge: View {
         .overlay(
             RoundedRectangle(cornerRadius: 22)
                 .stroke(Color("borderSecondary"), lineWidth: 0.5)
+        )
+    }
+}
+
+struct WidgetPreviewLargeRecord {
+    let quoteText: String
+    let quoteAuthor: String
+    let quoteWork: String?
+    let recommended: String
+    let avoided: String
+    let mood: QuoteMood?
+
+    var authorLine: String {
+        if let quoteWork, !quoteWork.isEmpty {
+            return "— \(quoteAuthor)《\(quoteWork)》"
+        }
+
+        return "— \(quoteAuthor)"
+    }
+
+    static let preview = WidgetPreviewLargeRecord(
+        quoteText: "窗镜子里浮现着冰冷而硕大的雪花，在敞开领口、揩拭脖颈的驹子周围，飘扬着一条条银线。雪光把房间里的轮廓衬得更浅，仿佛有人把呼吸也停在了玻璃的另一面。",
+        quoteAuthor: "加西亚·马尔克斯",
+        quoteWork: nil,
+        recommended: "出门走一段不常走的路，看陌生的窗口",
+        avoided: "用沉默代替真正想说的话",
+        mood: .philosophical
+    )
+}
+
+extension WidgetPreviewLargeRecord {
+    init(record: DailyRecord) {
+        self.init(
+            quoteText: record.quoteText,
+            quoteAuthor: record.quoteAuthor,
+            quoteWork: record.quoteWork,
+            recommended: record.recommended,
+            avoided: record.avoided,
+            mood: record.mood
         )
     }
 }

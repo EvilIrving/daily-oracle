@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 enum Tab: CaseIterable {
     case history, settings
@@ -19,59 +20,89 @@ enum Tab: CaseIterable {
 }
 
 struct RootView: View {
-    @State private var selectedTab: Tab = .settings
+    @Environment(\.modelContext) private var modelContext
+    @State private var selectedTab: Tab = .history
+    @State private var hasSeededHistory = false
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Group {
-                switch selectedTab {
-                case .history:
-                    HistoryTab()
-                case .settings:
-                    SettingsTab()
-                }
+        Group {
+            switch selectedTab {
+            case .history:
+                HistoryTab()
+            case .settings:
+                SettingsTab()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            FloatingTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, Spacing.xl)
-                .padding(.bottom, Spacing.sm)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            BottomTabBar(selectedTab: $selectedTab)
+        }
+        .task {
+            guard !hasSeededHistory else { return }
+            hasSeededHistory = true
+            try? HistorySeedStore.seedIfNeeded(using: modelContext)
         }
     }
 }
 
-struct FloatingTabBar: View {
+struct BottomTabBar: View {
     @Binding var selectedTab: Tab
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Tab.allCases, id: \.self) { tab in
-                Button {
+                TabBarButton(
+                    tab: tab,
+                    isSelected: selectedTab == tab
+                ) {
                     selectedTab = tab
-                } label: {
-                    VStack(spacing: Spacing.xs) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 20))
-                        Text(tab.title)
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(selectedTab == tab ? Color.accentColor : Color(.secondaryLabel))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Spacing.sm)
                 }
-                .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.xs)
-        .background(
-            RoundedRectangle(cornerRadius: Radius.lg)
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
-        )
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, 20)
+        .padding(.bottom, 0)
+        .background(Color("backgroundPrimary"))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.black.opacity(0.05))
+                .frame(height: 0.5)
+        }
+    }
+}
+
+private struct TabBarButton: View {
+    let tab: Tab
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 21, weight: .regular))
+                    .symbolRenderingMode(.monochrome)
+
+                Text(tab.title)
+                    .font(.system(size: 11, weight: isSelected ? .medium : .regular))
+            }
+            .foregroundStyle(foregroundColor)
+            .frame(maxWidth: .infinity)
+            .frame(height: 16)
+            .offset(y: 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tab.title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var foregroundColor: Color {
+        isSelected ? Color.accentColor : Color("textTertiary")
     }
 }
 
 #Preview {
     RootView()
+        .modelContainer(HistorySeedStore.previewContainer())
 }

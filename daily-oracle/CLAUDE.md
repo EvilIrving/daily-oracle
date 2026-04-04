@@ -61,6 +61,7 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 
 - 4.1 Tab 与导航：`TabView` 历史 / 设置，根级结构与 `app_two_tab_prototype` 一致
 - 4.2 历史 Tab — 日历：月视图、选日、与 `DailyRecord` 绑定；空日 / 无数据状态
+- 4.2 进展：已接入本地 300 天 `DailyRecord` seed，支持离线调历史页月历与详情卡
 - 4.3 历史 Tab — 详情：名句 + 宜忌卡片，沿用 `DesignSystem` 字号与语义色
 - 4.4 设置 Tab — 分区骨架：列表或分组，为子模块预留入口
 - 4.5 Widget 预览：假数据示意，不调 Edge Function（仅展示给用户）

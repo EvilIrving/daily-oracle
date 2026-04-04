@@ -1,16 +1,15 @@
 import SwiftUI
 
 struct WidgetPreviewSmall: View {
+    private let quote =
+        "窗镜子里浮现着冰冷而硕大的雪花，在敞"
+    private let author = "萧红"
+    private let workTitle = "生死场"
+    private let authorThreshold = 25
+    private let workTitleThreshold = 4
+
     var body: some View {
-        VStack(spacing: Spacing.md) {
-            VStack(spacing: Spacing.md) {
-                Text("窗镜子里浮现着冰冷而硕大的雪花，在敞开领口、揩拭脖颈的驹子周围，飘扬着一条条银线。")
-                    .font(.system(size: 15, weight: .regular, design: .serif))
-                    .foregroundStyle(Color("textPrimary"))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-            }
-        }
+        quoteContent(showsAuthor: quote.count <= authorThreshold)
         .padding(Spacing.md)
         .frame(maxWidth: .infinity)
         .aspectRatio(1, contentMode: .fit)
@@ -20,6 +19,35 @@ struct WidgetPreviewSmall: View {
             RoundedRectangle(cornerRadius: 22)
                 .stroke(Color("borderSecondary"), lineWidth: 0.5)
         )
+    }
+
+    private func quoteContent(showsAuthor: Bool) -> some View {
+        VStack(spacing: showsAuthor ? Spacing.sm : 0) {
+            Text(quote)
+                .font(.system(size: 15, weight: .regular, design: .serif))
+                .foregroundStyle(Color("textPrimary"))
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .frame(maxHeight: .infinity, alignment: .center)
+
+            if showsAuthor {
+                Text(authorLine)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color("textTertiary"))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var authorLine: String {
+        if workTitle.count <= workTitleThreshold {
+            return "—— \(author)《\(workTitle)》"
+        }
+
+        return "—— \(author)"
     }
 }
 
