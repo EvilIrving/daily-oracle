@@ -24,7 +24,7 @@ struct CalendarMonthPanel: View {
             Button(action: onPreviousMonth) {
                 Image(systemName: "chevron.left")
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(Color("textTertiary"))
+                    .foregroundStyle(AppColors.textTertiary)
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
@@ -36,14 +36,14 @@ struct CalendarMonthPanel: View {
 
             Text(CalendarMonthPanelMetrics.monthFormatter.string(from: visibleMonth))
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Color("textPrimary"))
+                .foregroundStyle(AppColors.textPrimary)
 
             Spacer()
 
             Button(action: onNextMonth) {
                 Image(systemName: "chevron.right")
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(Color("textTertiary"))
+                    .foregroundStyle(AppColors.textTertiary)
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
@@ -59,7 +59,7 @@ struct CalendarMonthPanel: View {
             ForEach(CalendarMonthPanelMetrics.weekdayLabels, id: \.self) { weekday in
                 Text(weekday)
                     .font(.calMonth)
-                    .foregroundStyle(Color("textTertiary"))
+                    .foregroundStyle(AppColors.textTertiary)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -120,7 +120,7 @@ private struct CalendarMonthDayCell: View {
             VStack(spacing: cellSpacing) {
                 Text("\(Calendar.oracle.component(.day, from: date))")
                     .font(.system(size: 14, weight: isToday ? .semibold : .regular))
-                    .foregroundStyle(isToday ? Color("textPrimary") : Color("textSecondary"))
+                    .foregroundStyle(isToday ? AppColors.textPrimary : AppColors.textSecondary)
 
                 Circle()
                     .fill(indicatorColor ?? .clear)
@@ -142,10 +142,10 @@ private struct CalendarMonthDayCell: View {
     private var backgroundShape: some View {
         if isSelected {
             RoundedRectangle(cornerRadius: min(cellHeight / 2, Radius.lg))
-                .fill(Color("borderTertiary"))
+                .fill(AppColors.borderTertiary)
         } else if isToday {
             RoundedRectangle(cornerRadius: min(cellHeight / 2, Radius.lg))
-                .fill(Color("backgroundSecondary"))
+                .fill(AppColors.backgroundSecondary)
         } else {
             Color.clear
         }

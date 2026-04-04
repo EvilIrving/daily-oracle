@@ -26,7 +26,7 @@ struct HistoryTab: View {
             .padding(.top, Spacing.lg)
             .padding(.bottom, 120)
         }
-        .background(Color("backgroundPrimary"))
+        .background(AppColors.backgroundPrimary)
         .onAppear {
             syncSelection()
         }
@@ -49,7 +49,7 @@ struct HistoryTab: View {
                 .padding(.vertical, Spacing.xl)
                 .background(
                     RoundedRectangle(cornerRadius: Radius.lg)
-                        .fill(Color("backgroundSecondary"))
+                        .fill(AppColors.backgroundSecondary)
                 )
             }
         }
@@ -132,7 +132,7 @@ private struct HistoryDetailCard: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(detailDate)
                 .font(.detailDate)
-                .foregroundStyle(Color("textTertiary"))
+                .foregroundStyle(AppColors.textTertiary)
 
             WidgetPreviewLarge(record: WidgetPreviewLargeRecord(record: record))
         }

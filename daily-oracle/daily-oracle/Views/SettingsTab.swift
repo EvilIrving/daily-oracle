@@ -8,14 +8,14 @@ struct SettingsTab: View {
             }
             .padding(Spacing.md)
         }
-        .background(Color("backgroundTertiary"))
+        .background(AppColors.backgroundPrimary)
     }
 
     private var widgetPreviewSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("小组件预览")
                 .font(.navTitle)
-                .foregroundStyle(Color("textPrimary"))
+                .foregroundStyle(AppColors.textPrimary)
 
             VStack(spacing: Spacing.lg) {
                 widgetItem("小 · 2×2") { WidgetPreviewSmall().frame(width: 170, height: 170) }

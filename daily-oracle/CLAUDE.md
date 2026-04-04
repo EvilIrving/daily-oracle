@@ -3,12 +3,17 @@
 
 UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_sizes_spec.html`
 
+## Design System 约定
+
+- 颜色只从 `DesignSystem/Colors.swift` 取语义入口，视图层不要直接写 `Color("...")` 资产名。
+- 页面背景统一用 `AppColors.pageBackground`，内容卡片用 `AppColors.surface`，更强调的分层才用 `AppColors.surfaceElevated`。
+- 文字、边框、强调色也必须走语义 token，避免页面自行决定视觉基调。
+
 ## Apple App 开发约定
 
 第一版迭代：开发纯本地 app，不涉及天气、定位、同步等能力
 
 后续使用一段时间后，再引入天气、定位、同步等能力，让句子推送更智能，数据更丰富，用户体验更完善
- 
 
 - App 目录为 `daily-oracle/`，SwiftUI + SwiftData + WidgetKit，支持 iOS / iPadOS / macOS。
 - Deployment Target：iOS/iPadOS 17.6、macOS 14.0；引入更高版本 API 前需要确认。

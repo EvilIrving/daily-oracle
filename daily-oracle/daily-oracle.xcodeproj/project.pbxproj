@@ -26,14 +26,22 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App/CLAUDE.md,
+				App/AGENTS.md,
 				DesignSystem/CLAUDE.md,
+				DesignSystem/AGENTS.md,
 				Info.plist,
 				Models/CLAUDE.md,
+				Models/AGENTS.md,
 				Resources/CLAUDE.md,
+				Resources/AGENTS.md,
 				Services/CLAUDE.md,
+				Services/AGENTS.md,
 				Stores/CLAUDE.md,
+				Stores/AGENTS.md,
 				Views/CLAUDE.md,
+				Views/AGENTS.md,
 				Widgets/CLAUDE.md,
+				Widgets/AGENTS.md,
 			);
 			target = A494DD872F7E6EF400D32B2E /* daily-oracle */;
 		};

@@ -52,6 +52,7 @@ Icon?
 ._*
 .Spotlight-V100
 .Trashes
+.derivedData
 
 # ===== 编辑器 =====
 .vscode/

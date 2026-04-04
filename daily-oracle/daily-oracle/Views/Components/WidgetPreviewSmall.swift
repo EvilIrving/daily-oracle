@@ -13,11 +13,11 @@ struct WidgetPreviewSmall: View {
         .padding(Spacing.md)
         .frame(maxWidth: .infinity)
         .aspectRatio(1, contentMode: .fit)
-        .background(Color("backgroundPrimary"))
+        .background(AppColors.backgroundPrimary)
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .overlay(
             RoundedRectangle(cornerRadius: 22)
-                .stroke(Color("borderSecondary"), lineWidth: 0.5)
+                .stroke(AppColors.borderSecondary, lineWidth: 0.5)
         )
     }
 
@@ -25,7 +25,7 @@ struct WidgetPreviewSmall: View {
         VStack(spacing: showsAuthor ? Spacing.sm : 0) {
             Text(quote)
                 .font(.system(size: 15, weight: .regular, design: .serif))
-                .foregroundStyle(Color("textPrimary"))
+                .foregroundStyle(AppColors.textPrimary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
                 .frame(maxHeight: .infinity, alignment: .center)
@@ -33,7 +33,7 @@ struct WidgetPreviewSmall: View {
             if showsAuthor {
                 Text(authorLine)
                     .font(.system(size: 12))
-                    .foregroundStyle(Color("textTertiary"))
+                    .foregroundStyle(AppColors.textTertiary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                     .frame(maxWidth: .infinity, alignment: .trailing)

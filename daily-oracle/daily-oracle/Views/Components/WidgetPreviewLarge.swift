@@ -11,12 +11,12 @@ struct WidgetPreviewLarge: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(record.quoteText)
                 .font(.system(size: 17, design: .serif))
-                .foregroundStyle(Color("textPrimary"))
+                .foregroundStyle(AppColors.textPrimary)
                 .lineSpacing(4)
 
             Text(record.authorLine)
                 .font(.system(size: 13))
-                .foregroundStyle(Color("textTertiary"))
+                .foregroundStyle(AppColors.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.top, Spacing.sm)
 
@@ -25,25 +25,25 @@ struct WidgetPreviewLarge: View {
 
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack(spacing: Spacing.sm) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color("yi"))
-                        .frame(width: 4, height: 16)
-
+                    Text("宜：")
+                        .font(.system(size: 14))
+                        .foregroundStyle(AppColors.yi)
                     Text(record.recommended)
                         .font(.system(size: 14))
-                        .foregroundStyle(Color("textSecondary"))
+                        .foregroundStyle(AppColors.textSecondary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
 
                 HStack(spacing: Spacing.sm) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color("ji"))
-                        .frame(width: 4, height: 16)
-
+                    Text("忌：")
+                        .font(.system(size: 14))
+                        .foregroundStyle(AppColors.ji)
                     Text(record.avoided)
                         .font(.system(size: 14))
-                        .foregroundStyle(Color("textSecondary"))
+                        .foregroundStyle(AppColors.textSecondary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
             }
 
@@ -51,12 +51,12 @@ struct WidgetPreviewLarge: View {
                 ForEach(QuoteMood.allCases) { mood in
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(mood.color)
+                            .fill(AppColors.mood(mood))
                             .frame(width: 5, height: 5)
 
                         Text(mood.label)
                             .font(.system(size: 10.5))
-                            .foregroundStyle(mood == record.mood ? Color("textPrimary") : Color("textSecondary"))
+                            .foregroundStyle(mood == record.mood ? AppColors.textPrimary : AppColors.textSecondary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
@@ -64,7 +64,7 @@ struct WidgetPreviewLarge: View {
                     .frame(height: 28)
                     .background(
                         RoundedRectangle(cornerRadius: 999)
-                            .fill(mood == record.mood ? mood.color.opacity(0.14) : .clear)
+                            .fill(mood == record.mood ? AppColors.moodFill(mood, opacity: 0.14) : .clear)
                     )
                 }
             }
@@ -73,11 +73,11 @@ struct WidgetPreviewLarge: View {
         .padding(Spacing.md)
         .frame(maxWidth: .infinity)
         .aspectRatio(0.955, contentMode: .fit)
-        .background(Color("backgroundPrimary"))
+        .background(AppColors.backgroundPrimary)
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .overlay(
             RoundedRectangle(cornerRadius: 22)
-                .stroke(Color("borderSecondary"), lineWidth: 0.5)
+                .stroke(AppColors.borderSecondary, lineWidth: 0.5)
         )
     }
 }

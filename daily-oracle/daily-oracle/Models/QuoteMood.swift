@@ -34,7 +34,7 @@ enum QuoteMood: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 
     var color: Color {
-        Color(rawValue)
+        AppColors.mood(self)
     }
 
     var icon: String {
@@ -57,10 +57,10 @@ extension QuoteMood {
     }
 
     static func chipColor(forRaw raw: String) -> Color {
-        QuoteMood(rawValue: raw)?.color.opacity(0.35) ?? .clear
+        AppColors.moodFill(QuoteMood(rawValue: raw), opacity: 0.35)
     }
 
     static func chipForeground(forRaw raw: String) -> Color {
-        QuoteMood(rawValue: raw)?.color ?? .clear
+        AppColors.mood(QuoteMood(rawValue: raw))
     }
 }

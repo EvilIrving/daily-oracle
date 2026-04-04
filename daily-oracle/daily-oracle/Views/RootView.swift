@@ -62,7 +62,7 @@ struct BottomTabBar: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.top, 20)
         .padding(.bottom, 0)
-        .background(Color("backgroundPrimary"))
+        .background(AppColors.backgroundPrimary)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(Color.black.opacity(0.05))
@@ -98,7 +98,7 @@ private struct TabBarButton: View {
     }
 
     private var foregroundColor: Color {
-        isSelected ? Color.accentColor : Color("textTertiary")
+        isSelected ? Color.accentColor : AppColors.textTertiary
     }
 }
 
