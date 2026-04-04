@@ -8,13 +8,7 @@ import type {
 } from '../types';
 import { logError, logInfo } from './logger';
 
-const META_LABELS = new Map<string, keyof BookMeta>([
-  ['title', 'title'],
-  ['author', 'author'],
-  ['year', 'year'],
-  ['language', 'language'],
-  ['genre', 'genre']
-]);
+type BookMetaKey = 'title' | 'author' | 'year' | 'language' | 'genre';
 
 const ALLOWED_MOODS = new Set<QuoteMood>([
   'calm',
@@ -62,8 +56,7 @@ export function parseTxtWithMeta(rawText: string, fallbackTitle = ''): ParsedBoo
       const match = trimmed.match(/^\s*(title|author|year|language|genre)\s*:\s*(.*)$/i);
       if (!match) continue;
 
-      const key = META_LABELS.get(match[1].trim().toLowerCase());
-      if (!key) continue;
+      const key = match[1].trim().toLowerCase() as BookMetaKey;
       const value = parseMetaValue(match[2].trim());
 
       if (key === 'year') {
@@ -165,6 +158,9 @@ export function buildQuoteCandidates(
     text: item.text,
     textCn: item.textCn,
     lang: deriveQuoteLang(meta.language, item.text),
+    originalLanguage: sanitizeLanguageTag(item.originalLanguage),
+    why: item.why,
+    location: item.location,
     author: meta.author,
     work: meta.title,
     year: meta.year,
@@ -194,6 +190,10 @@ function sanitizeExtractedQuote(input: unknown): ExtractedQuotePayload | null {
   const item = input as Record<string, unknown>;
   const text = String(item.text || '').trim();
   const textCn = sanitizeTranslatedText(item.text_cn);
+  const language = sanitizeLanguageTag(item.language);
+  const originalLanguage = sanitizeLanguageTag(item.original_language);
+  const why = sanitizeOptionalText(item.why);
+  const location = sanitizeOptionalText(item.location);
   const moods = sanitizeQuoteMoods(item.moods);
   const themes = sanitizeThemes(item.themes);
 
@@ -204,6 +204,10 @@ function sanitizeExtractedQuote(input: unknown): ExtractedQuotePayload | null {
   return {
     text,
     textCn,
+    language,
+    originalLanguage,
+    why,
+    location,
     moods,
     themes
   };
@@ -241,5 +245,15 @@ function sanitizeThemes(value: unknown): string[] {
 
 function sanitizeTranslatedText(value: unknown): string | null {
   const text = String(value || '').trim();
+  return text ? text : null;
+}
+
+function sanitizeOptionalText(value: unknown): string | null {
+  const text = String(value || '').trim();
+  return text ? text : null;
+}
+
+function sanitizeLanguageTag(value: unknown): string | null {
+  const text = String(value || '').trim().toLowerCase();
   return text ? text : null;
 }

@@ -25,23 +25,28 @@
 		A494DDAB2F7E6EF500D32B2E /* Exceptions for "daily-oracle" folder in "daily-oracle" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				App/CLAUDE.md,
 				App/AGENTS.md,
-				DesignSystem/CLAUDE.md,
+				App/CLAUDE.md,
 				DesignSystem/AGENTS.md,
+				DesignSystem/CLAUDE.md,
 				Info.plist,
-				Models/CLAUDE.md,
 				Models/AGENTS.md,
-				Resources/CLAUDE.md,
+				Models/CLAUDE.md,
 				Resources/AGENTS.md,
+				Resources/CLAUDE.md,
+				"Resources/SmileySans-Oblique.ttf",
 				Services/CLAUDE.md,
-				Services/AGENTS.md,
-				Stores/CLAUDE.md,
 				Stores/AGENTS.md,
-				Views/CLAUDE.md,
+				Stores/CLAUDE.md,
 				Views/AGENTS.md,
-				Widgets/CLAUDE.md,
+				Views/CLAUDE.md,
 				Widgets/AGENTS.md,
+				Widgets/CLAUDE.md,
+				CLAUDE.md,
+				AGENTS.md,
+				Extensions/AGENTS.md,
+				Extensions/CLAUDE.md,
+				
 			);
 			target = A494DD872F7E6EF400D32B2E /* daily-oracle */;
 		};

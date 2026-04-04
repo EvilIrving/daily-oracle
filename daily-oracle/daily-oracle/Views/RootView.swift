@@ -2,18 +2,20 @@ import SwiftUI
 import SwiftData
 
 enum Tab: CaseIterable {
-    case history, settings
+    case calendar, widget, settings
 
     var title: String {
         switch self {
-        case .history: "历史"
+        case .calendar: "日历"
+        case .widget: "组件"
         case .settings: "设置"
         }
     }
 
     var icon: String {
         switch self {
-        case .history: "calendar"
+        case .calendar: "calendar"
+        case .widget: "widget.small"
         case .settings: "gearshape"
         }
     }
@@ -21,16 +23,18 @@ enum Tab: CaseIterable {
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var selectedTab: Tab = .history
+    @State private var selectedTab: Tab = .calendar
     @State private var hasSeededHistory = false
 
     var body: some View {
         Group {
             switch selectedTab {
-            case .history:
-                HistoryTab()
+            case .calendar:
+                CalendarTab()
+            case .widget:
+                WidgetTab()
             case .settings:
-                SettingsTab()
+                SettingsView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -81,7 +85,6 @@ private struct TabBarButton: View {
             VStack(spacing: 5) {
                 Image(systemName: tab.icon)
                     .font(.system(size: 21, weight: .regular))
-                    .symbolRenderingMode(.monochrome)
 
                 Text(tab.title)
                     .font(.system(size: 11, weight: isSelected ? .medium : .regular))

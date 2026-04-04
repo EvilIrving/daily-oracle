@@ -55,7 +55,6 @@ struct ModelTests {
         #expect(config.prefersReducedMotion == false)
         #expect(config.selectedTheme == "system")
         #expect(config.preferredSourceLanguages == ["zh"])
-        #expect(config.preferredGenres.isEmpty)
         #expect(config.preferredQuoteMoodRaw == nil)
     }
 }

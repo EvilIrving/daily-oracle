@@ -66,6 +66,9 @@ export function initializeDbSchema(db: Database.Database) {
       text text not null,
       text_cn text,
       lang text not null,
+      original_language text,
+      why text,
+      location text,
       author text,
       work text,
       year integer,
@@ -93,6 +96,9 @@ export function initializeDbSchema(db: Database.Database) {
       text text not null,
       text_cn text,
       lang text,
+      original_language text,
+      why text,
+      location text,
       author text,
       work text,
       year integer,
@@ -121,12 +127,30 @@ export function initializeDbSchema(db: Database.Database) {
   if (!candidateColumns.some((column) => column.name === 'text_cn')) {
     db.exec(`alter table quote_candidates add column text_cn text;`);
   }
+  if (!candidateColumns.some((column) => column.name === 'original_language')) {
+    db.exec(`alter table quote_candidates add column original_language text;`);
+  }
+  if (!candidateColumns.some((column) => column.name === 'why')) {
+    db.exec(`alter table quote_candidates add column why text;`);
+  }
+  if (!candidateColumns.some((column) => column.name === 'location')) {
+    db.exec(`alter table quote_candidates add column location text;`);
+  }
 
   const reviewLogColumns = db.prepare(`pragma table_info(review_log)`).all() as Array<{
     name: string;
   }>;
   if (!reviewLogColumns.some((column) => column.name === 'text_cn')) {
     db.exec(`alter table review_log add column text_cn text;`);
+  }
+  if (!reviewLogColumns.some((column) => column.name === 'original_language')) {
+    db.exec(`alter table review_log add column original_language text;`);
+  }
+  if (!reviewLogColumns.some((column) => column.name === 'why')) {
+    db.exec(`alter table review_log add column why text;`);
+  }
+  if (!reviewLogColumns.some((column) => column.name === 'location')) {
+    db.exec(`alter table review_log add column location text;`);
   }
 }
 
@@ -327,10 +351,10 @@ export function insertCandidates(
 ) {
   const statement = db.prepare(`
     insert or ignore into quote_candidates (
-      id, run_id, book_id, text, text_cn, lang, author, work, year, genre, moods_json, themes_json, source_book,
+      id, run_id, book_id, text, text_cn, lang, original_language, why, location, author, work, year, genre, moods_json, themes_json, source_book,
       chunk_index, normalized_text, review_status, reviewed_at, committed_at, created_at
     ) values (
-      @id, @runId, @bookId, @text, @textCn, @lang, @author, @work, @year, @genre, @moodsJson, @themesJson, @sourceBook,
+      @id, @runId, @bookId, @text, @textCn, @lang, @originalLanguage, @why, @location, @author, @work, @year, @genre, @moodsJson, @themesJson, @sourceBook,
       @chunkIndex, @normalizedText, @reviewStatus, null, null, @createdAt
     )
   `);
@@ -344,6 +368,9 @@ export function insertCandidates(
         text: candidate.text,
         textCn: candidate.textCn,
         lang: candidate.lang,
+        originalLanguage: candidate.originalLanguage,
+        why: candidate.why,
+        location: candidate.location,
         author: candidate.author,
         work: candidate.work,
         year: candidate.year,
@@ -537,10 +564,10 @@ export function insertReviewLog(
 ) {
   db.prepare(`
     insert into review_log (
-      id, candidate_id, book_id, book_title, run_id, text, text_cn, lang, author, work, year, genre,
+      id, candidate_id, book_id, book_title, run_id, text, text_cn, lang, original_language, why, location, author, work, year, genre,
       moods_json, themes_json, chunk_index, decision, decided_at, created_at
     ) values (
-      @id, @candidateId, @bookId, @bookTitle, @runId, @text, @textCn, @lang, @author, @work, @year, @genre,
+      @id, @candidateId, @bookId, @bookTitle, @runId, @text, @textCn, @lang, @originalLanguage, @why, @location, @author, @work, @year, @genre,
       @moodsJson, @themesJson, @chunkIndex, @decision, @decidedAt, @createdAt
     )
   `).run({
@@ -552,6 +579,9 @@ export function insertReviewLog(
     text: candidate.text,
     textCn: candidate.textCn,
     lang: candidate.lang,
+    originalLanguage: candidate.originalLanguage,
+    why: candidate.why,
+    location: candidate.location,
     author: candidate.author,
     work: candidate.work,
     year: candidate.year,
@@ -601,6 +631,9 @@ export function getReviewLogByBookId(db: Database.Database, bookId: string) {
     text: string;
     text_cn: string | null;
     lang: string | null;
+    original_language: string | null;
+    why: string | null;
+    location: string | null;
     author: string | null;
     work: string | null;
     year: number | null;
@@ -622,6 +655,9 @@ function mapCandidateRow(row: any): QuoteCandidateRecord {
     text: row.text,
     textCn: row.text_cn,
     lang: row.lang,
+    originalLanguage: row.original_language,
+    why: row.why,
+    location: row.location,
     author: row.author,
     work: row.work,
     year: row.year,

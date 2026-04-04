@@ -146,6 +146,10 @@ describe('parseAiJsonArray', () => {
   {
     "text": "We are all in the gutter, but some of us are looking at the stars.",
     "text_cn": "我们都身处沟渠之中，但仍有人仰望星空。",
+    "language": "en",
+    "original_language": "en",
+    "why": "句子短，意象强，适合每日名句。",
+    "location": "Chapter 3",
     "moods": ["philosophical"],
     "themes": ["命运", "希望"]
   }
@@ -154,6 +158,10 @@ describe('parseAiJsonArray', () => {
 
     expect(parsed).toHaveLength(1);
     expect(parsed[0]?.textCn).toBe('我们都身处沟渠之中，但仍有人仰望星空。');
+    expect(parsed[0]?.language).toBe('en');
+    expect(parsed[0]?.originalLanguage).toBe('en');
+    expect(parsed[0]?.why).toBe('句子短，意象强，适合每日名句。');
+    expect(parsed[0]?.location).toBe('Chapter 3');
   });
 
   it('keeps quotes when moods and themes are missing', () => {
@@ -213,6 +221,10 @@ describe('buildQuoteCandidates', () => {
         {
           text: '此情可待成追忆，只是当时已惘然。',
           textCn: null,
+          language: 'zh',
+          originalLanguage: 'zh',
+          why: '意象浓，适合收录。',
+          location: '卷一',
           moods: ['sad'],
           themes: ['回忆', '离别']
         }
@@ -232,6 +244,9 @@ describe('buildQuoteCandidates', () => {
     expect(candidates[0]?.year).toBe(812);
     expect(candidates[0]?.lang).toBe('zh');
     expect(candidates[0]?.textCn).toBeNull();
+    expect(candidates[0]?.originalLanguage).toBe('zh');
+    expect(candidates[0]?.why).toBe('意象浓，适合收录。');
+    expect(candidates[0]?.location).toBe('卷一');
   });
 
   it('marks non-zh-en sources as translated', () => {
@@ -240,6 +255,10 @@ describe('buildQuoteCandidates', () => {
         {
           text: '所有幸福的家庭都是相似的。',
           textCn: '所有幸福的家庭都是相似的。',
+          language: 'zh',
+          originalLanguage: 'ru',
+          why: null,
+          location: null,
           moods: ['philosophical'],
           themes: ['家庭']
         }
@@ -264,6 +283,10 @@ describe('buildQuoteCandidates', () => {
         {
           text: '人总是在接近幸福时倍感幸福，在幸福进行时却患得患失。',
           textCn: null,
+          language: 'zh',
+          originalLanguage: 'zh',
+          why: null,
+          location: null,
           moods: ['philosophical'],
           themes: ['幸福', '失去']
         }

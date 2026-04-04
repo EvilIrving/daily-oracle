@@ -11,6 +11,21 @@ nonisolated struct OracleEdgeRequest: Codable, Sendable, Equatable {
     var profile: Profile
     var preferences: Preferences
 
+    enum CodingKeys: String, CodingKey {
+        case geo
+        case weather
+        case profile
+        case preferences
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(geo, forKey: .geo)
+        try container.encodeIfPresent(weather, forKey: .weather)
+        try container.encode(profile, forKey: .profile)
+        try container.encode(preferences, forKey: .preferences)
+    }
+
     nonisolated struct Geo: Codable, Sendable, Equatable {
         var lng: Double
         var lat: Double
@@ -31,12 +46,25 @@ nonisolated struct OracleEdgeRequest: Codable, Sendable, Equatable {
     nonisolated struct Preferences: Codable, Sendable, Equatable {
         var mood: String?
         var moodHistory: [String]
-        var genreHistory: [String]
+        var anniversary: AnniversaryItem?
+
+        struct AnniversaryItem: Codable, Sendable, Equatable {
+            var name: String
+            var month: Int
+            var day: Int
+        }
 
         enum CodingKeys: String, CodingKey {
             case mood
             case moodHistory = "mood_history"
-            case genreHistory = "genre_history"
+            case anniversary
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encodeIfPresent(mood, forKey: .mood)
+            try container.encode(moodHistory, forKey: .moodHistory)
+            try container.encodeIfPresent(anniversary, forKey: .anniversary)
         }
     }
 }

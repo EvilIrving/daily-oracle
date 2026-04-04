@@ -322,7 +322,7 @@ SERVICE_SECRET_KEY=sb_secret_xxx
   "preferences": {
     "mood": "calm",
     "mood_history": ["calm", "sad", "sad", "anxious", "calm", "happy", "calm"],
-    "genre_history": ["哲学", "古典", "小说", "诗歌", "小说", "散文", "哲学"]
+    "anniversary": { "name": "结婚纪念日", "month": 5, "day": 20 }
   }
 }
 ```
@@ -332,7 +332,10 @@ SERVICE_SECRET_KEY=sb_secret_xxx
 | `geo` | 可选，经纬度坐标（后续接回 CoreLocation 时传） |
 | `weather` | 可选，天气数据（后续接回 WeatherKit 时传） |
 | `profile` | 用户基础信息（语言、地区、是否付费） |
-| `preferences` | 扩展配置（心情、历史偏好等，未来新增字段放这里） |
+| `preferences` | 扩展配置（心情、纪念日等，未来新增字段放这里） |
+| `preferences.mood` | 可选，用户当前选择的心情 |
+| `preferences.mood_history` | 可选，用户过去 7 天心情记录 |
+| `preferences.anniversary` | 可选，单个纪念日（仅当今天匹配到某个纪念日时才传） |
 
 **处理逻辑**：
 

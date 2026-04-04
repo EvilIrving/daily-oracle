@@ -1,7 +1,7 @@
 
 ## Apple App 构建计划
 
-UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_sizes_spec.html`
+UI/UX 事实源：后续原型文件请在 `docs/` 目录下确认，命名以 `app-` 或 `widget-` 开头。
 
 ## Design System 约定
 
@@ -22,6 +22,11 @@ UI/UX 事实源：`docs/proto/app_two_tab_prototype.html`、`docs/proto/widget_s
 - 当前第一版使用纯本地 SwiftData；Widget 阶段再切到 App Group 共享存储，CloudKit 也延后到 Phase 7。
 - 不使用 Supabase Auth；内购使用 StoreKit 2 纯客户端验证。
 - 少用 `xcodebuild` 做频繁验证，主要用于最终打包或收尾检查。
+- 按功能模块分组建文件夹，视图、组件、状态、服务、模型不要混堆在单目录或单文件里。
+- 文件过大时主动拆分组件和逻辑；一般单文件代码量不超过 500 行。
+- 函数职责尽量单一，一个函数只做一件事；组合逻辑通过更小的辅助函数或类型组织。
+- 遇到常见能力实现时，先参考开源社区成熟方案，再落到当前项目约束内实现，不闭门造车。
+- 涉及 UI/UX 设计时，优先参考 `dribbble.com`、Apple Human Interface Guidelines 与 iPhone 交互习惯，避免只按工程视角出界面。
 
 ## 已完成
 

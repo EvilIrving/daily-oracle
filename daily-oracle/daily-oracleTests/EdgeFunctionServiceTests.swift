@@ -20,7 +20,6 @@ struct EdgeFunctionServiceTests {
             #expect(payload.geo == nil)
             #expect(payload.weather == nil)
             #expect(payload.preferences.mood == "calm")
-            #expect(payload.preferences.genreHistory == ["essay"])
 
             let response = HTTPURLResponse(
                 url: try #require(request.url),
@@ -140,7 +139,7 @@ private extension OracleEdgeRequest {
             geo: nil,
             weather: nil,
             profile: .init(lang: "zh", region: "CN", pro: false),
-            preferences: .init(mood: "calm", moodHistory: [], genreHistory: ["essay"])
+            preferences: .init(mood: "calm", moodHistory: [], anniversary: nil)
         )
     }
 }

@@ -30,7 +30,7 @@ final class DailyOracleStore {
 
         Log.store.info("Refresh started")
         do {
-            let request = makeRequest(config: config)
+            let request = makeRequest(config: config, modelContext: modelContext)
             let response = try await edgeService.fetchDailyOracle(request: request)
 
             try upsertDailyRecord(with: response, modelContext: modelContext)
@@ -50,8 +50,8 @@ final class DailyOracleStore {
         }
     }
 
-    private func makeRequest(config: UserConfig?) -> OracleEdgeRequest {
-        OracleEdgeRequest(
+    private func makeRequest(config: UserConfig?, modelContext: ModelContext) -> OracleEdgeRequest {
+        return OracleEdgeRequest(
             geo: nil,
             weather: nil,
             profile: .init(
@@ -62,9 +62,42 @@ final class DailyOracleStore {
             preferences: .init(
                 mood: config?.preferredQuoteMoodRaw,
                 moodHistory: [],
-                genreHistory: config?.preferredGenres ?? []
+                anniversary: todayAnniversary(from: modelContext)
             )
         )
+    }
+
+    private func todayAnniversary(from modelContext: ModelContext) -> OracleEdgeRequest.Preferences.AnniversaryItem? {
+        let descriptor = FetchDescriptor<Anniversary>()
+
+        do {
+            let todayMonth = Calendar.oracle.component(.month, from: .now)
+            let todayDay = Calendar.oracle.component(.day, from: .now)
+
+            let matches = try modelContext.fetch(descriptor).filter { anniversary in
+                Calendar.oracle.component(.month, from: anniversary.date) == todayMonth &&
+                Calendar.oracle.component(.day, from: anniversary.date) == todayDay
+            }
+
+            guard matches.count <= 1 else {
+                Log.store.error("Found duplicate anniversaries for today: \(matches.count, privacy: .public)")
+                return nil
+            }
+
+            guard let anniversary = matches.first else {
+                return nil
+            }
+
+            let components = Calendar.oracle.dateComponents([.month, .day], from: anniversary.date)
+            return OracleEdgeRequest.Preferences.AnniversaryItem(
+                name: anniversary.title,
+                month: components.month ?? 1,
+                day: components.day ?? 1
+            )
+        } catch {
+            Log.store.error("Failed to load anniversary: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     private func upsertDailyRecord(with response: OracleEdgeResponse, modelContext: ModelContext) throws {

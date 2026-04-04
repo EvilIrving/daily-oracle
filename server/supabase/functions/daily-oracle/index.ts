@@ -5,8 +5,8 @@ const PROMPT_YI = `今天的输入信号：
 - 日期：{{month}} {{weekday}}
 - 节气：{{solar_term}}
 - 天气：{{condition}}，{{temperature}}℃
+- 用户今天纪念日：{{anniversary}}
 - 用户过去 7 天心情记录：{{mood_history}}
-- 用户过去 7 天句子类型：{{genre_history}}
 
 请生成今日宜忌各一条。
 
@@ -41,7 +41,7 @@ interface RequestBody {
   preferences: {
     mood?: string;
     mood_history?: string[];
-    genre_history?: string[];
+    anniversary?: { name: string; month: number; day: number };
   };
 }
 
@@ -139,13 +139,17 @@ function buildPrompt(body: RequestBody): string {
   } else {
     prompt = prompt.replace("- 天气：{{condition}}，{{temperature}}℃\n", "");
   }
+
+  // 处理纪念日
+  if (body.preferences.anniversary) {
+    prompt = prompt.replace("{{anniversary}}", body.preferences.anniversary.name);
+  } else {
+    prompt = prompt.replace("- 用户今天纪念日：{{anniversary}}\n", "");
+  }
+
   prompt = prompt.replace(
     "{{mood_history}}",
     JSON.stringify(body.preferences.mood_history || [])
-  );
-  prompt = prompt.replace(
-    "{{genre_history}}",
-    JSON.stringify(body.preferences.genre_history || [])
   );
   return prompt;
 }
@@ -270,7 +274,7 @@ Deno.serve(async (req) => {
           signals: {
             weather: body.weather,
             mood_history: body.preferences.mood_history,
-            genre_history: body.preferences.genre_history,
+            anniversary: body.preferences.anniversary,
           },
           model_used: model,
         },

@@ -48,6 +48,10 @@ export type ExtractionConfig = {
 export type ExtractedQuotePayload = {
   text: string;
   textCn: string | null;
+  language: string | null;
+  originalLanguage: string | null;
+  why: string | null;
+  location: string | null;
   moods: string[];
   themes: string[];
 };
@@ -56,6 +60,9 @@ export type QuoteCandidate = {
   text: string;
   textCn: string | null;
   lang: QuoteLang;
+  originalLanguage: string | null;
+  why: string | null;
+  location: string | null;
   author: string | null;
   work: string | null;
   year: number | null;

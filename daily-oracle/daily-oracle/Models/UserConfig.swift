@@ -13,7 +13,6 @@ final class UserConfig {
     var prefersReducedMotion: Bool
     var selectedTheme: String
     var preferredSourceLanguages: [String]
-    var preferredGenres: [String]
     var lastSyncedAt: Date?
     /// 用户选中的 `quote_mood` 偏好，作为下次 `preferences.mood` 发给 Edge。
     var preferredQuoteMoodRaw: String?
@@ -24,7 +23,6 @@ final class UserConfig {
         prefersReducedMotion: Bool = false,
         selectedTheme: String = "system",
         preferredSourceLanguages: [String] = ["zh"],
-        preferredGenres: [String] = [],
         lastSyncedAt: Date? = nil,
         preferredQuoteMoodRaw: String? = nil
     ) {
@@ -33,7 +31,6 @@ final class UserConfig {
         self.prefersReducedMotion = prefersReducedMotion
         self.selectedTheme = selectedTheme
         self.preferredSourceLanguages = preferredSourceLanguages
-        self.preferredGenres = preferredGenres
         self.lastSyncedAt = lastSyncedAt
         self.preferredQuoteMoodRaw = preferredQuoteMoodRaw
     }

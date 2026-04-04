@@ -119,7 +119,7 @@ private struct CalendarMonthDayCell: View {
         Button(action: action) {
             VStack(spacing: cellSpacing) {
                 Text("\(Calendar.oracle.component(.day, from: date))")
-                    .font(.system(size: 14, weight: isToday ? .semibold : .regular))
+                    .font(.system(size: 17, weight: isToday ? .semibold : .regular))
                     .foregroundStyle(isToday ? AppColors.textPrimary : AppColors.textSecondary)
 
                 Circle()
@@ -142,10 +142,10 @@ private struct CalendarMonthDayCell: View {
     private var backgroundShape: some View {
         if isSelected {
             RoundedRectangle(cornerRadius: min(cellHeight / 2, Radius.lg))
-                .fill(AppColors.borderTertiary)
+                .fill(AppColors.backgroundSecondary)
         } else if isToday {
             RoundedRectangle(cornerRadius: min(cellHeight / 2, Radius.lg))
-                .fill(AppColors.backgroundSecondary)
+                .fill(AppColors.backgroundSecondary.opacity(0.5))
         } else {
             Color.clear
         }

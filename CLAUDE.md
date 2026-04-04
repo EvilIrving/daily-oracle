@@ -56,3 +56,6 @@ Every time something breaks -> you add a guardrail
 - pnpm 管理 JS 依赖
 - SvelteKit + TailwindCSS v3（Local 工作台）
 - 代码修改后执行 `pnpm check`
+
+没有想好或者决定的事情写入 `arguments.md`,最新的放上面。
+会话中有值得记录的决策或者修改的内容比较复杂，涉及多个模块内容，修复了不宜修复或经常发生的bug，使用 skill /session-log 记录。

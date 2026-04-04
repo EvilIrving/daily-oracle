@@ -78,12 +78,14 @@ textarea {
   font-size: 0.78rem;
   line-height: 1;
   color: var(--muted);
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
 }
 
 .chip.is-active {
   border-color: #b89d79;
   color: var(--text);
   background: #fff8ef;
+  font-weight: 500;
 }
 
 .chip-action {
@@ -279,4 +281,14 @@ textarea {
     bottom: 0.8rem;
     width: min(94vw, 360px);
   }
+}
+
+/* 隐藏滚动条但保留滚动功能 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

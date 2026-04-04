@@ -20,7 +20,6 @@ struct StoreTests {
         let request = try #require(edgeService.receivedRequests.first)
         #expect(request.geo == nil)
         #expect(request.weather == nil)
-        #expect(request.preferences.genreHistory.isEmpty)
 
         let records = try modelContext.fetch(FetchDescriptor<DailyRecord>())
         #expect(records.count == 1)
@@ -55,7 +54,6 @@ struct StoreTests {
             updatedAt: Date(timeIntervalSince1970: 1_700_000_000)
         )
         let config = UserConfig(
-            preferredGenres: ["poetry"],
             lastSyncedAt: Date(timeIntervalSince1970: 1_700_000_100)
         )
         modelContext.insert(existingRecord)
@@ -80,9 +78,6 @@ struct StoreTests {
         #expect(updatedRecord.updatedAt > Date(timeIntervalSince1970: 1_700_000_000))
 
         #expect(config.lastSyncedAt != nil)
-
-        let request = try #require(edgeService.receivedRequests.first)
-        #expect(request.preferences.genreHistory == ["poetry"])
     }
 
     @Test

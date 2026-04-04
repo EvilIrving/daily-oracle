@@ -6,7 +6,7 @@
 ## 目录结构
 
 - `RootView.swift` - App入口和Tab导航
-- `Home/` - 历史记录相关视图（日历、详情卡片等）
-- `SettingsTab.swift` - 设置页面
+- `Home/CalendarTab.swift` - 日历页面
+- `WidgetTab.swift` - 小组件预览页面
 - `Components/` - 可复用视图组件
 - `WidgetPreview*.swift` - 小组件预览（Phase 4.5）

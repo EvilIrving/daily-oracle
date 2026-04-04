@@ -1,4 +1,46 @@
-## pnpm + better-sqlite3 安装修复 - 2026-03-30 from: Cursor  
+## 字体方案与小组件服务端生成方案决策 · 2026-04-04
+
+**被放弃的方案：服务端预生成图片**
+
+考虑过让 Edge Function 每天为每个用户生成 6 张图片（3 种尺寸 × 2 种主题），App 和 Widget 只渲染图片。
+
+放弃原因：
+- 需预生成量大（日活 × 6 张），或首次请求时延迟生成
+- 深色/浅色需两套图，或按需实时生成有延迟
+- Widget 内存限制（30MB）对大图敏感
+- 完全丧失离线能力
+
+替代方案：本地渲染，内置字体。
+
+---
+
+**字体方案决策**
+
+**默认免费字体**：霞鹜文楷（简繁体 + 基础西文，约 3MB）
+- 温润书卷气，适合文学名句
+- 西文部分较弱，纯英文名句需 fallback 到系统字体或内置西文字体
+
+**付费解锁特殊字体**（规划）：
+- 得意黑（几何斜体，现代感）
+- 站酷庆科黄油体（圆体，温暖）
+- Zpix / Press Start 2P（中文/西文像素）
+- Caveat / Dancing Script（手写/花体）
+- Playfair Display（古典衬线）
+- Courier Prime（打字机复古）
+
+**多语言支持**：
+- 中文名句：霞鹜文楷
+- 英文名句：需额外西文字体（Merriweather 或 Lora）或直接用系统 SF Pro
+- 日文/韩文原文：思源宋体 JP/K 子集，或直接用系统字体 fallback
+
+**技术路径**：
+- 字体文件放 Xcode Resources，Info.plist 注册
+- SwiftUI 用 `.custom("FontName", size: 17)`
+- 检测到纯英文时自动切换西文字体
+
+---
+
+  
 
 主题: server 依赖安装失败与 node-gyp PATH 修复 | 标签: [build, config, bugfix]
 
