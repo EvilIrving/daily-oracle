@@ -17,20 +17,24 @@
   import LibraryTab from '$lib/components/tabs/LibraryTab.svelte';
   import AlmanacTab from '$lib/components/tabs/AlmanacTab.svelte';
   import ReviewLogTab from '$lib/components/tabs/ReviewLogTab.svelte';
+  import PromptLabTab from '$lib/components/tabs/PromptLabTab.svelte';
+  import EpubConverterTab from '$lib/components/tabs/EpubConverterTab.svelte';
   import ProviderEditDialog from '$lib/components/extract/ProviderEditDialog.svelte';
 
-  type MainTab = 'extract' | 'library' | 'almanac' | 'review-log';
+  type MainTab = 'extract' | 'library' | 'almanac' | 'review-log' | 'prompt-lab' | 'epub-converter';
   type ReviewLogBook = { bookId: string; bookTitle: string | null; total: number; accepted: number; rejected: number; lastDecidedAt: string };
 
   const mainTabs: { id: MainTab; label: string }[] = [
     { id: 'extract', label: '提取' },
     { id: 'library', label: '名句库' },
     { id: 'almanac', label: '宜忌' },
-    { id: 'review-log', label: '审核日志' }
+    { id: 'review-log', label: '审核日志' },
+    { id: 'prompt-lab', label: '调试' },
+    { id: 'epub-converter', label: 'EPUB 转换' }
   ];
 
   // --- 状态 ---
-  let activeTab = $state<MainTab>('extract');
+  let activeTab = $state<MainTab>('prompt-lab');
   let currentBookId = $state('');
   let currentRunId = $state('');
   let extractStatus = $state('IDLE');
@@ -523,6 +527,10 @@
           onRefresh={refreshReviewLog}
           onExport={exportReviewLog}
         />
+      {:else if activeTab === 'prompt-lab'}
+        <PromptLabTab config={config} />
+      {:else if activeTab === 'epub-converter'}
+        <EpubConverterTab />
       {/if}
       </div>
     </section>

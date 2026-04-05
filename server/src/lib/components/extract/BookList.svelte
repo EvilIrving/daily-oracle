@@ -22,7 +22,7 @@
 </script>
 
 {#if selectedFiles.length > 0}
-  <div class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
+  <div class="grid max-h-[320px] grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 overflow-y-auto pr-1">
     {#each selectedFiles as file}
       <div class="group relative">
         <button

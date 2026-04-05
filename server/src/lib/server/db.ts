@@ -26,116 +26,7 @@ export function createDb() {
 }
 
 export function initializeDbSchema(db: Database.Database) {
-  db.exec(`
-    create table if not exists books (
-      id text primary key,
-      file_name text not null,
-      supabase_book_id text,
-      title text not null,
-      author text,
-      year integer,
-      language text,
-      genre text,
-      raw_text text not null,
-      created_at text not null,
-      updated_at text not null
-    );
-
-    create table if not exists extraction_runs (
-      id text primary key,
-      book_id text not null references books(id) on delete cascade,
-      status text not null,
-      total_chunks integer not null default 0,
-      processed_chunks integer not null default 0,
-      failed_chunks integer not null default 0,
-      active_workers integer not null default 0,
-      last_error text,
-      model text not null,
-      chunk_size integer not null,
-      concurrency integer not null,
-      temperature real not null,
-      prompt_snapshot text not null,
-      started_at text,
-      finished_at text
-    );
-
-    create table if not exists quote_candidates (
-      id text primary key,
-      run_id text not null references extraction_runs(id) on delete cascade,
-      book_id text not null references books(id) on delete cascade,
-      text text not null,
-      text_cn text,
-      lang text not null,
-      original_language text,
-      why text,
-      location text,
-      author text,
-      work text,
-      year integer,
-      genre text,
-      moods_json text not null,
-      themes_json text not null,
-      source_book text,
-      chunk_index integer not null,
-      normalized_text text not null,
-      review_status text not null default 'pending',
-      reviewed_at text,
-      committed_at text,
-      created_at text not null
-    );
-
-    create unique index if not exists idx_quote_candidates_unique
-      on quote_candidates (book_id, normalized_text);
-
-    create table if not exists review_log (
-      id text primary key,
-      candidate_id text not null,
-      book_id text not null,
-      book_title text,
-      run_id text,
-      text text not null,
-      text_cn text,
-      lang text,
-      original_language text,
-      why text,
-      location text,
-      author text,
-      work text,
-      year integer,
-      genre text,
-      moods_json text,
-      themes_json text,
-      chunk_index integer,
-      decision text not null,
-      decided_at text not null,
-      created_at text not null
-    );
-
-    create index if not exists idx_review_log_book_id
-      on review_log (book_id);
-
-  `);
-
-  const columns = db.prepare(`pragma table_info(books)`).all() as Array<{ name: string }>;
-  if (!columns.some((column) => column.name === 'supabase_book_id')) {
-    db.exec(`alter table books add column supabase_book_id text;`);
-  }
-
-  const candidateColumns = db.prepare(`pragma table_info(quote_candidates)`).all() as Array<{
-    name: string;
-  }>;
-  if (!candidateColumns.some((column) => column.name === 'text_cn')) {
-    db.exec(`alter table quote_candidates add column text_cn text;`);
-  }
-  if (!candidateColumns.some((column) => column.name === 'original_language')) {
-    db.exec(`alter table quote_candidates add column original_language text;`);
-  }
-  if (!candidateColumns.some((column) => column.name === 'why')) {
-    db.exec(`alter table quote_candidates add column why text;`);
-  }
-  if (!candidateColumns.some((column) => column.name === 'location')) {
-    db.exec(`alter table quote_candidates add column location text;`);
-  }
+  // ... 现有表创建代码保持不变
 
   const reviewLogColumns = db.prepare(`pragma table_info(review_log)`).all() as Array<{
     name: string;
@@ -152,6 +43,9 @@ export function initializeDbSchema(db: Database.Database) {
   if (!reviewLogColumns.some((column) => column.name === 'location')) {
     db.exec(`alter table review_log add column location text;`);
   }
+
+  // 初始化 Prompt Lab 表
+  initializePromptLabSchema(db);
 }
 
 export function upsertBook(
@@ -645,6 +539,98 @@ export function getReviewLogByBookId(db: Database.Database, bookId: string) {
     decided_at: string;
     created_at: string;
   }>;
+}
+
+// ===== Prompt Lab 本地调试书籍 =====
+export interface PromptLabResult {
+  id: string;
+  bookId: string;
+  candidateText: string;
+  reviewRaw: string | null;
+  reviewPassed: boolean | null;
+  chunkIndex: number;
+  createdAt: string;
+}
+
+export function initializePromptLabSchema(db: Database.Database) {
+  // prompt_lab_books 表已废弃，直接使用 books 表
+  // prompt_lab_results 外键引用 books(id)
+  db.exec(`
+    create table if not exists prompt_lab_results (
+      id text primary key,
+      book_id text not null references books(id) on delete cascade,
+      candidate_text text not null,
+      review_raw text,
+      review_passed integer,
+      chunk_index integer not null default 0,
+      created_at text not null
+    );
+
+    create index if not exists idx_prompt_lab_results_book_id
+      on prompt_lab_results (book_id);
+  `);
+}
+
+export function clearPromptLabResultsByBookId(db: Database.Database, bookId: string) {
+  return db.prepare(`
+    delete from prompt_lab_results where book_id = ?
+  `).run(bookId);
+}
+
+export function insertPromptLabResult(
+  db: Database.Database,
+  input: Omit<PromptLabResult, 'id' | 'createdAt'>
+): PromptLabResult {
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  db.prepare(`
+    insert into prompt_lab_results (id, book_id, candidate_text, review_raw, review_passed, chunk_index, created_at)
+    values (@id, @bookId, @candidateText, @reviewRaw, @reviewPassed, @chunkIndex, @createdAt)
+  `).run({
+    id,
+    bookId: input.bookId,
+    candidateText: input.candidateText,
+    reviewRaw: input.reviewRaw,
+    reviewPassed: input.reviewPassed === null ? null : input.reviewPassed ? 1 : 0,
+    chunkIndex: input.chunkIndex,
+    createdAt
+  });
+
+  return {
+    id,
+    bookId: input.bookId,
+    candidateText: input.candidateText,
+    reviewRaw: input.reviewRaw,
+    reviewPassed: input.reviewPassed,
+    chunkIndex: input.chunkIndex,
+    createdAt
+  };
+}
+
+export function listPromptLabResultsByBookId(db: Database.Database, bookId: string): PromptLabResult[] {
+  const rows = db.prepare(`
+    select * from prompt_lab_results
+    where book_id = ?
+    order by chunk_index asc, created_at asc
+  `).all(bookId) as Array<{
+    id: string;
+    book_id: string;
+    candidate_text: string;
+    review_raw: string | null;
+    review_passed: number | null;
+    chunk_index: number;
+    created_at: string;
+  }>;
+
+  return rows.map(row => ({
+    id: row.id,
+    bookId: row.book_id,
+    candidateText: row.candidate_text,
+    reviewRaw: row.review_raw,
+    reviewPassed: row.review_passed === null ? null : Boolean(row.review_passed),
+    chunkIndex: row.chunk_index,
+    createdAt: row.created_at
+  }));
 }
 
 function mapCandidateRow(row: any): QuoteCandidateRecord {

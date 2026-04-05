@@ -12,25 +12,25 @@
     "deploy:all": "pnpm exec supabase functions deploy daily-oracle"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.50.1",
-    "@supabase/supabase-js": "^2.43.0",
-    "better-sqlite3": "^11.9.0"
+    "@anthropic-ai/sdk": "^0.50.4",
+    "@supabase/supabase-js": "^2.101.1",
+    "better-sqlite3": "^11.10.0"
   },
   "devDependencies": {
-    "@sveltejs/adapter-auto": "^3.2.6",
-    "@sveltejs/kit": "^2.17.1",
-    "@sveltejs/vite-plugin-svelte": "^5.0.3",
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/node": "^22.13.14",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.3",
-    "supabase": "^2.84.5",
-    "svelte": "^5.28.2",
-    "svelte-check": "^4.1.4",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.8.2",
-    "vite": "^6.2.2",
-    "vitest": "^3.0.8"
+    "@sveltejs/adapter-auto": "^3.3.1",
+    "@sveltejs/kit": "^2.56.1",
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.17",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "supabase": "^2.84.10",
+    "svelte": "^5.55.1",
+    "svelte-check": "^4.4.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.1",
+    "vitest": "^3.2.4"
   },
   "pnpm": {
     "packageExtensions": {
