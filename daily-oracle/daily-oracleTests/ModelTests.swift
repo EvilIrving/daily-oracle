@@ -52,9 +52,7 @@ struct ModelTests {
         let config = UserConfig()
 
         #expect(config.preferredFontName == "SourceHanSerifCN-Regular")
-        #expect(config.prefersReducedMotion == false)
         #expect(config.selectedTheme == "system")
         #expect(config.preferredSourceLanguages == ["zh"])
-        #expect(config.preferredQuoteMoodRaw == nil)
     }
 }

@@ -60,7 +60,7 @@ final class DailyOracleStore {
                 pro: false
             ),
             preferences: .init(
-                mood: config?.preferredQuoteMoodRaw,
+                mood: nil,
                 moodHistory: [],
                 anniversary: todayAnniversary(from: modelContext)
             )
