@@ -24,11 +24,6 @@ create table books (
   genre         text,
   lang          book_lang not null default 'other',
 
-  -- 扩展元数据
-  source_label  text,           -- 原始 txt 元数据头中的语言或来源描述
-  douban_score  numeric(3,1),
-  notes         text,
-
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );

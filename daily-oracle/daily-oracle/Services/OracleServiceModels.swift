@@ -6,12 +6,15 @@
 import Foundation
 
 nonisolated struct OracleEdgeRequest: Codable, Sendable, Equatable {
+    /** 宜忌生成的用户提示词，由 App 侧自由组装 */
+    var prompt: String
     var geo: Geo?
     var weather: Weather?
     var profile: Profile
     var preferences: Preferences
 
     enum CodingKeys: String, CodingKey {
+        case prompt
         case geo
         case weather
         case profile
@@ -20,6 +23,7 @@ nonisolated struct OracleEdgeRequest: Codable, Sendable, Equatable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(prompt, forKey: .prompt)
         try container.encodeIfPresent(geo, forKey: .geo)
         try container.encodeIfPresent(weather, forKey: .weather)
         try container.encode(profile, forKey: .profile)

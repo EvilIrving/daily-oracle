@@ -1,4 +1,26 @@
-## 字体方案与小组件服务端生成方案决策 · 2026-04-04
+## 简化宜忌 prompt 传递方式 · 2026-04-06
+
+将 Edge Function 从固定格式组装 prompt 改为透传模式，App 侧完全控制提示词内容。
+
+**改动：**
+
+1. `docs/prompts/yi.md`：改为 App 侧参考文档，说明如何组装 prompt
+2. `server/supabase/functions/daily-oracle/index.ts`：
+   - 移除 `PROMPT_YI` 常量，移除所有 prompt 组装逻辑
+   - LLM 调用改为直接透传 `body.prompt`（无 system）
+   - 名句选择简化，不再使用天气主题加权
+3. `daily-oracle/Services/OracleServiceModels.swift`：`OracleEdgeRequest` 新增 `prompt: String` 字段
+4. `daily-oracle/Stores/DailyOracleStore.swift`：新增 `buildAlmanacPrompt` 函数，负责组装完整 prompt（系统风格定义 + 输入信号）
+
+**设计决策：**
+
+- Edge Function 简化为纯透传层，不做任何 prompt 处理
+- App 侧完全控制提示词格式，可自由组合任意信号
+- 系统风格定义硬编码在 App 侧，可随时调整
+
+---
+
+
 
 **被放弃的方案：服务端预生成图片**
 

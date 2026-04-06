@@ -1,40 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
-const PROMPT_YI = `今天的输入信号：
-- 日期：{{month}} {{weekday}}
-- 节气：{{solar_term}}
-- 天气：{{condition}}，{{temperature}}℃
-- 用户今天纪念日：{{anniversary}}
-- 用户过去 7 天心情记录：{{mood_history}}
-
-请生成今日宜忌各一条。
-
-风格要求：
-- 写具体的动作或状态，不写抽象建议（"宜散步"不够，"宜走一段没走过的路"才对）
-- 不说教，不励志，语气像朋友随口说的，不像格言
-- 宜和忌要有内在张力，像是同一个人今天的两面
-
-正面示例：
-在自然光下读几页纸质书
-把休息当成需要被证明才能拥有的东西
-
-出门走一段不常走的路，看陌生的窗口
-用沉默代替真正想说的话
-
-反面示例（排除）：
-保持积极心态 ← 空话
-不要生气 ← 说教
-
-宜嫁娶 ← 古代的宜忌
-忌出行 ← 古代的宜忌
-
-严格按以下 JSON 格式输出，不加任何解释，不带"宜："或"忌："前缀：
-{"yi": "...", "ji": "..."}`;
-
 // --- Types ---
 
 interface RequestBody {
+  /** 宜忌生成的完整提示词（含系统风格定义 + 用户信号），由 App 侧自由组装 */
+  prompt: string;
   geo?: { lng: number; lat: number };
   weather?: { temperature: number; condition: string; wind?: number };
   profile: { lang: string; region: string; pro: boolean };
@@ -74,43 +45,14 @@ function todayString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function weekday(lang: string): string {
-  const d = new Date();
-  const weekdays_zh = ["日", "一", "二", "三", "四", "五", "六"];
-  const weekdays_en = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  return lang === "zh" ? `星期${weekdays_zh[d.getDay()]}` : weekdays_en[d.getDay()];
-}
-
-function monthName(lang: string): string {
-  const d = new Date();
-  if (lang === "zh") return `${d.getMonth() + 1}月`;
-  return d.toLocaleString("en", { month: "long" });
-}
-
-/** Map weather condition to theme keywords for scoring */
-function weatherToThemes(condition: string, temperature: number): string[] {
-  const themes: string[] = [];
-  const c = condition.toLowerCase();
-  if (c.includes("雨") || c.includes("rain")) themes.push("雨");
-  if (c.includes("雪") || c.includes("snow")) themes.push("雪", "冬");
-  if (c.includes("风") || c.includes("wind")) themes.push("风");
-  if (c.includes("晴") || c.includes("sunny") || c.includes("clear")) themes.push("晴");
-  if (c.includes("阴") || c.includes("cloud") || c.includes("overcast")) themes.push("阴");
-  if (temperature <= 5) themes.push("冬");
-  else if (temperature >= 30) themes.push("夏");
-  return themes;
-}
-
-function pickQuoteFromCandidates(rows: QuoteRow[], weatherThemes: string[]): Quote {
+function pickQuoteFromCandidates(rows: QuoteRow[], mood?: string): Quote {
   if (!rows.length) {
     throw new Error("quotes 表中没有可用的已发布名句");
   }
+  // 如果提供了 mood，优先选择匹配的候选
   const scored = rows.map((q) => {
-    let score = 0;
-    for (const theme of weatherThemes) {
-      if (q.themes?.includes(theme)) score += 2;
-    }
-    score += Math.random() * 3;
+    let score = Math.random() * 3;
+    if (mood && q.mood?.includes(mood)) score += 5;
     return { q, score };
   });
   scored.sort((a, b) => b.score - a.score);
@@ -125,33 +67,6 @@ function pickQuoteFromCandidates(rows: QuoteRow[], weatherThemes: string[]): Quo
     mood: top.mood,
     themes: top.themes,
   };
-}
-
-function buildPrompt(body: RequestBody): string {
-  const lang = body.profile.lang || "zh";
-  let prompt = PROMPT_YI;
-  prompt = prompt.replace("{{month}}", monthName(lang));
-  prompt = prompt.replace("{{weekday}}", weekday(lang));
-  prompt = prompt.replace("{{solar_term}}", "null"); // TODO: solar term lookup
-  if (body.weather) {
-    prompt = prompt.replace("{{condition}}", body.weather.condition);
-    prompt = prompt.replace("{{temperature}}", String(body.weather.temperature));
-  } else {
-    prompt = prompt.replace("- 天气：{{condition}}，{{temperature}}℃\n", "");
-  }
-
-  // 处理纪念日
-  if (body.preferences.anniversary) {
-    prompt = prompt.replace("{{anniversary}}", body.preferences.anniversary.name);
-  } else {
-    prompt = prompt.replace("- 用户今天纪念日：{{anniversary}}\n", "");
-  }
-
-  prompt = prompt.replace(
-    "{{mood_history}}",
-    JSON.stringify(body.preferences.mood_history || [])
-  );
-  return prompt;
 }
 
 async function loadQuoteCandidates(
@@ -195,6 +110,10 @@ Deno.serve(async (req) => {
 
   try {
     const body: RequestBody = await req.json();
+    const userPrompt = body.prompt?.trim();
+    if (!userPrompt) {
+      throw new Error("Missing prompt field");
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     // 与本地工作台一致：使用新版 `SERVICE_SECRET_KEY`（sb_secret_…），不再使用 legacy 的 service_role 名。
@@ -211,12 +130,9 @@ Deno.serve(async (req) => {
     const today = todayString();
 
     const mood = body.preferences.mood;
-    const weatherThemes = body.weather
-      ? weatherToThemes(body.weather.condition, body.weather.temperature)
-      : [];
 
     const candidates = await loadQuoteCandidates(supabase, mood);
-    const selectedQuote = pickQuoteFromCandidates(candidates, weatherThemes);
+    const selectedQuote = pickQuoteFromCandidates(candidates, mood);
 
     let almanac: Almanac;
 
@@ -235,8 +151,7 @@ Deno.serve(async (req) => {
         throw new Error("ANTHROPIC_API_KEY is required when no almanac cache exists for today");
       }
 
-      const prompt = buildPrompt(body);
-
+      // Edge Function 完全透明透传：App 传来的 prompt 直接作为 user message
       const llmRes = await fetch(`${anthropicBaseUrl}/v1/messages`, {
         method: "POST",
         headers: {
@@ -246,7 +161,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model,
           max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }],
+          messages: [{ role: "user", content: userPrompt }],
         }),
       });
 
@@ -272,9 +187,7 @@ Deno.serve(async (req) => {
           yi: almanac.yi,
           ji: almanac.ji,
           signals: {
-            weather: body.weather,
-            mood_history: body.preferences.mood_history,
-            anniversary: body.preferences.anniversary,
+            prompt: userPrompt,
           },
           model_used: model,
         },

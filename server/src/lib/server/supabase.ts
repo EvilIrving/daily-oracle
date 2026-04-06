@@ -104,8 +104,7 @@ export async function upsertSupabaseBook(input: {
     author: input.author,
     year: input.year,
     genre: input.genre,
-    lang: deriveBookLang(input.language),
-    source_label: language || null
+    lang: deriveBookLang(input.language)
   };
 
   // The unique index uses coalesce(author,'') and coalesce(year,0),

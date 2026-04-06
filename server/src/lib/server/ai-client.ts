@@ -7,7 +7,7 @@ import { parseAiJsonArray } from './parser';
 
 const WORKSPACE_ROOT =
   path.basename(process.cwd()) === 'server' ? path.dirname(process.cwd()) : process.cwd();
-const PROMPT_PATH = path.join(WORKSPACE_ROOT, 'docs/prompt-oracle.md');
+const PROMPT_PATH = path.join(WORKSPACE_ROOT, 'docs/prompts/extract.md');
 /** 非流式输出上限（与提供商文档核对；不在 UI 暴露）。 */
 const REQUEST_MAX_TOKENS = 4096;
 const REQUEST_TIMEOUT_MS = 120_000;

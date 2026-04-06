@@ -51,7 +51,11 @@ final class DailyOracleStore {
     }
 
     private func makeRequest(config: UserConfig?, modelContext: ModelContext) -> OracleEdgeRequest {
+        let anniversary = todayAnniversary(from: modelContext)
+        let prompt = buildAlmanacPrompt(anniversary: anniversary)
+
         return OracleEdgeRequest(
+            prompt: prompt,
             geo: nil,
             weather: nil,
             profile: .init(
@@ -62,9 +66,62 @@ final class DailyOracleStore {
             preferences: .init(
                 mood: nil,
                 moodHistory: [],
-                anniversary: todayAnniversary(from: modelContext)
+                anniversary: anniversary
             )
         )
+    }
+
+    private func buildAlmanacPrompt(anniversary: OracleEdgeRequest.Preferences.AnniversaryItem?) -> String {
+        // 系统风格定义（固定部分）
+        let systemPrompt = """
+你是一个日常宜忌生成助手。
+
+你的任务是生成今日宜忌各一条。
+
+风格要求：
+- 写具体的动作或状态，不写抽象建议（"宜散步"不够，"宜走一段没走过的路"才对）
+- 不说教，不励志，语气像朋友随口说的，不像格言
+- 宜和忌要有内在张力，像是同一个人今天的两面
+
+正面示例：
+在自然光下读几页纸质书
+把休息当成需要被证明才能拥有的东西
+
+出门走一段不常走的路，看陌生的窗口
+用沉默代替真正想说的话
+
+反面示例（排除）：
+保持积极心态 ← 空话
+不要生气 ← 说教
+
+宜嫁娶 ← 古代的宜忌
+忌出行 ← 古代的宜忌
+
+严格按以下 JSON 格式输出，不加任何解释：
+{"yi": "...", "ji": "..."}
+"""
+
+        // 输入信号（动态部分）
+        let now = Date()
+        let calendar = Calendar.oracle
+        let month = calendar.component(.month, from: now)
+        let day = calendar.component(.day, from: now)
+        let weekday = calendar.component(.weekday, from: now)
+        let weekdays = ["日", "一", "二", "三", "四", "五", "六"]
+
+        var inputSignals = ""
+        inputSignals += "今天的输入信号：\n"
+        inputSignals += "- 日期：\(month)月\(day)日 星期\(weekdays[weekday - 1])\n"
+        inputSignals += "- 节气：null\n"
+
+        if let ann = anniversary {
+            inputSignals += "- 纪念日：\(ann.name)\n"
+        }
+
+        inputSignals += "- 过去7天心情记录：[]\n"
+        inputSignals += "\n请生成今日宜忌各一条。"
+
+        return systemPrompt + "\n\n" + inputSignals
     }
 
     private func todayAnniversary(from modelContext: ModelContext) -> OracleEdgeRequest.Preferences.AnniversaryItem? {

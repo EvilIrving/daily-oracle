@@ -23,27 +23,7 @@
 - `location`：章节名或页码
 
 ---
-
-## 3. 宜忌生成 (Almanac)
-
-**Prompt**：硬编码在 Edge Function `daily-oracle/index.ts` 中
-
-**输入信号**（全部可选）：
-- `date`: 日期字符串，如 "4 月 5 日 · 周六"
-- `solar_term`: 节气字符串，如 "清明"
-- `weather`: 天气字符串，如 "晴 23℃" 或 "rainy"
-- `anniversary`: 纪念日字符串，如 "结婚 3 周年"
-- `mood_history`: 心情字符串数组，如 `["calm", "sad", "happy"]`
-
-**原则**：
-- 所有输入信号都是可选的
-- 除 `mood_history` 是数组外，其余全部是字符串
-- 不做格式校验，AI 根据实际传入的信号生成宜忌
-- 如果某个信号为空，Prompt 中对应行留空或删除
-
-**输出格式**：JSON `{"yi": "...", "ji": "..."}`
-
----
+ 
 
 ## 4. 数据层 (App)
 
@@ -82,7 +62,7 @@
 - 改为**双步骤**流程，提高产出质量
   1. **提取步骤**：用 `docs/prompts/extract.md` 提取句子，输出完整元数据（moods/tags/why/location）
   2. **审核步骤**：用 `docs/prompts/review.md` 对提取结果做终审（pass/reject）
-- 审核通过的才入库，不通过的丢弃
+- 审核通过的交由用户判断是否入库，不通过的直接丢弃，避免不必要的人工审核负担
 
 **Prompt 分工**：
 - `docs/prompts/extract.md`：提取用，输出完整元数据
