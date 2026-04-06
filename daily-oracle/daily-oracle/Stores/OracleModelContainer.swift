@@ -11,6 +11,8 @@ enum OracleModelContainer {
         try! makeContainer()
     }()
 
+    static let appGroupID = "group.cain.com.daily-oracle"
+
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
         let schema = Schema([
             DailyRecord.self,
@@ -18,12 +20,34 @@ enum OracleModelContainer {
             UserConfig.self,
         ])
 
-        let configuration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: inMemory,
-            allowsSave: true
-        )
+        let configuration: ModelConfiguration
+
+        if inMemory {
+            configuration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: true,
+                allowsSave: true
+            )
+        } else {
+            // 使用 App Group 共享容器，供 Widget 读取
+            guard let groupURL = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
+                throw OracleContainerError.appGroupNotAvailable
+            }
+
+            let dbURL = groupURL.appendingPathComponent("daily_oracle.sqlite")
+
+            configuration = ModelConfiguration(
+                schema: schema,
+                url: dbURL,
+                allowsSave: true
+            )
+        }
 
         return try ModelContainer(for: schema, configurations: [configuration])
     }
+}
+
+enum OracleContainerError: Error {
+    case appGroupNotAvailable
 }

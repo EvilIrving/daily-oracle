@@ -19,6 +19,9 @@ enum QuoteMood: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var id: String { rawValue }
 
+    /// 展示名称（中文）
+    var displayName: String { label }
+
     /// 标签短文案（中文），用于名句偏好标签 UI。
     var label: String {
         switch self {

@@ -19,6 +19,7 @@
 /* Begin PBXFileReference section */
 		A494DD882F7E6EF400D32B2E /* daily-oracle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "daily-oracle.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A494DD992F7E6EF500D32B2E /* daily-oracleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "daily-oracleTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A494DDC02F7E6F0100D32B2E /* OracleWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OracleWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -44,8 +45,23 @@
 				Views/CLAUDE.md,
 				Widgets/AGENTS.md,
 				Widgets/CLAUDE.md,
+				Widgets/Info.plist,
+				Widgets/OracleWidgetBundle.swift,
+				Widgets/OracleWidgetEntry.swift,
+				Widgets/OracleWidgetLarge.swift,
+				Widgets/OracleWidgetMedium.swift,
+				Widgets/OracleWidgetProvider.swift,
+				Widgets/OracleWidgetSmall.swift,
 			);
 			target = A494DD872F7E6EF400D32B2E /* daily-oracle */;
+		};
+		A494DDC42F7E6F0100D32B2E /* Exceptions for "daily-oracle/Widgets" folder in "OracleWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				OracleWidget.entitlements,
+			);
+			target = A494DDBF2F7E6F0100D32B2E /* OracleWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -61,6 +77,11 @@
 		A494DD9C2F7E6EF500D32B2E /* daily-oracleTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "daily-oracleTests";
+			sourceTree = "<group>";
+		};
+		A494DDC12F7E6F0100D32B2E /* daily-oracle/Widgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "daily-oracle/Widgets";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -80,15 +101,31 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A494DDBD2F7E6F0100D32B2E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1AD8C62B2F838519001D3E78 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				A494DDC12F7E6F0100D32B2E /* daily-oracle/Widgets */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		A494DD7F2F7E6EF400D32B2E = {
 			isa = PBXGroup;
 			children = (
 				A494DD8A2F7E6EF400D32B2E /* daily-oracle */,
 				A494DD9C2F7E6EF500D32B2E /* daily-oracleTests */,
 				A494DD892F7E6EF400D32B2E /* Products */,
+				1AD8C62B2F838519001D3E78 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -97,6 +134,7 @@
 			children = (
 				A494DD882F7E6EF400D32B2E /* daily-oracle.app */,
 				A494DD992F7E6EF500D32B2E /* daily-oracleTests.xctest */,
+				A494DDC02F7E6F0100D32B2E /* OracleWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -149,6 +187,28 @@
 			productReference = A494DD992F7E6EF500D32B2E /* daily-oracleTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		A494DDBF2F7E6F0100D32B2E /* OracleWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A494DDD12F7E6F0100D32B2E /* Build configuration list for PBXNativeTarget "OracleWidgetExtension" */;
+			buildPhases = (
+				A494DDBC2F7E6F0100D32B2E /* Sources */,
+				A494DDBD2F7E6F0100D32B2E /* Frameworks */,
+				A494DDBE2F7E6F0100D32B2E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A494DDC12F7E6F0100D32B2E /* daily-oracle/Widgets */,
+			);
+			name = OracleWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = OracleWidgetExtension;
+			productReference = A494DDC02F7E6F0100D32B2E /* OracleWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -165,6 +225,9 @@
 					A494DD982F7E6EF500D32B2E = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = A494DD872F7E6EF400D32B2E;
+					};
+					A494DDBF2F7E6F0100D32B2E = {
+						CreatedOnToolsVersion = 26.2;
 					};
 				};
 			};
@@ -184,6 +247,7 @@
 			targets = (
 				A494DD872F7E6EF400D32B2E /* daily-oracle */,
 				A494DD982F7E6EF500D32B2E /* daily-oracleTests */,
+				A494DDBF2F7E6F0100D32B2E /* OracleWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -203,6 +267,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A494DDBE2F7E6F0100D32B2E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -214,6 +285,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A494DD952F7E6EF500D32B2E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A494DDBC2F7E6F0100D32B2E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -482,6 +560,72 @@
 			};
 			name = Release;
 		};
+		A494DDD22F7E6F0100D32B2E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "daily-oracle/Widgets/OracleWidget.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QZZ878S3NS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "daily-oracle/Widgets/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "日签";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cain.com.daily-oracle.OracleWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A494DDD32F7E6F0100D32B2E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "daily-oracle/Widgets/OracleWidget.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QZZ878S3NS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "daily-oracle/Widgets/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "日签";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cain.com.daily-oracle.OracleWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -508,6 +652,15 @@
 			buildConfigurations = (
 				A494DDB22F7E6EF500D32B2E /* Debug */,
 				A494DDB32F7E6EF500D32B2E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A494DDD12F7E6F0100D32B2E /* Build configuration list for PBXNativeTarget "OracleWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A494DDD22F7E6F0100D32B2E /* Debug */,
+				A494DDD32F7E6F0100D32B2E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
