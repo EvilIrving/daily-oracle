@@ -2,13 +2,13 @@ export type QuoteLang = 'zh' | 'en' | 'translated';
 
 export type QuoteMood =
   | 'calm'
-  | 'happy'
   | 'sad'
   | 'anxious'
-  | 'angry'
-  | 'resilient'
-  | 'romantic'
-  | 'philosophical';
+  | 'happy'
+  | 'hopeful'
+  | 'tender'
+  | 'contemplative'
+  | 'angry';
 
 export type TaskStatus = 'idle' | 'queued' | 'running' | 'partial' | 'done' | 'error' | 'stopped';
 

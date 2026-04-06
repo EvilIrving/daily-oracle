@@ -9,27 +9,27 @@ import SwiftUI
 
 enum QuoteMood: String, CaseIterable, Identifiable, Codable, Sendable {
     case calm
-    case happy
     case sad
     case anxious
+    case happy
+    case hopeful
+    case tender
+    case contemplative
     case angry
-    case resilient
-    case romantic
-    case philosophical
 
     var id: String { rawValue }
 
     /// 标签短文案（中文），用于名句偏好标签 UI。
     var label: String {
         switch self {
-        case .calm: return "平静"
-        case .happy: return "明快"
-        case .sad: return "低落"
-        case .anxious: return "焦虑"
-        case .angry: return "愤怒"
-        case .resilient: return "坚韧"
-        case .romantic: return "温柔"
-        case .philosophical: return "哲思"
+        case .calm: return "静"
+        case .sad: return "失落"
+        case .anxious: return "不安"
+        case .happy: return "轻盈"
+        case .hopeful: return "希望"
+        case .tender: return "温柔"
+        case .contemplative: return "沉淀"
+        case .angry: return "压着"
         }
     }
 
@@ -40,13 +40,13 @@ enum QuoteMood: String, CaseIterable, Identifiable, Codable, Sendable {
     var icon: String {
         switch self {
         case .calm: "moon.stars"
-        case .happy: "sun.max"
         case .sad: "cloud.rain"
         case .anxious: "wind"
+        case .happy: "sun.max"
+        case .hopeful: "sunrise"
+        case .tender: "heart"
+        case .contemplative: "sparkles"
         case .angry: "flame"
-        case .resilient: "leaf"
-        case .romantic: "heart"
-        case .philosophical: "sparkles"
         }
     }
 }

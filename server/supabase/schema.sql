@@ -43,8 +43,8 @@ create index idx_books_created_at on books (created_at desc);
 -- ============================================================
 
 create type quote_mood as enum (
-  'calm', 'happy', 'sad', 'anxious',
-  'angry', 'resilient', 'romantic', 'philosophical'
+  'calm', 'sad', 'anxious', 'happy',
+  'hopeful', 'tender', 'contemplative', 'angry'
 );
 
 create table quotes (

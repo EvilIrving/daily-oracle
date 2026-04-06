@@ -75,7 +75,7 @@ describe('runExtraction', () => {
     extractQuotesForChunk.mockResolvedValueOnce([
       {
         text: '人生海海，山山而川。',
-        moods: ['resilient'],
+        moods: ['hopeful'],
         themes: ['人生']
       }
     ]);

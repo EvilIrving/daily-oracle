@@ -452,7 +452,7 @@ limit 5;
 ### 职责
 
 - 每日自动更新展示名句、宜忌
-- 用户心情选择（8 种：calm, happy, sad, anxious, angry, resilient, romantic, philosophical），触发换匹配名句 + 更新宜忌
+- 用户心情选择（8 种：calm, sad, anxious, happy, hopeful, tender, contemplative, angry），触发换匹配名句 + 更新宜忌
 - 日历历史视图
 - 主题切换
 - 小组件数据同步（Phase 5）

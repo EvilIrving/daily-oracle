@@ -12,13 +12,13 @@ type BookMetaKey = 'title' | 'author' | 'year' | 'language' | 'genre';
 
 const ALLOWED_MOODS = new Set<QuoteMood>([
   'calm',
-  'happy',
   'sad',
   'anxious',
-  'angry',
-  'resilient',
-  'romantic',
-  'philosophical'
+  'happy',
+  'hopeful',
+  'tender',
+  'contemplative',
+  'angry'
 ]);
 
 export function parseTxtWithMeta(rawText: string, fallbackTitle = ''): ParsedBook {

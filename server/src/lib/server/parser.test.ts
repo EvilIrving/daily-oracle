@@ -150,7 +150,7 @@ describe('parseAiJsonArray', () => {
     "original_language": "en",
     "why": "句子短，意象强，适合每日名句。",
     "location": "Chapter 3",
-    "moods": ["philosophical"],
+    "moods": ["contemplative"],
     "themes": ["命运", "希望"]
   }
 ]
@@ -259,7 +259,7 @@ describe('buildQuoteCandidates', () => {
           originalLanguage: 'ru',
           why: null,
           location: null,
-          moods: ['philosophical'],
+          moods: ['contemplative'],
           themes: ['家庭']
         }
       ],
@@ -287,7 +287,7 @@ describe('buildQuoteCandidates', () => {
           originalLanguage: 'zh',
           why: null,
           location: null,
-          moods: ['philosophical'],
+          moods: ['contemplative'],
           themes: ['幸福', '失去']
         }
       ],

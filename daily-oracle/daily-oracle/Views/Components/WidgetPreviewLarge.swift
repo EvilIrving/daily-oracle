@@ -104,7 +104,7 @@ struct WidgetPreviewLargeRecord {
         quoteWork: nil,
         recommended: "出门走一段不常走的路，看陌生的窗口",
         avoided: "用沉默代替真正想说的话",
-        mood: .philosophical
+        mood: .contemplative
     )
 }
 
