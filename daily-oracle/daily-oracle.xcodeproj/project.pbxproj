@@ -29,6 +29,8 @@
 				App/CLAUDE.md,
 				DesignSystem/AGENTS.md,
 				DesignSystem/CLAUDE.md,
+				Extensions/AGENTS.md,
+				Extensions/CLAUDE.md,
 				Info.plist,
 				Models/AGENTS.md,
 				Models/CLAUDE.md,
@@ -42,11 +44,6 @@
 				Views/CLAUDE.md,
 				Widgets/AGENTS.md,
 				Widgets/CLAUDE.md,
-				CLAUDE.md,
-				AGENTS.md,
-				Extensions/AGENTS.md,
-				Extensions/CLAUDE.md,
-				
 			);
 			target = A494DD872F7E6EF400D32B2E /* daily-oracle */;
 		};
