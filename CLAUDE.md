@@ -51,11 +51,21 @@ Every time something breaks -> you add a guardrail
 1. 先读 `docs/architecture.md`，确认目标和边界。
 2. 改动完成后，同步更新受影响的架构文档、schema 文档和本文件。
 
-## 工作台开发约束
+## 约束文件设计范式
 
-- pnpm 管理 JS 依赖
-- SvelteKit + TailwindCSS v3（Local 工作台）
-- 代码修改后执行 `pnpm check`
+项目采用分层约束文档设计：
+
+| 层级 | 文件 | 职责 |
+|------|------|------|
+| 顶层 | `/CLAUDE.md` | 项目级约定：架构解耦说明、事实源、业务不变量 |
+| 子项目 | `server/CLAUDE.md` | 工作台顶层约束：技术栈、代码规范、样式规范 |
+| 子项目 | `daily-oracle/CLAUDE.md` | Apple App 顶层约束：iOS 架构、技术方案、代码规范 |
+| 模块层 | `*/CLAUDE.md` | 模块具体约束：文件清单、职责边界、特殊约定 |
+
+- CLAUDE.md 定义"是什么"和"怎么做"（架构、规范、约定）
+- AGENTS.md 定义"做什么"和"进度"（任务、计划、Phase）
+- 子目录 CLAUDE.md 基于实际文件内容定制，包含文件清单和具体约束
+- 当前目录有更新时，随之更新本目录下的 CLAUDE.md 和 AGENTS.md
 
 没有想好或者决定的事情写入 `arguments.md`,最新的放上面。
 会话中有值得记录的决策或者修改的内容比较复杂，涉及多个模块内容，修复了不宜修复或经常发生的bug，使用 skill /session-log 记录。
