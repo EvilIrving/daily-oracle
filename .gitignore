@@ -21,6 +21,11 @@ dist/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# ===== develop（Next.js）=====
+develop/.next/
+develop/out/
+develop/.vercel/
+
 # ===== TypeScript / 测试产物 =====
 *.tsbuildinfo
 coverage/
