@@ -6,7 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		1AD8C28B2F8576B500D73BDA /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1AD8C28A2F8576B500D73BDA /* WidgetKit.framework */; };
+		1AD8C28D2F8576B500D73BDA /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1AD8C28C2F8576B500D73BDA /* SwiftUI.framework */; };
+		1AD8C29E2F8576B700D73BDA /* quotesExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1AD8C2882F8576B500D73BDA /* quotesExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
+		1AD8C29C2F8576B700D73BDA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A494DD802F7E6EF400D32B2E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1AD8C2872F8576B500D73BDA;
+			remoteInfo = quotesExtension;
+		};
 		A494DD9A2F7E6EF500D32B2E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A494DD802F7E6EF400D32B2E /* Project object */;
@@ -16,12 +29,36 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		1AD8C29F2F8576B700D73BDA /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				1AD8C29E2F8576B700D73BDA /* quotesExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		1AD8C2882F8576B500D73BDA /* quotesExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = quotesExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1AD8C28A2F8576B500D73BDA /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		1AD8C28C2F8576B500D73BDA /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		A494DD882F7E6EF400D32B2E /* daily-oracle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "daily-oracle.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A494DD992F7E6EF500D32B2E /* daily-oracleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "daily-oracleTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1AD8C2A32F8576B700D73BDA /* Exceptions for "quotes" folder in "quotesExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 1AD8C2872F8576B500D73BDA /* quotesExtension */;
+		};
 		A494DDAB2F7E6EF500D32B2E /* Exceptions for "daily-oracle" folder in "daily-oracle" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -50,6 +87,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		1AD8C28E2F8576B500D73BDA /* quotes */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1AD8C2A32F8576B700D73BDA /* Exceptions for "quotes" folder in "quotesExtension" target */,
+			);
+			path = quotes;
+			sourceTree = "<group>";
+		};
 		A494DD8A2F7E6EF400D32B2E /* daily-oracle */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -66,6 +111,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		1AD8C2852F8576B500D73BDA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1AD8C28D2F8576B500D73BDA /* SwiftUI.framework in Frameworks */,
+				1AD8C28B2F8576B500D73BDA /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A494DD852F7E6EF400D32B2E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -83,11 +137,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1AD8C2892F8576B500D73BDA /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1AD8C28A2F8576B500D73BDA /* WidgetKit.framework */,
+				1AD8C28C2F8576B500D73BDA /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A494DD7F2F7E6EF400D32B2E = {
 			isa = PBXGroup;
 			children = (
 				A494DD8A2F7E6EF400D32B2E /* daily-oracle */,
 				A494DD9C2F7E6EF500D32B2E /* daily-oracleTests */,
+				1AD8C28E2F8576B500D73BDA /* quotes */,
+				1AD8C2892F8576B500D73BDA /* Frameworks */,
 				A494DD892F7E6EF400D32B2E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -97,6 +162,7 @@
 			children = (
 				A494DD882F7E6EF400D32B2E /* daily-oracle.app */,
 				A494DD992F7E6EF500D32B2E /* daily-oracleTests.xctest */,
+				1AD8C2882F8576B500D73BDA /* quotesExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -104,6 +170,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		1AD8C2872F8576B500D73BDA /* quotesExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1AD8C2A22F8576B700D73BDA /* Build configuration list for PBXNativeTarget "quotesExtension" */;
+			buildPhases = (
+				1AD8C2842F8576B500D73BDA /* Sources */,
+				1AD8C2852F8576B500D73BDA /* Frameworks */,
+				1AD8C2862F8576B500D73BDA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				1AD8C28E2F8576B500D73BDA /* quotes */,
+			);
+			name = quotesExtension;
+			packageProductDependencies = (
+			);
+			productName = quotesExtension;
+			productReference = 1AD8C2882F8576B500D73BDA /* quotesExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A494DD872F7E6EF400D32B2E /* daily-oracle */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A494DDAC2F7E6EF500D32B2E /* Build configuration list for PBXNativeTarget "daily-oracle" */;
@@ -111,10 +199,12 @@
 				A494DD842F7E6EF400D32B2E /* Sources */,
 				A494DD852F7E6EF400D32B2E /* Frameworks */,
 				A494DD862F7E6EF400D32B2E /* Resources */,
+				1AD8C29F2F8576B700D73BDA /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				1AD8C29D2F8576B700D73BDA /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A494DD8A2F7E6EF400D32B2E /* daily-oracle */,
@@ -156,9 +246,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
+					1AD8C2872F8576B500D73BDA = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 					A494DD872F7E6EF400D32B2E = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -184,11 +277,19 @@
 			targets = (
 				A494DD872F7E6EF400D32B2E /* daily-oracle */,
 				A494DD982F7E6EF500D32B2E /* daily-oracleTests */,
+				1AD8C2872F8576B500D73BDA /* quotesExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		1AD8C2862F8576B500D73BDA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A494DD862F7E6EF400D32B2E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -206,6 +307,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1AD8C2842F8576B500D73BDA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A494DD842F7E6EF400D32B2E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -223,6 +331,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		1AD8C29D2F8576B700D73BDA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1AD8C2872F8576B500D73BDA /* quotesExtension */;
+			targetProxy = 1AD8C29C2F8576B700D73BDA /* PBXContainerItemProxy */;
+		};
 		A494DD9B2F7E6EF500D32B2E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A494DD872F7E6EF400D32B2E /* daily-oracle */;
@@ -231,6 +344,70 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		1AD8C2A02F8576B700D73BDA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = quotes/quotesExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QZZ878S3NS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = quotes/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = quotes;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cain.com.daily-oracle.quotes";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1AD8C2A12F8576B700D73BDA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = quotes/quotesExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QZZ878S3NS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = quotes/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = quotes;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cain.com.daily-oracle.quotes";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		A494DDAD2F7E6EF500D32B2E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -485,6 +662,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1AD8C2A22F8576B700D73BDA /* Build configuration list for PBXNativeTarget "quotesExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1AD8C2A02F8576B700D73BDA /* Debug */,
+				1AD8C2A12F8576B700D73BDA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A494DD832F7E6EF400D32B2E /* Build configuration list for PBXProject "daily-oracle" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

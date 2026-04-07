@@ -1,4 +1,66 @@
-## 简化宜忌 prompt 传递方式 · 2026-04-06
+## 创建 WidgetKit Extension 实现桌面小组件 · 2026-04-08
+
+用户在 Xcode 手动创建了 Widget Extension target（Product Name: `quotes`，Bundle ID: `cain.com.daily-oracle.quotes`），我完成了实际的小组件代码。
+
+**改动：**
+
+1. `quotes/quotesExtension.entitlements`：新建，添加 App Group `group.cain.com.daily-oracle`
+2. `project.pbxproj`：Debug/Release 配置加了 `CODE_SIGN_ENTITLEMENTS`
+3. `quotes/Assets.xcassets/Colors/`：从主 App 复制了全部 20 个语义色 colorset（背景、文字、边框、宜忌、心情色）
+4. `quotes/quotes.swift`：完全重写 — `QuoteEntry` 数据模型 + `QuoteTimelineProvider`（placeholder 假数据 + `.atEnd` 策略）+ 三种尺寸视图（Small 名句+出处、Medium +宜忌、Large +心情条）+ `containerBackground` 用 `backgroundPrimary` + "All Sizes" 组合 Preview
+5. `quotes/quotesBundle.swift`：只保留 `quotes()` widget
+6. `quotes/AppIntent.swift`：最小化，无可配置参数
+7. 删除 `quotesLiveActivity.swift` 和 `quotesControl.swift`
+
+**技术要点：**
+
+- Widget target 用 `fileSystemSynchronizedGroups`，`quotes/` 目录下所有 Swift 文件自动编译，不需要手动添加文件引用
+- Asset Catalog 需要在 widget target 自己的 `Assets.xcassets` 里放一份颜色资源，不能直接引用主 App 的
+- `@Environment(\.widgetFamily)` 用来在 `WidgetEntryView` 里区分尺寸，不是 entry 上的属性
+- Preview 标签页在 Xcode Canvas 底部切换；加了 `"All Sizes"` 组合预览可同时看到三种尺寸
+
+**主 App 内 WidgetPreview 组件的参数化改动被用户回退了**，恢复为原始硬编码版本。CalendarTab 中的 `WidgetPreviewLargeRecord` 引用也恢复原样。
+
+---
+
+# 会话卸载记录
+
+以下是本次会话中为卸载 Flutter/Android 开发环境所执行的主要 Shell 命令及删除的内容：
+
+### Flutter & Android Studio
+- **卸载 Homebrew Flutter:**
+  - **命令:** `brew uninstall flutter`
+  - **内容:** 卸载了通过 Homebrew 安装的 Flutter SDK。
+
+- **删除 Flutter, Android Studio 及相关数据:**
+  - **命令:** `rm -rf ~/flutter "/Applications/Android Studio.app" ~/Library/Android ~/.android ~/.gradle ~/Library/Application\ Support/Google/AndroidStudio* ~/Library/Caches/Google/AndroidStudio* ~/Library/Logs/Google/AndroidStudio* ~/Library/Preferences/com.android.* ~/Library/Preferences/com.google.android.studio.plist`
+  - **内容:** 删除了以下目录和文件：
+    - `~/flutter` (手动安装的 Flutter SDK)
+    - `/Applications/Android Studio.app` (Android Studio 应用程序)
+    - `~/Library/Android` (Android SDK)
+    - `~/.android` (AVD 和调试密钥)
+    - `~/.gradle` (Gradle 缓存)
+    - Android Studio 的各类配置、缓存和日志文件。
+
+### Java 开发环境
+- **卸载 SDKMAN:**
+  - **命令:** `rm -rf ~/.sdkman`
+  - **内容:** 删除了 SDKMAN 工具及其管理的所有 Java 版本 (如 `17.0.2-open`)。
+
+- **卸载 Homebrew Java 11:**
+  - **命令:** `brew uninstall openjdk@11`
+  - **内容:** 卸载了通过 Homebrew 安装的 `openjdk@11`。
+
+### Dart/Flutter 缓存
+- **删除 Dart/Flutter 缓存:**
+  - **命令:** `rm -rf ~/.dart-tool ~/.dartServer`
+  - **内容:** 删除了 Dart 工具的全局配置和分析服务器缓存。
+
+### Shell 配置文件清理
+- **修改 `.zshrc` 和 `.bash_profile`:**
+  - **命令:** `replace ...` (多次执行)
+  - **内容:** 从 `.zshrc` 和 `.bash_profile` 文件中搜索并删除了所有与 Flutter、Android SDK、Valdi、SDKMAN 和 `openjdk@11` 相关的 `PATH` 和 `JAVA_HOME` 环境变量设置。
+
 
 将 Edge Function 从固定格式组装 prompt 改为透传模式，App 侧完全控制提示词内容。
 

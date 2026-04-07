@@ -78,7 +78,7 @@ server/data/*.db-shm
 ed25519*
 *.pem
 *.p12
-.claude/settings.local.json
+# .claude/settings.local.json
 
 # 仅忽略仓库根目录下的 env.md（避免误伤 docs/env.md）
 env.md
