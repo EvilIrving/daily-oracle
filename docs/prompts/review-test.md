@@ -47,3 +47,4 @@ Rules:
 
 - `verdict` 只能是 `pass` 或 `reject`
 - `note` 在 `pass` 时留空，在 `reject` 时必须填写一句具体理由
+
